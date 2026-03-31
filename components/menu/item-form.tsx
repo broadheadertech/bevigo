@@ -18,6 +18,7 @@ type ItemFormProps = {
     name: string;
     description?: string;
     basePrice: number;
+    sku?: string;
     categoryId: Id<"categories">;
     isFeatured: boolean;
     sortOrder: number;
@@ -46,6 +47,7 @@ export function ItemForm({
   const [categoryId, setCategoryId] = useState<Id<"categories"> | "">(
     editingItem?.categoryId ?? defaultCategoryId ?? ""
   );
+  const [sku, setSku] = useState(editingItem?.sku ?? "");
   const [isFeatured, setIsFeatured] = useState(
     editingItem?.isFeatured ?? false
   );
@@ -76,6 +78,7 @@ export function ItemForm({
           name,
           description: description || undefined,
           basePrice,
+          sku: sku || undefined,
           categoryId: categoryId as Id<"categories">,
           isFeatured,
           sortOrder,
@@ -87,6 +90,7 @@ export function ItemForm({
           name,
           description: description || undefined,
           basePrice,
+          sku: sku || undefined,
           isFeatured,
           sortOrder,
         });
@@ -100,21 +104,21 @@ export function ItemForm({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-        <h2 className="text-lg font-bold mb-4">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-stone-200/60">
+        <h2 className="text-lg font-bold text-stone-900 mb-4">
           {editingItem ? "Edit Menu Item" : "Add Menu Item"}
         </h2>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 mb-1">
               Name *
             </label>
             <input
@@ -122,26 +126,26 @@ export function ItemForm({
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2"
+              className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
               placeholder="e.g. Iced Americano"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 mb-1">
               Description
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2"
+              className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
               rows={2}
               placeholder="Optional description"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 mb-1">
               Price *
             </label>
             <input
@@ -151,13 +155,26 @@ export function ItemForm({
               step="0.01"
               value={priceDisplay}
               onChange={(e) => setPriceDisplay(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2"
+              className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
               placeholder="150.00"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              SKU / Barcode
+            </label>
+            <input
+              type="text"
+              value={sku}
+              onChange={(e) => setSku(e.target.value)}
+              className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              placeholder="e.g. 4800000000001"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
               Category *
             </label>
             <select
@@ -166,7 +183,7 @@ export function ItemForm({
               onChange={(e) =>
                 setCategoryId(e.target.value as Id<"categories">)
               }
-              className="w-full border border-gray-300 rounded px-3 py-2"
+              className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             >
               <option value="">Select category...</option>
               {categories.map((cat) => (
@@ -178,14 +195,14 @@ export function ItemForm({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 mb-1">
               Sort Order
             </label>
             <input
               type="number"
               value={sortOrder}
               onChange={(e) => setSortOrder(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded px-3 py-2"
+              className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             />
           </div>
 
@@ -195,11 +212,11 @@ export function ItemForm({
               id="isFeatured"
               checked={isFeatured}
               onChange={(e) => setIsFeatured(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600"
+              className="h-4 w-4 rounded border-stone-300 text-amber-600 focus:ring-amber-500/20"
             />
             <label
               htmlFor="isFeatured"
-              className="text-sm font-medium text-gray-700"
+              className="text-sm font-medium text-stone-700"
             >
               Featured Item
             </label>
@@ -209,14 +226,14 @@ export function ItemForm({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-4 py-2.5 text-stone-700 border border-stone-200 rounded-xl hover:bg-stone-50 text-sm font-medium transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2.5 bg-stone-900 text-white rounded-xl hover:bg-stone-800 disabled:opacity-50 text-sm font-medium transition-colors"
             >
               {isSubmitting
                 ? "Saving..."

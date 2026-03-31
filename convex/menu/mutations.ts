@@ -114,6 +114,7 @@ export const createItem = mutation({
     name: v.string(),
     description: v.optional(v.string()),
     basePrice: v.number(),
+    sku: v.optional(v.string()),
     isFeatured: v.optional(v.boolean()),
     sortOrder: v.number(),
   },
@@ -134,6 +135,7 @@ export const createItem = mutation({
       name: args.name,
       description: args.description,
       basePrice: args.basePrice,
+      sku: args.sku,
       isFeatured: args.isFeatured ?? false,
       sortOrder: args.sortOrder,
       status: "active",
@@ -165,6 +167,7 @@ export const updateItem = mutation({
     name: v.optional(v.string()),
     description: v.optional(v.string()),
     basePrice: v.optional(v.number()),
+    sku: v.optional(v.string()),
     categoryId: v.optional(v.id("categories")),
     isFeatured: v.optional(v.boolean()),
     sortOrder: v.optional(v.number()),
@@ -194,6 +197,7 @@ export const updateItem = mutation({
     if (args.description !== undefined) updates.description = args.description;
     if (args.basePrice !== undefined) updates.basePrice = args.basePrice;
     if (args.categoryId !== undefined) updates.categoryId = args.categoryId;
+    if (args.sku !== undefined) updates.sku = args.sku;
     if (args.isFeatured !== undefined) updates.isFeatured = args.isFeatured;
     if (args.sortOrder !== undefined) updates.sortOrder = args.sortOrder;
     if (args.status !== undefined) updates.status = args.status;
@@ -274,6 +278,41 @@ export const reactivateItem = mutation({
       "menuItems",
       args.itemId,
       { previousStatus: item.status, newStatus: "active" }
+    );
+
+    return args.itemId;
+  },
+});
+
+export const toggleFeatured = mutation({
+  args: {
+    token: v.string(),
+    itemId: v.id("menuItems"),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner"]);
+
+    const item = await ctx.db.get(args.itemId);
+    if (!item || item.tenantId !== session.tenantId) {
+      throw new Error("Menu item not found");
+    }
+
+    const newFeatured = !item.isFeatured;
+
+    await ctx.db.patch(args.itemId, {
+      isFeatured: newFeatured,
+      updatedAt: Date.now(),
+    });
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      newFeatured ? "menu_item_featured" : "menu_item_unfeatured",
+      "menuItems",
+      args.itemId,
+      { previousIsFeatured: item.isFeatured, newIsFeatured: newFeatured }
     );
 
     return args.itemId;

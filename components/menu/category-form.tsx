@@ -59,21 +59,21 @@ export function CategoryForm({ editingCategory, onClose }: CategoryFormProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-        <h2 className="text-lg font-bold mb-4">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-stone-200/60">
+        <h2 className="text-lg font-bold text-stone-900 mb-4">
           {editingCategory ? "Edit Category" : "Add Category"}
         </h2>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 mb-1">
               Name *
             </label>
             <input
@@ -81,20 +81,20 @@ export function CategoryForm({ editingCategory, onClose }: CategoryFormProps) {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2"
+              className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
               placeholder="e.g. Hot Drinks"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 mb-1">
               Sort Order
             </label>
             <input
               type="number"
               value={sortOrder}
               onChange={(e) => setSortOrder(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded px-3 py-2"
+              className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             />
           </div>
 
@@ -102,14 +102,14 @@ export function CategoryForm({ editingCategory, onClose }: CategoryFormProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-4 py-2.5 text-stone-700 border border-stone-200 rounded-xl hover:bg-stone-50 text-sm font-medium transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2.5 bg-stone-900 text-white rounded-xl hover:bg-stone-800 disabled:opacity-50 text-sm font-medium transition-colors"
             >
               {isSubmitting
                 ? "Saving..."
