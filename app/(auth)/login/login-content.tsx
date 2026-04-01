@@ -46,14 +46,9 @@ export default function LoginContent() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 mb-4">
-            <svg className="w-12 h-12" viewBox="0 0 100 100" fill="none">
-              <ellipse cx="50" cy="50" rx="38" ry="30" fill="#7C3A12" transform="rotate(-30 50 50)" />
-              <path d="M30 45 Q50 35 70 50" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight" style={{ fontStyle: "italic", color: 'var(--fg)' }}>bevi&amp;go</h1>
-          <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="bevi&go" className="h-16 mx-auto mb-4 object-contain" />
+          <p className="text-sm mt-1" style={{ color: 'var(--muted-fg)' }}>
             {mode === "login" ? "Welcome back" : "Create your shop"}
           </p>
         </div>

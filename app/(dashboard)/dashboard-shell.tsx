@@ -8,7 +8,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 function DashboardNav({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClose: () => void }) {
   const { session, logout } = useAuth();
-  const { brandName, logoUrl } = useBranding();
+  const { logoUrl } = useBranding();
 
   return (
     <>
@@ -30,25 +30,11 @@ function DashboardNav({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClose:
         style={{ backgroundColor: 'var(--card)', borderRight: '1px solid var(--border-color)' }}
       >
         {/* Logo + close button on mobile */}
-        <div className="px-5 py-5 border-b border-stone-100 dark:border-stone-800">
+        <div className="px-5 py-5" style={{ borderBottom: '1px solid var(--border-color)' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 flex items-center justify-center">
-                {logoUrl ? (
-                  <img src={logoUrl} alt="Logo" className="w-7 h-7 rounded-lg object-cover" />
-                ) : (
-                  <svg className="w-7 h-7" viewBox="0 0 100 100" fill="none">
-                    <ellipse cx="50" cy="50" rx="38" ry="30" fill="#7C3A12" transform="rotate(-30 50 50)" />
-                    <path d="M30 45 Q50 35 70 50" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" />
-                  </svg>
-                )}
-              </div>
-              <div>
-                <h1 className="text-base font-semibold text-stone-900 dark:text-stone-100 tracking-tight" style={{ fontStyle: brandName ? "normal" : "italic" }}>
-                  {brandName || "bevi&go"}
-                </h1>
-                <p className="text-[10px] font-medium text-stone-400 dark:text-stone-500 uppercase tracking-widest">POS</p>
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={logoUrl || "/logo.png"} alt="bevi&go" className="h-8 object-contain" />
             </div>
             <button
               onClick={onClose}
@@ -74,21 +60,22 @@ function DashboardNav({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClose:
 
         {/* User */}
         {session && (
-          <div className="px-4 py-4 border-t border-stone-100 dark:border-stone-800">
+          <div className="px-4 py-4" style={{ borderTop: '1px solid var(--border-color)' }}>
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--muted)' }}>
+                <span className="text-sm font-semibold" style={{ color: 'var(--accent-color)' }}>
                   {session.userName?.charAt(0)?.toUpperCase() ?? "U"}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-stone-800 dark:text-stone-200 truncate">{session.userName}</p>
-                <p className="text-xs text-stone-400 dark:text-stone-500 capitalize">{session.role}</p>
+                <p className="text-sm font-medium truncate" style={{ color: 'var(--fg)' }}>{session.userName}</p>
+                <p className="text-xs capitalize" style={{ color: 'var(--muted-fg)' }}>{session.role}</p>
               </div>
               <ThemeToggle />
               <button
                 onClick={logout}
-                className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:text-stone-500 dark:hover:text-stone-300 dark:hover:bg-stone-800 transition-colors"
+                className="p-1.5 rounded-lg transition-colors"
+                style={{ color: 'var(--muted-fg)' }}
                 title="Sign out"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -104,23 +91,12 @@ function DashboardNav({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClose:
 }
 
 function MobileTopBar({ onOpen }: { onOpen: () => void }) {
-  const { brandName, logoUrl } = useBranding();
+  const { logoUrl } = useBranding();
   return (
     <div className="md:hidden flex items-center justify-between px-4 py-3" style={{ backgroundColor: 'var(--card)', borderBottom: '1px solid var(--border-color)' }}>
       <div className="flex items-center gap-2.5">
-        <div className="w-7 h-7 flex items-center justify-center">
-          {logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="w-6 h-6 rounded-lg object-cover" />
-          ) : (
-            <svg className="w-6 h-6" viewBox="0 0 100 100" fill="none">
-              <ellipse cx="50" cy="50" rx="38" ry="30" fill="#7C3A12" transform="rotate(-30 50 50)" />
-              <path d="M30 45 Q50 35 70 50" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" />
-            </svg>
-          )}
-        </div>
-        <h1 className="text-sm font-semibold text-stone-900 dark:text-stone-100 tracking-tight" style={{ fontStyle: brandName ? "normal" : "italic" }}>
-          {brandName || "bevi&go"}
-        </h1>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={logoUrl || "/logo.png"} alt="bevi&go" className="h-7 object-contain" />
       </div>
       <button
         onClick={onOpen}

@@ -222,14 +222,16 @@ export function RoleNavigation() {
           <div key={item.href}>
             <Link
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150"
+              style={
                 active
-                  ? "bg-amber-50 text-amber-900 shadow-sm"
-                  : "text-stone-600 hover:bg-stone-100 hover:text-stone-900"
-              }`}
+                  ? { backgroundColor: 'var(--muted)', color: 'var(--fg)' }
+                  : { color: 'var(--muted-fg)' }
+              }
             >
               <svg
-                className={`w-5 h-5 shrink-0 ${active ? "text-amber-600" : "text-stone-400"}`}
+                className="w-5 h-5 shrink-0"
+                style={{ color: active ? 'var(--accent-color)' : 'var(--muted-fg)' }}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -250,11 +252,11 @@ export function RoleNavigation() {
                   <Link
                     key={child.href}
                     href={child.href}
-                    className={`flex items-center gap-3 pl-11 pr-3 py-2 rounded-xl text-sm transition-all duration-150 ${
-                      isActive(child.href)
-                        ? "text-amber-700 font-medium"
-                        : "text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300"
-                    }`}
+                    className="flex items-center gap-3 pl-11 pr-3 py-2 rounded-xl text-sm transition-all duration-150"
+                    style={{
+                      color: isActive(child.href) ? 'var(--accent-color)' : 'var(--muted-fg)',
+                      fontWeight: isActive(child.href) ? 500 : 400,
+                    }}
                   >
                     {child.label}
                   </Link>
