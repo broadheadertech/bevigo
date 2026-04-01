@@ -24,7 +24,7 @@ type CloneConfigDialogProps = {
   onClose: () => void;
 };
 
-const inputClass = "w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors";
+const inputClass = "w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors";
 
 export function CloneConfigDialog({ onClose }: CloneConfigDialogProps) {
   const { token } = useAuth();
@@ -145,7 +145,7 @@ export function CloneConfigDialog({ onClose }: CloneConfigDialogProps) {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[80vh] flex flex-col border border-stone-200/60">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[80vh] flex flex-col border border-stone-200/60">
         <h2 className="text-lg font-bold text-stone-900 mb-4">Clone Location Configuration</h2>
 
         {error && (
@@ -157,7 +157,7 @@ export function CloneConfigDialog({ onClose }: CloneConfigDialogProps) {
         {step === "select" && (
           <div className="flex flex-col gap-4">
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
+              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
                 Source Location
               </label>
               <select
@@ -177,7 +177,7 @@ export function CloneConfigDialog({ onClose }: CloneConfigDialogProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
+              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
                 Target Location
               </label>
               <select
@@ -215,7 +215,7 @@ export function CloneConfigDialog({ onClose }: CloneConfigDialogProps) {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 text-stone-700 border border-stone-200 rounded-xl hover:bg-stone-50 text-sm font-medium transition-colors"
+                className="px-4 py-2.5 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 text-sm font-medium transition-colors"
               >
                 Cancel
               </button>
@@ -233,12 +233,12 @@ export function CloneConfigDialog({ onClose }: CloneConfigDialogProps) {
 
         {step === "options" && (
           <div className="flex flex-col gap-4">
-            <p className="text-sm text-stone-600">
+            <p className="text-sm text-stone-600 dark:text-stone-400">
               Select which configuration to clone:
             </p>
 
             <div className="space-y-3">
-              <label className="flex items-start gap-3 p-3 border border-stone-200 rounded-xl hover:bg-stone-50 cursor-pointer transition-colors">
+              <label className="flex items-start gap-3 p-3 border border-stone-200 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 cursor-pointer transition-colors">
                 <input
                   type="checkbox"
                   checked={cloneOptions.menuPricing}
@@ -246,7 +246,7 @@ export function CloneConfigDialog({ onClose }: CloneConfigDialogProps) {
                   className="mt-0.5 rounded border-stone-300 text-amber-600 focus:ring-amber-500/20"
                 />
                 <div>
-                  <span className="text-sm font-medium text-stone-800">
+                  <span className="text-sm font-medium text-stone-800 dark:text-stone-200">
                     Menu pricing
                   </span>
                   <p className="text-xs text-stone-500 mt-0.5">
@@ -255,7 +255,7 @@ export function CloneConfigDialog({ onClose }: CloneConfigDialogProps) {
                 </div>
               </label>
 
-              <label className="flex items-start gap-3 p-3 border border-stone-200 rounded-xl hover:bg-stone-50 cursor-pointer transition-colors">
+              <label className="flex items-start gap-3 p-3 border border-stone-200 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 cursor-pointer transition-colors">
                 <input
                   type="checkbox"
                   checked={cloneOptions.taxConfig}
@@ -263,7 +263,7 @@ export function CloneConfigDialog({ onClose }: CloneConfigDialogProps) {
                   className="mt-0.5 rounded border-stone-300 text-amber-600 focus:ring-amber-500/20"
                 />
                 <div>
-                  <span className="text-sm font-medium text-stone-800">
+                  <span className="text-sm font-medium text-stone-800 dark:text-stone-200">
                     Tax configuration
                   </span>
                   <p className="text-xs text-stone-500 mt-0.5">
@@ -272,7 +272,7 @@ export function CloneConfigDialog({ onClose }: CloneConfigDialogProps) {
                 </div>
               </label>
 
-              <label className="flex items-start gap-3 p-3 border border-stone-200 rounded-xl hover:bg-stone-50 cursor-pointer transition-colors">
+              <label className="flex items-start gap-3 p-3 border border-stone-200 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 cursor-pointer transition-colors">
                 <input
                   type="checkbox"
                   checked={cloneOptions.operatingHours}
@@ -280,7 +280,7 @@ export function CloneConfigDialog({ onClose }: CloneConfigDialogProps) {
                   className="mt-0.5 rounded border-stone-300 text-amber-600 focus:ring-amber-500/20"
                 />
                 <div>
-                  <span className="text-sm font-medium text-stone-800">
+                  <span className="text-sm font-medium text-stone-800 dark:text-stone-200">
                     Operating hours
                   </span>
                   <p className="text-xs text-stone-500 mt-0.5">
@@ -289,7 +289,7 @@ export function CloneConfigDialog({ onClose }: CloneConfigDialogProps) {
                 </div>
               </label>
 
-              <label className="flex items-start gap-3 p-3 border border-stone-200 rounded-xl hover:bg-stone-50 cursor-pointer transition-colors">
+              <label className="flex items-start gap-3 p-3 border border-stone-200 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 cursor-pointer transition-colors">
                 <input
                   type="checkbox"
                   checked={cloneOptions.currency}
@@ -297,7 +297,7 @@ export function CloneConfigDialog({ onClose }: CloneConfigDialogProps) {
                   className="mt-0.5 rounded border-stone-300 text-amber-600 focus:ring-amber-500/20"
                 />
                 <div>
-                  <span className="text-sm font-medium text-stone-800">
+                  <span className="text-sm font-medium text-stone-800 dark:text-stone-200">
                     Currency and timezone
                   </span>
                   <p className="text-xs text-stone-500 mt-0.5">
@@ -325,7 +325,7 @@ export function CloneConfigDialog({ onClose }: CloneConfigDialogProps) {
               <button
                 type="button"
                 onClick={() => setStep("select")}
-                className="px-4 py-2.5 text-stone-700 border border-stone-200 rounded-xl hover:bg-stone-50 text-sm font-medium transition-colors"
+                className="px-4 py-2.5 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 text-sm font-medium transition-colors"
               >
                 Back
               </button>

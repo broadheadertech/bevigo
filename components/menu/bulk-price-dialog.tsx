@@ -304,7 +304,7 @@ export function BulkPriceDialog({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <div className="bg-white dark:bg-stone-900 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-lg font-bold">Bulk Price Update</h2>
           <button
@@ -359,7 +359,7 @@ export function BulkPriceDialog({
                 </button>
               </div>
             </div>
-            <div className="border border-gray-200 rounded max-h-48 overflow-y-auto">
+            <div className="border border-gray-200 dark:border-stone-700 rounded max-h-48 overflow-y-auto">
               {filteredItems.length === 0 ? (
                 <p className="text-sm text-gray-400 p-3">No items found</p>
               ) : (
@@ -370,7 +370,7 @@ export function BulkPriceDialog({
                   return (
                     <label
                       key={item._id}
-                      className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                      className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-stone-800 cursor-pointer border-b border-gray-100 dark:border-stone-800 last:border-b-0"
                     >
                       <input
                         type="checkbox"
@@ -379,7 +379,7 @@ export function BulkPriceDialog({
                         className="h-4 w-4 rounded border-gray-300 text-blue-600"
                       />
                       <span className="text-sm flex-1">{item.name}</span>
-                      <span className="text-xs text-gray-400">{catName}</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">{catName}</span>
                       <span className="text-sm font-mono text-gray-600">
                         {formatPrice(item.basePrice)}
                       </span>
@@ -399,7 +399,7 @@ export function BulkPriceDialog({
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-700">
                 Select Locations{" "}
-                <span className="font-normal text-gray-400">
+                <span className="font-normal text-gray-400 dark:text-gray-500">
                   (optional - leave empty to update base prices)
                 </span>
               </label>
@@ -415,7 +415,7 @@ export function BulkPriceDialog({
                 </button>
               )}
             </div>
-            <div className="border border-gray-200 rounded max-h-36 overflow-y-auto">
+            <div className="border border-gray-200 dark:border-stone-700 rounded max-h-36 overflow-y-auto">
               {locations.length === 0 ? (
                 <p className="text-sm text-gray-400 p-3">
                   No locations configured
@@ -424,7 +424,7 @@ export function BulkPriceDialog({
                 locations.map((loc) => (
                   <label
                     key={loc._id}
-                    className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-stone-800 cursor-pointer border-b border-gray-100 dark:border-stone-800 last:border-b-0"
                   >
                     <input
                       type="checkbox"
@@ -442,7 +442,7 @@ export function BulkPriceDialog({
           {/* Adjustment Type */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-stone-300 mb-1">
                 Adjustment Type
               </label>
               <select
@@ -452,14 +452,14 @@ export function BulkPriceDialog({
                     e.target.value as "absolute" | "percentage"
                   )
                 }
-                className="w-full border border-gray-300 rounded px-3 py-2"
+                className="w-full border border-gray-300 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded px-3 py-2"
               >
                 <option value="percentage">Percentage Adjustment</option>
                 <option value="absolute">Set Absolute Price</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-stone-300 mb-1">
                 {adjustmentType === "percentage"
                   ? "Percentage (%)"
                   : "New Price"}
@@ -469,7 +469,7 @@ export function BulkPriceDialog({
                 step={adjustmentType === "percentage" ? "0.1" : "0.01"}
                 value={adjustmentValue}
                 onChange={(e) => setAdjustmentValue(e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2"
+                className="w-full border border-gray-300 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded px-3 py-2"
                 placeholder={
                   adjustmentType === "percentage"
                     ? "e.g. 10 for +10%, -5 for -5%"
@@ -503,23 +503,23 @@ export function BulkPriceDialog({
                 Preview ({activeChanges.length} change
                 {activeChanges.length !== 1 ? "s" : ""})
               </h3>
-              <div className="border border-gray-200 rounded max-h-56 overflow-y-auto">
+              <div className="border border-gray-200 dark:border-stone-700 rounded max-h-56 overflow-y-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 sticky top-0">
+                  <thead className="bg-gray-50 dark:bg-stone-800 sticky top-0">
                     <tr>
-                      <th className="text-left px-3 py-2 font-medium text-gray-600">
+                      <th className="text-left px-3 py-2 font-medium text-gray-600 dark:text-stone-400">
                         Item
                       </th>
-                      <th className="text-left px-3 py-2 font-medium text-gray-600">
+                      <th className="text-left px-3 py-2 font-medium text-gray-600 dark:text-stone-400">
                         Location
                       </th>
-                      <th className="text-right px-3 py-2 font-medium text-gray-600">
+                      <th className="text-right px-3 py-2 font-medium text-gray-600 dark:text-stone-400">
                         Current
                       </th>
-                      <th className="text-right px-3 py-2 font-medium text-gray-600">
+                      <th className="text-right px-3 py-2 font-medium text-gray-600 dark:text-stone-400">
                         New
                       </th>
-                      <th className="text-right px-3 py-2 font-medium text-gray-600">
+                      <th className="text-right px-3 py-2 font-medium text-gray-600 dark:text-stone-400">
                         Change
                       </th>
                     </tr>
@@ -530,10 +530,10 @@ export function BulkPriceDialog({
                       return (
                         <tr
                           key={i}
-                          className={`border-t border-gray-100 ${row.skipped ? "opacity-40" : ""}`}
+                          className={`border-t border-gray-100 dark:border-stone-800 ${row.skipped ? "opacity-40" : ""}`}
                         >
                           <td className="px-3 py-2">{row.itemName}</td>
-                          <td className="px-3 py-2 text-gray-500">
+                          <td className="px-3 py-2 text-gray-500 dark:text-gray-400 dark:text-gray-500">
                             {row.locationName ?? "Base Price"}
                           </td>
                           <td className="px-3 py-2 text-right font-mono">
@@ -578,7 +578,7 @@ export function BulkPriceDialog({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="px-4 py-2 text-gray-600 dark:text-stone-400 border border-gray-300 dark:border-stone-700 rounded-lg hover:bg-gray-50 dark:hover:bg-stone-800"
           >
             Cancel
           </button>

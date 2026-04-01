@@ -124,7 +124,7 @@ export function PurchaseOrderForm({
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 border border-stone-200/60 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-xl w-full max-w-2xl p-6 border border-stone-200/60 max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-bold text-stone-900 mb-4">
           New Purchase Order
         </h2>
@@ -138,7 +138,7 @@ export function PurchaseOrderForm({
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
+              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
                 Location *
               </label>
               <select
@@ -147,7 +147,7 @@ export function PurchaseOrderForm({
                 onChange={(e) =>
                   setLocationId(e.target.value as Id<"locations"> | "")
                 }
-                className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+                className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
               >
                 <option value="">Select location</option>
                 {locations.map((loc: Location) => (
@@ -158,7 +158,7 @@ export function PurchaseOrderForm({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
+              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
                 Supplier *
               </label>
               <input
@@ -166,21 +166,21 @@ export function PurchaseOrderForm({
                 required
                 value={supplier}
                 onChange={(e) => setSupplier(e.target.value)}
-                className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+                className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
                 placeholder="e.g. Bean Supply Co."
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
               Notes
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors resize-none"
+              className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors resize-none"
               placeholder="Optional notes..."
             />
           </div>
@@ -204,7 +204,7 @@ export function PurchaseOrderForm({
               {items.map((item: PurchaseOrderItemDraft) => (
                 <div
                   key={item.key}
-                  className="flex items-center gap-2 bg-stone-50 rounded-xl p-3"
+                  className="flex items-center gap-2 bg-stone-50 dark:bg-stone-800 rounded-xl p-3"
                 >
                   <div className="flex-1">
                     <select
@@ -212,7 +212,7 @@ export function PurchaseOrderForm({
                       onChange={(e) =>
                         updateItem(item.key, "ingredientId", e.target.value)
                       }
-                      className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors bg-white"
+                      className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors bg-white"
                     >
                       <option value="">Select ingredient</option>
                       {ingredients?.map((ing: Ingredient) => (
@@ -235,7 +235,7 @@ export function PurchaseOrderForm({
                           Number(e.target.value)
                         )
                       }
-                      className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors bg-white"
+                      className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors bg-white"
                       placeholder="Qty"
                     />
                   </div>
@@ -254,7 +254,7 @@ export function PurchaseOrderForm({
                             : Number(e.target.value)
                         )
                       }
-                      className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors bg-white"
+                      className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors bg-white"
                       placeholder="Cost"
                     />
                   </div>
@@ -296,7 +296,7 @@ export function PurchaseOrderForm({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 text-stone-700 border border-stone-200 rounded-xl hover:bg-stone-50 text-sm font-medium transition-colors"
+              className="px-4 py-2.5 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 text-sm font-medium transition-colors"
             >
               Cancel
             </button>

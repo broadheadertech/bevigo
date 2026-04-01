@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Id } from "../../convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/currency";
 
@@ -12,6 +13,7 @@ type LocationItem = {
   effectivePrice: number;
   hasOverride: boolean;
   isFeatured: boolean;
+  imageUrl?: string | null;
 };
 
 type Category = {
@@ -29,74 +31,102 @@ type MenuGridProps = {
 
 export function MenuGrid({ categories, items, onItemTap }: MenuGridProps) {
   const activeCategories = categories.filter((c) => c.status === "active");
-
-  // Group items by category
   const featured = items.filter((i) => i.isFeatured);
+
+  // "featured" is a virtual category, then real categories
+  const allTabs = [
+    ...(featured.length > 0 ? [{ id: "__featured__", name: "Featured" }] : []),
+    ...activeCategories.map((c) => ({ id: c._id as string, name: c.name })),
+  ];
+
+  const [activeTab, setActiveTab] = useState(allTabs[0]?.id ?? "");
+
+  const displayItems =
+    activeTab === "__featured__"
+      ? featured
+      : items.filter((i) => i.categoryId === activeTab);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-3">
-        {/* Featured section */}
-        {featured.length > 0 && (
-          <div className="mb-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-amber-600 mb-2 px-1">
-              Featured
-            </h3>
-            <div className="grid grid-cols-3 gap-2">
-              {featured.map((item: LocationItem) => (
-                <button
-                  key={`featured-${item._id}`}
-                  onClick={() => onItemTap(item)}
-                  className="min-h-[48px] p-3 bg-amber-50 border-2 border-amber-200 rounded-lg text-left hover:bg-amber-100 active:bg-amber-200 transition-colors"
-                >
-                  <div className="text-sm font-medium text-stone-900 truncate">
+      {/* Category tabs */}
+      <div
+        className="flex gap-1 px-3 py-2 overflow-x-auto shrink-0"
+        style={{ borderBottom: "1px solid var(--border-color)" }}
+      >
+        {allTabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors min-h-[40px] ${
+              activeTab === tab.id
+                ? "bg-amber-600 text-white"
+                : ""
+            }`}
+            style={
+              activeTab !== tab.id
+                ? { backgroundColor: "var(--muted)", color: "var(--muted-fg)" }
+                : undefined
+            }
+          >
+            {tab.name}
+            {tab.id === "__featured__" && " ★"}
+          </button>
+        ))}
+      </div>
+
+      {/* Items grid — fills remaining space, no scroll */}
+      <div className="flex-1 p-3 overflow-y-auto">
+        {displayItems.length > 0 ? (
+          <div className="grid grid-cols-3 lg:grid-cols-4 gap-2 auto-rows-min">
+            {displayItems.map((item: LocationItem) => (
+              <button
+                key={item._id}
+                onClick={() => onItemTap(item)}
+                className="rounded-xl text-left transition-all duration-100 active:scale-95 overflow-hidden flex flex-col"
+                style={{
+                  backgroundColor: activeTab === "__featured__" ? "var(--accent-color)" : "var(--card)",
+                  color: activeTab === "__featured__" ? "white" : "var(--card-fg)",
+                  border: "1px solid var(--border-color)",
+                }}
+              >
+                {item.imageUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="w-full h-20 object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-12 flex items-center justify-center" style={{ backgroundColor: activeTab === "__featured__" ? "rgba(0,0,0,0.15)" : "var(--muted)" }}>
+                    <svg className="w-5 h-5 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M6.75 12a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                    </svg>
+                  </div>
+                )}
+                <div className="p-2">
+                  <div className="text-sm font-medium truncate">
+                    {item.isFeatured && activeTab !== "__featured__" && (
+                      <span className="text-amber-500 mr-1">★</span>
+                    )}
                     {item.name}
                   </div>
-                  <div className="text-xs font-semibold text-amber-700 mt-1">
+                  <div
+                    className="text-xs font-semibold mt-0.5"
+                    style={{
+                      color: activeTab === "__featured__" ? "rgba(255,255,255,0.8)" : "var(--muted-fg)",
+                    }}
+                  >
                     {formatCurrency(item.effectivePrice)}
                   </div>
-                </button>
-              ))}
-            </div>
+                </div>
+              </button>
+            ))}
           </div>
-        )}
-
-        {/* Category sections */}
-        {activeCategories.map((cat: Category) => {
-          const catItems = items.filter((i) => i.categoryId === cat._id);
-          if (catItems.length === 0) return null;
-
-          return (
-            <div key={cat._id} className="mb-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-stone-500 mb-2 px-1">
-                {cat.name}
-              </h3>
-              <div className="grid grid-cols-3 gap-2">
-                {catItems.map((item: LocationItem) => (
-                  <button
-                    key={item._id}
-                    onClick={() => onItemTap(item)}
-                    className="min-h-[48px] p-3 bg-white border border-stone-200 rounded-lg text-left hover:bg-stone-50 active:bg-stone-100 transition-colors shadow-sm"
-                  >
-                    <div className="text-sm font-medium text-stone-900 truncate">
-                      {item.isFeatured && (
-                        <span className="text-amber-500 mr-1">&#9733;</span>
-                      )}
-                      {item.name}
-                    </div>
-                    <div className="text-xs font-semibold text-stone-600 mt-1">
-                      {formatCurrency(item.effectivePrice)}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-
-        {items.length === 0 && (
-          <div className="flex items-center justify-center h-48">
-            <p className="text-stone-400 text-sm">No menu items available</p>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <p style={{ color: "var(--muted-fg)" }} className="text-sm">
+              No items in this category
+            </p>
           </div>
         )}
       </div>

@@ -74,7 +74,7 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
   if (receipt === undefined) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-8 text-center">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-xl w-full max-w-sm mx-4 p-8 text-center">
           <p className="text-stone-500 text-sm">Loading receipt...</p>
         </div>
       </div>
@@ -84,7 +84,7 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
   if (receipt === null) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-8 text-center">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-xl w-full max-w-sm mx-4 p-8 text-center">
           <p className="text-red-600 text-sm">Receipt not found</p>
           <button
             onClick={onClose}
@@ -99,7 +99,7 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:bg-white print:static">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden print:shadow-none print:rounded-none print:max-w-none print:mx-0">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden print:shadow-none print:rounded-none print:max-w-none print:mx-0">
         {/* Close button - hidden in print */}
         <div className="flex justify-end px-4 pt-3 print:hidden">
           <button
@@ -111,7 +111,7 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
         </div>
 
         {/* Receipt body */}
-        <div className="px-6 pb-6 pt-2 font-mono text-sm text-stone-800">
+        <div className="px-6 pb-6 pt-2 font-mono text-sm text-stone-800 dark:text-stone-200">
           {/* Header */}
           <div className="text-center mb-4">
             <p className="text-base font-bold">{receipt.locationName}</p>

@@ -31,7 +31,7 @@ export default function PublicMenuPage({
   // Loading state
   if (menu === undefined) {
     return (
-      <div className="mx-auto max-w-md min-h-screen bg-white px-4 py-8">
+      <div className="mx-auto max-w-md min-h-screen bg-white dark:bg-stone-900 px-4 py-8">
         <div className="animate-pulse space-y-6">
           <div className="h-8 w-48 rounded bg-stone-200" />
           <div className="space-y-4">
@@ -51,8 +51,8 @@ export default function PublicMenuPage({
   // Location not found
   if (menu === null) {
     return (
-      <div className="mx-auto max-w-md min-h-screen bg-white px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold text-stone-900">Menu Not Found</h1>
+      <div className="mx-auto max-w-md min-h-screen bg-white dark:bg-stone-900 px-4 py-12 text-center">
+        <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">Menu Not Found</h1>
         <p className="mt-3 text-stone-500">
           This menu is not available. Please check the URL or scan the QR code
           again.
@@ -62,9 +62,9 @@ export default function PublicMenuPage({
   }
 
   return (
-    <div className="mx-auto max-w-md min-h-screen bg-white">
+    <div className="mx-auto max-w-md min-h-screen bg-white dark:bg-stone-900">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-stone-200 bg-white/95 px-4 py-4 backdrop-blur-sm">
+      <header className="sticky top-0 z-10 border-b border-stone-200 dark:border-stone-700 bg-white/95 dark:bg-stone-900/95 px-4 py-4 backdrop-blur-sm">
         <div className="flex items-center gap-2.5">
           {menu.brandLogoUrl && (
             <img src={menu.brandLogoUrl} alt="Logo" className="w-8 h-8 rounded-lg object-cover" />
@@ -87,7 +87,7 @@ export default function PublicMenuPage({
           <section key={category.name} className="mb-8">
             {/* Category Header */}
             <div className="mb-3 border-b border-stone-200 pb-2">
-              <h2 className="text-lg font-semibold text-stone-800">
+              <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">
                 {category.name}
               </h2>
             </div>
@@ -99,13 +99,13 @@ export default function PublicMenuPage({
                   key={item.name}
                   className={`flex items-start justify-between gap-3 rounded-lg p-3 ${
                     item.isFeatured
-                      ? "border border-amber-200 bg-amber-50"
-                      : "border border-stone-100 bg-stone-50"
+                      ? "border border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-700"
+                      : "border border-stone-100 dark:border-stone-800 bg-stone-50 dark:bg-stone-800"
                   }`}
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-medium text-stone-900">
+                      <span className="font-medium text-stone-900 dark:text-stone-100">
                         {item.name}
                       </span>
                       {item.isFeatured && (
@@ -124,7 +124,7 @@ export default function PublicMenuPage({
                       </p>
                     )}
                   </div>
-                  <span className="shrink-0 font-semibold text-stone-900">
+                  <span className="shrink-0 font-semibold text-stone-900 dark:text-stone-100">
                     {formatPrice(item.effectivePrice)}
                   </span>
                 </div>
@@ -141,7 +141,7 @@ export default function PublicMenuPage({
       </main>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 border-t border-stone-200 bg-white/95 py-3 text-center backdrop-blur-sm">
+      <footer className="fixed bottom-0 left-0 right-0 border-t border-stone-200 dark:border-stone-700 bg-white/95 dark:bg-stone-900/95 py-3 text-center backdrop-blur-sm">
         <p className="text-xs text-stone-400">Powered by {menu.brandName || "bevi&go"}</p>
       </footer>
     </div>

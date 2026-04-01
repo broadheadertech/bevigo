@@ -40,6 +40,7 @@ import type * as locations_mutations from "../locations/mutations.js";
 import type * as locations_queries from "../locations/queries.js";
 import type * as menu_bulkMutations from "../menu/bulkMutations.js";
 import type * as menu_cloneMutations from "../menu/cloneMutations.js";
+import type * as menu_imageMutations from "../menu/imageMutations.js";
 import type * as menu_modifierMutations from "../menu/modifierMutations.js";
 import type * as menu_modifierQueries from "../menu/modifierQueries.js";
 import type * as menu_mutations from "../menu/mutations.js";
@@ -56,7 +57,10 @@ import type * as reports_dashboardQueries from "../reports/dashboardQueries.js";
 import type * as reports_queries from "../reports/queries.js";
 import type * as search_queries from "../search/queries.js";
 import type * as seed from "../seed.js";
+import type * as seedFullData from "../seedFullData.js";
 import type * as seedHelpers from "../seedHelpers.js";
+import type * as seedRecipes from "../seedRecipes.js";
+import type * as seedTables from "../seedTables.js";
 import type * as settings_mutations from "../settings/mutations.js";
 import type * as settings_queries from "../settings/queries.js";
 import type * as shifts_mutations from "../shifts/mutations.js";
@@ -66,6 +70,9 @@ import type * as staffLocations_queries from "../staffLocations/queries.js";
 import type * as staff_internals from "../staff/internals.js";
 import type * as staff_mutations from "../staff/mutations.js";
 import type * as staff_queries from "../staff/queries.js";
+import type * as tables_mutations from "../tables/mutations.js";
+import type * as tables_queries from "../tables/queries.js";
+import type * as tables_seed from "../tables/seed.js";
 
 import type {
   ApiFromModules,
@@ -106,6 +113,7 @@ declare const fullApi: ApiFromModules<{
   "locations/queries": typeof locations_queries;
   "menu/bulkMutations": typeof menu_bulkMutations;
   "menu/cloneMutations": typeof menu_cloneMutations;
+  "menu/imageMutations": typeof menu_imageMutations;
   "menu/modifierMutations": typeof menu_modifierMutations;
   "menu/modifierQueries": typeof menu_modifierQueries;
   "menu/mutations": typeof menu_mutations;
@@ -122,7 +130,10 @@ declare const fullApi: ApiFromModules<{
   "reports/queries": typeof reports_queries;
   "search/queries": typeof search_queries;
   seed: typeof seed;
+  seedFullData: typeof seedFullData;
   seedHelpers: typeof seedHelpers;
+  seedRecipes: typeof seedRecipes;
+  seedTables: typeof seedTables;
   "settings/mutations": typeof settings_mutations;
   "settings/queries": typeof settings_queries;
   "shifts/mutations": typeof shifts_mutations;
@@ -132,6 +143,9 @@ declare const fullApi: ApiFromModules<{
   "staff/internals": typeof staff_internals;
   "staff/mutations": typeof staff_mutations;
   "staff/queries": typeof staff_queries;
+  "tables/mutations": typeof tables_mutations;
+  "tables/queries": typeof tables_queries;
+  "tables/seed": typeof tables_seed;
 }>;
 
 /**

@@ -122,16 +122,16 @@ export default function COGSPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-lg md:text-xl font-bold text-stone-900">
+        <h1 className="text-lg md:text-xl font-bold text-stone-900 dark:text-stone-100">
           Cost of Goods Sold
         </h1>
-        <p className="text-sm text-stone-500 mt-0.5">
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
           Analyze ingredient costs, margins, and profitability per menu item
         </p>
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-4 mb-6">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-4 mb-6">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-medium text-stone-400 uppercase tracking-wide mb-1.5">
@@ -141,7 +141,7 @@ export default function COGSPage() {
               type="date"
               value={startDateStr}
               onChange={(e) => setStartDateStr(e.target.value)}
-              className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             />
           </div>
           <div>
@@ -152,7 +152,7 @@ export default function COGSPage() {
               type="date"
               value={endDateStr}
               onChange={(e) => setEndDateStr(e.target.value)}
-              className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             />
           </div>
           <div>
@@ -162,7 +162,7 @@ export default function COGSPage() {
             <select
               value={selectedLocationId}
               onChange={(e) => setSelectedLocationId(e.target.value)}
-              className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             >
               <option value="">All Locations</option>
               {availableLocations.map((loc: LocationOption) => (
@@ -187,7 +187,7 @@ export default function COGSPage() {
                 "cogs-report.csv"
               );
             }}
-            className="px-3 py-2 border border-stone-200 text-stone-600 text-sm rounded-xl hover:bg-stone-50"
+            className="px-3 py-2 border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 text-sm rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800"
           >
             Export CSV
           </button>
@@ -220,7 +220,7 @@ export default function COGSPage() {
                 }
               );
             }}
-            className="px-3 py-2 border border-stone-200 text-stone-600 text-sm rounded-xl hover:bg-stone-50"
+            className="px-3 py-2 border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 text-sm rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800"
           >
             Export PDF
           </button>
@@ -230,31 +230,31 @@ export default function COGSPage() {
       {/* Summary Cards */}
       {cogsData && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-5">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-5">
             <p className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-1">
               Total Revenue
             </p>
-            <p className="text-xl font-bold text-stone-900">
+            <p className="text-xl font-bold text-stone-900 dark:text-stone-100">
               {formatCurrency(totalRevenue)}
             </p>
           </div>
-          <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-5">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-5">
             <p className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-1">
               Total COGS
             </p>
-            <p className="text-xl font-bold text-stone-900">
+            <p className="text-xl font-bold text-stone-900 dark:text-stone-100">
               {formatCurrency(totalCogs)}
             </p>
           </div>
-          <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-5">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-5">
             <p className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-1">
               Gross Profit
             </p>
-            <p className="text-xl font-bold text-stone-900">
+            <p className="text-xl font-bold text-stone-900 dark:text-stone-100">
               {formatCurrency(totalGrossProfit)}
             </p>
           </div>
-          <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-5">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-5">
             <p className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-1">
               Overall Margin
             </p>
@@ -275,9 +275,9 @@ export default function COGSPage() {
           No sales data for this period.
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm overflow-hidden overflow-x-auto">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm overflow-hidden overflow-x-auto">
           <table className="w-full min-w-[600px]">
-            <thead className="bg-stone-50/50 border-b border-stone-100">
+            <thead className="bg-stone-50/50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800">
               <tr>
                 <th className="text-left px-5 py-3 text-xs font-medium text-stone-400 uppercase tracking-wide">
                   Item
@@ -299,25 +299,25 @@ export default function COGSPage() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100">
+            <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
               {cogsData.map((row: COGSItem) => (
                 <tr
                   key={row.itemName}
-                  className="hover:bg-stone-50/50 transition-colors"
+                  className="hover:bg-stone-50/50 dark:hover:bg-stone-800/50 transition-colors"
                 >
-                  <td className="px-5 py-3.5 font-medium text-stone-900">
+                  <td className="px-5 py-3.5 font-medium text-stone-900 dark:text-stone-100">
                     {row.itemName}
                   </td>
-                  <td className="px-5 py-3.5 text-right text-stone-600">
+                  <td className="px-5 py-3.5 text-right text-stone-600 dark:text-stone-400">
                     {row.qtySold}
                   </td>
-                  <td className="px-5 py-3.5 text-right text-stone-600">
+                  <td className="px-5 py-3.5 text-right text-stone-600 dark:text-stone-400">
                     {formatCurrency(row.revenue)}
                   </td>
-                  <td className="px-5 py-3.5 text-right text-stone-600">
+                  <td className="px-5 py-3.5 text-right text-stone-600 dark:text-stone-400">
                     {formatCurrency(row.cogs)}
                   </td>
-                  <td className="px-5 py-3.5 text-right text-stone-600">
+                  <td className="px-5 py-3.5 text-right text-stone-600 dark:text-stone-400">
                     {formatCurrency(row.grossProfit)}
                   </td>
                   <td

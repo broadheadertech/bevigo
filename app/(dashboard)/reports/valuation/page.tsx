@@ -66,16 +66,16 @@ export default function ValuationPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-lg md:text-xl font-bold text-stone-900">
+        <h1 className="text-lg md:text-xl font-bold text-stone-900 dark:text-stone-100">
           Inventory Valuation
         </h1>
-        <p className="text-sm text-stone-500 mt-0.5">
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
           Current stock value based on average purchase costs
         </p>
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-4 mb-6">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-4 mb-6">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-medium text-stone-400 uppercase tracking-wide mb-1.5">
@@ -84,7 +84,7 @@ export default function ValuationPage() {
             <select
               value={selectedLocationId}
               onChange={(e) => setSelectedLocationId(e.target.value)}
-              className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             >
               <option value="">All Locations</option>
               {availableLocations.map((loc: LocationOption) => (
@@ -109,7 +109,7 @@ export default function ValuationPage() {
                 "inventory-valuation.csv"
               );
             }}
-            className="px-3 py-2 border border-stone-200 text-stone-600 text-sm rounded-xl hover:bg-stone-50"
+            className="px-3 py-2 border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 text-sm rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800"
           >
             Export CSV
           </button>
@@ -118,14 +118,14 @@ export default function ValuationPage() {
 
       {/* Grand total card */}
       {valuationData && (
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-5 mb-6">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-5 mb-6">
           <p className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-1">
             Total Inventory Value
           </p>
-          <p className="text-2xl font-bold text-stone-900">
+          <p className="text-2xl font-bold text-stone-900 dark:text-stone-100">
             {formatCurrency(valuationData.grandTotal)}
           </p>
-          <p className="text-sm text-stone-500 mt-1">
+          <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
             {valuationData.items.length} ingredient{valuationData.items.length !== 1 ? "s" : ""} in stock
           </p>
         </div>
@@ -141,9 +141,9 @@ export default function ValuationPage() {
           No ingredients with stock found.
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm overflow-hidden overflow-x-auto">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm overflow-hidden overflow-x-auto">
           <table className="w-full min-w-[600px]">
-            <thead className="bg-stone-50/50 border-b border-stone-100">
+            <thead className="bg-stone-50/50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800">
               <tr>
                 <th className="text-left px-5 py-3 text-xs font-medium text-stone-400 uppercase tracking-wide">
                   Ingredient
@@ -162,31 +162,31 @@ export default function ValuationPage() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100">
+            <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
               {valuationData.items.map((row: ValuationItem) => (
                 <tr
                   key={row.ingredientName}
-                  className="hover:bg-stone-50/50 transition-colors"
+                  className="hover:bg-stone-50/50 dark:hover:bg-stone-800/50 transition-colors"
                 >
-                  <td className="px-5 py-3.5 font-medium text-stone-900">
+                  <td className="px-5 py-3.5 font-medium text-stone-900 dark:text-stone-100">
                     {row.ingredientName}
                   </td>
                   <td className="px-5 py-3.5 text-stone-600">
                     {row.category}
                   </td>
-                  <td className="px-5 py-3.5 text-right text-stone-600">
+                  <td className="px-5 py-3.5 text-right text-stone-600 dark:text-stone-400">
                     {row.stock} {row.unit}
                   </td>
-                  <td className="px-5 py-3.5 text-right text-stone-600">
+                  <td className="px-5 py-3.5 text-right text-stone-600 dark:text-stone-400">
                     {formatCurrency(row.avgUnitCost)}
                   </td>
-                  <td className="px-5 py-3.5 text-right font-medium text-stone-900">
+                  <td className="px-5 py-3.5 text-right font-medium text-stone-900 dark:text-stone-100">
                     {formatCurrency(row.totalValue)}
                   </td>
                 </tr>
               ))}
               {/* Totals row */}
-              <tr className="bg-stone-50 font-semibold">
+              <tr className="bg-stone-50 dark:bg-stone-800 font-semibold">
                 <td className="px-5 py-3.5 text-stone-900" colSpan={4}>
                   Total
                 </td>

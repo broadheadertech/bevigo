@@ -46,10 +46,10 @@ export function OrderPanel({
   const hasItems = items.length > 0;
 
   return (
-    <div className="flex flex-col h-full bg-white border-l border-stone-200">
+    <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--card)', color: 'var(--card-fg)', borderLeft: '1px solid var(--border-color)' }}>
       {/* Header */}
-      <div className="px-4 py-3 border-b border-stone-200 bg-stone-50">
-        <h2 className="text-sm font-semibold text-stone-700 uppercase tracking-wide">
+      <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--muted)' }}>
+        <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-fg)' }}>
           Current Order
         </h2>
         {hasItems && (
@@ -66,11 +66,11 @@ export function OrderPanel({
             <p className="text-stone-400 text-sm">Tap an item to start</p>
           </div>
         ) : (
-          <div className="divide-y divide-stone-100">
+          <div className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
             {items.map((item: OrderItem) => (
               <div
                 key={item._id}
-                className="px-4 py-3 flex items-start gap-2 group cursor-pointer hover:bg-stone-50 active:bg-stone-100 transition-colors"
+                className="px-4 py-3 flex items-start gap-2 group cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-800 active:bg-stone-100 transition-colors"
                 onClick={() => onEditItem?.(item)}
                 role="button"
                 tabIndex={0}
@@ -83,7 +83,7 @@ export function OrderPanel({
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-stone-900 truncate">
+                    <span className="text-sm font-medium truncate" style={{ color: 'var(--fg)' }}>
                       {item.quantity > 1 && (
                         <span className="text-stone-500 mr-1">
                           {item.quantity}x
@@ -91,7 +91,7 @@ export function OrderPanel({
                       )}
                       {item.itemName}
                     </span>
-                    <span className="text-sm font-medium text-stone-700 ml-2 flex-shrink-0">
+                    <span className="text-sm font-medium ml-2 shrink-0" style={{ color: 'var(--fg)' }}>
                       {formatCurrency(item.subtotal)}
                     </span>
                   </div>
@@ -128,17 +128,17 @@ export function OrderPanel({
 
       {/* Totals + actions */}
       {hasItems && order && (
-        <div className="border-t border-stone-200 px-4 py-3 bg-stone-50">
+        <div className="px-4 py-3" style={{ borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--muted)' }}>
           <div className="space-y-1 mb-3">
-            <div className="flex justify-between text-sm text-stone-600">
+            <div className="flex justify-between text-sm" style={{ color: 'var(--muted-fg)' }}>
               <span>Subtotal</span>
               <span>{formatCurrency(order.subtotal)}</span>
             </div>
-            <div className="flex justify-between text-sm text-stone-600">
+            <div className="flex justify-between text-sm" style={{ color: 'var(--muted-fg)' }}>
               <span>{order.taxLabel}</span>
               <span>{formatCurrency(order.taxAmount)}</span>
             </div>
-            <div className="flex justify-between text-base font-bold text-stone-900 pt-1 border-t border-stone-200">
+            <div className="flex justify-between text-base font-bold pt-1" style={{ color: 'var(--fg)', borderTop: '1px solid var(--border-color)' }}>
               <span>Total</span>
               <span>{formatCurrency(order.total)}</span>
             </div>

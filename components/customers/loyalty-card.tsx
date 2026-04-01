@@ -59,7 +59,7 @@ export function LoyaltyCard({
             className={`aspect-square rounded-xl flex items-center justify-center border-2 transition-all duration-300 ${
               i < stampsEarned
                 ? "bg-amber-100 border-amber-400"
-                : "bg-stone-50 border-stone-200"
+                : "bg-stone-50 dark:bg-stone-800 border-stone-200"
             }`}
           >
             {i < stampsEarned ? (

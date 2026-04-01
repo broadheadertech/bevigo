@@ -93,19 +93,19 @@ export default function AuditLogPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-xl font-bold text-stone-900">Audit Log</h1>
-        <p className="text-sm text-stone-500 mt-0.5">
+        <h1 className="text-xl font-bold text-stone-900 dark:text-stone-100">Audit Log</h1>
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
           View a history of all actions performed in your organization.
         </p>
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-4 mb-6">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-4 mb-6">
         <div className="flex flex-wrap gap-3 items-center">
           <select
             value={entityType}
             onChange={(e) => setEntityType(e.target.value)}
-            className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+            className="border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
           >
             {ENTITY_TYPES.map((et: { value: string; label: string }) => (
               <option key={et.value} value={et.value}>
@@ -128,7 +128,7 @@ export default function AuditLogPage() {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             />
           </div>
 
@@ -138,7 +138,7 @@ export default function AuditLogPage() {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             />
           </div>
 
@@ -159,9 +159,9 @@ export default function AuditLogPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm overflow-hidden">
         <table className="w-full">
-          <thead className="bg-stone-50/50 border-b border-stone-100">
+          <thead className="bg-stone-50/50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800">
             <tr>
               <th className="text-left px-5 py-3 text-xs font-medium text-stone-400 uppercase tracking-wide w-8" />
               <th className="text-left px-5 py-3 text-xs font-medium text-stone-400 uppercase tracking-wide">
@@ -181,7 +181,7 @@ export default function AuditLogPage() {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-stone-100">
+          <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
             {typedEntries === undefined ? (
               <tr>
                 <td
@@ -197,7 +197,7 @@ export default function AuditLogPage() {
                 return (
                   <tr
                     key={entry._id}
-                    className="hover:bg-stone-50/50 transition-colors group"
+                    className="hover:bg-stone-50/50 dark:hover:bg-stone-800/50 transition-colors group"
                   >
                     <td colSpan={6} className="p-0">
                       <div
@@ -214,7 +214,7 @@ export default function AuditLogPage() {
                         <div className="px-5 py-3.5 w-8 text-stone-400 text-xs shrink-0">
                           {isExpanded ? "\u25BC" : "\u25B6"}
                         </div>
-                        <div className="px-4 py-3.5 text-sm text-stone-600 whitespace-nowrap shrink-0 w-48">
+                        <div className="px-4 py-3.5 text-sm text-stone-600 dark:text-stone-400 whitespace-nowrap shrink-0 w-48">
                           {formatTimestamp(entry.timestamp)}
                         </div>
                         <div className="px-4 py-3.5 text-sm font-medium text-stone-900 shrink-0 w-36">
@@ -225,7 +225,7 @@ export default function AuditLogPage() {
                             {entry.action}
                           </span>
                         </div>
-                        <div className="px-4 py-3.5 text-sm text-stone-600 capitalize shrink-0 w-36">
+                        <div className="px-4 py-3.5 text-sm text-stone-600 dark:text-stone-400 capitalize shrink-0 w-36">
                           {entry.entityType}
                         </div>
                         <div className="px-4 py-3.5 text-sm text-stone-400 font-mono truncate">
@@ -234,7 +234,7 @@ export default function AuditLogPage() {
                       </div>
                       {isExpanded && (
                         <div className="px-5 pb-4 pl-12">
-                          <div className="bg-stone-50 rounded-xl p-4 text-sm">
+                          <div className="bg-stone-50 dark:bg-stone-800 rounded-xl p-4 text-sm">
                             <div className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-2">
                               Changes
                             </div>

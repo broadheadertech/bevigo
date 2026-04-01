@@ -571,3 +571,592 @@ function getLocationScope(
   // (They will see data across all locations via tenant-level queries)
   return session.locationIds;
 }
+
+// ---------------------------------------------------------------------------
+// Order Analytics queries
+// ---------------------------------------------------------------------------
+
+export const salesByPaymentType = query({
+  args: {
+    token: v.string(),
+    startDate: v.number(),
+    endDate: v.number(),
+    locationId: v.optional(v.id("locations")),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner", "manager"]);
+
+    const locationIds = getLocationScope(session, args.locationId);
+
+    const paymentMap = new Map<
+      string,
+      { orderCount: number; totalRevenue: number }
+    >();
+
+    for (const locId of locationIds) {
+      const orders = await ctx.db
+        .query("orders")
+        .withIndex("by_tenant_location_status", (q) =>
+          q
+            .eq("tenantId", session.tenantId)
+            .eq("locationId", locId)
+            .eq("status", "completed")
+        )
+        .collect();
+
+      for (const order of orders) {
+        if (
+          order.completedAt != null &&
+          order.completedAt >= args.startDate &&
+          order.completedAt <= args.endDate
+        ) {
+          const pt = order.paymentType ?? "cash";
+          const existing = paymentMap.get(pt);
+          if (existing) {
+            existing.orderCount += 1;
+            existing.totalRevenue += order.total;
+          } else {
+            paymentMap.set(pt, { orderCount: 1, totalRevenue: order.total });
+          }
+        }
+      }
+    }
+
+    let grandTotal = 0;
+    for (const entry of paymentMap.values()) {
+      grandTotal += entry.totalRevenue;
+    }
+
+    const result: Array<{
+      paymentType: string;
+      orderCount: number;
+      totalRevenue: number;
+      percentage: number;
+    }> = [];
+
+    for (const [paymentType, data] of paymentMap.entries()) {
+      result.push({
+        paymentType,
+        orderCount: data.orderCount,
+        totalRevenue: data.totalRevenue,
+        percentage: grandTotal > 0 ? (data.totalRevenue / grandTotal) * 100 : 0,
+      });
+    }
+
+    result.sort(
+      (a: { totalRevenue: number }, b: { totalRevenue: number }) =>
+        b.totalRevenue - a.totalRevenue
+    );
+
+    return result;
+  },
+});
+
+export const salesByTimePeriod = query({
+  args: {
+    token: v.string(),
+    startDate: v.number(),
+    endDate: v.number(),
+    locationId: v.optional(v.id("locations")),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner", "manager"]);
+
+    const locationIds = getLocationScope(session, args.locationId);
+
+    const periods: Array<{
+      period: string;
+      label: string;
+      startHour: number;
+      endHour: number;
+      orderCount: number;
+      totalRevenue: number;
+    }> = [
+      { period: "morning", label: "Morning (6-11)", startHour: 6, endHour: 11, orderCount: 0, totalRevenue: 0 },
+      { period: "lunch", label: "Lunch (11-14)", startHour: 11, endHour: 14, orderCount: 0, totalRevenue: 0 },
+      { period: "afternoon", label: "Afternoon (14-17)", startHour: 14, endHour: 17, orderCount: 0, totalRevenue: 0 },
+      { period: "evening", label: "Evening (17-22)", startHour: 17, endHour: 22, orderCount: 0, totalRevenue: 0 },
+      { period: "night", label: "Night (22-6)", startHour: 22, endHour: 6, orderCount: 0, totalRevenue: 0 },
+    ];
+
+    for (const locId of locationIds) {
+      const orders = await ctx.db
+        .query("orders")
+        .withIndex("by_tenant_location_status", (q) =>
+          q
+            .eq("tenantId", session.tenantId)
+            .eq("locationId", locId)
+            .eq("status", "completed")
+        )
+        .collect();
+
+      for (const order of orders) {
+        if (
+          order.completedAt != null &&
+          order.completedAt >= args.startDate &&
+          order.completedAt <= args.endDate
+        ) {
+          const hour = new Date(order.completedAt).getUTCHours();
+          for (const p of periods) {
+            if (p.period === "night") {
+              if (hour >= 22 || hour < 6) {
+                p.orderCount += 1;
+                p.totalRevenue += order.total;
+                break;
+              }
+            } else {
+              if (hour >= p.startHour && hour < p.endHour) {
+                p.orderCount += 1;
+                p.totalRevenue += order.total;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return periods.map(
+      (p: { period: string; label: string; orderCount: number; totalRevenue: number }) => ({
+        period: p.period,
+        label: p.label,
+        orderCount: p.orderCount,
+        totalRevenue: p.totalRevenue,
+        avgOrderValue: p.orderCount > 0 ? Math.round(p.totalRevenue / p.orderCount) : 0,
+      })
+    );
+  },
+});
+
+export const salesByStaff = query({
+  args: {
+    token: v.string(),
+    startDate: v.number(),
+    endDate: v.number(),
+    locationId: v.optional(v.id("locations")),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner", "manager"]);
+
+    const locationIds = getLocationScope(session, args.locationId);
+
+    const staffAgg = new Map<
+      string,
+      { userId: Id<"users">; orderCount: number; totalRevenue: number; voidCount: number }
+    >();
+
+    for (const locId of locationIds) {
+      // Completed orders
+      const completedOrders = await ctx.db
+        .query("orders")
+        .withIndex("by_tenant_location_status", (q) =>
+          q
+            .eq("tenantId", session.tenantId)
+            .eq("locationId", locId)
+            .eq("status", "completed")
+        )
+        .collect();
+
+      for (const order of completedOrders) {
+        if (
+          order.completedAt != null &&
+          order.completedAt >= args.startDate &&
+          order.completedAt <= args.endDate
+        ) {
+          const key = order.userId as string;
+          const existing = staffAgg.get(key);
+          if (existing) {
+            existing.orderCount += 1;
+            existing.totalRevenue += order.total;
+          } else {
+            staffAgg.set(key, {
+              userId: order.userId,
+              orderCount: 1,
+              totalRevenue: order.total,
+              voidCount: 0,
+            });
+          }
+        }
+      }
+
+      // Voided orders
+      const voidedOrders = await ctx.db
+        .query("orders")
+        .withIndex("by_tenant_location_status", (q) =>
+          q
+            .eq("tenantId", session.tenantId)
+            .eq("locationId", locId)
+            .eq("status", "voided")
+        )
+        .collect();
+
+      for (const order of voidedOrders) {
+        if (
+          order.updatedAt >= args.startDate &&
+          order.updatedAt <= args.endDate
+        ) {
+          const key = order.userId as string;
+          const existing = staffAgg.get(key);
+          if (existing) {
+            existing.voidCount += 1;
+          } else {
+            staffAgg.set(key, {
+              userId: order.userId,
+              orderCount: 0,
+              totalRevenue: 0,
+              voidCount: 1,
+            });
+          }
+        }
+      }
+    }
+
+    const result: Array<{
+      userName: string;
+      role: string;
+      orderCount: number;
+      totalRevenue: number;
+      avgOrderValue: number;
+      voidCount: number;
+    }> = [];
+
+    for (const data of staffAgg.values()) {
+      const user = await ctx.db.get(data.userId);
+      const userName = user?.name ?? "Unknown";
+      const role = user?.role ?? "unknown";
+      const avgOrderValue =
+        data.orderCount > 0 ? Math.round(data.totalRevenue / data.orderCount) : 0;
+
+      result.push({
+        userName,
+        role,
+        orderCount: data.orderCount,
+        totalRevenue: data.totalRevenue,
+        avgOrderValue,
+        voidCount: data.voidCount,
+      });
+    }
+
+    result.sort(
+      (a: { totalRevenue: number }, b: { totalRevenue: number }) =>
+        b.totalRevenue - a.totalRevenue
+    );
+
+    return result;
+  },
+});
+
+export const salesByTable = query({
+  args: {
+    token: v.string(),
+    startDate: v.number(),
+    endDate: v.number(),
+    locationId: v.optional(v.id("locations")),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner"]);
+
+    const locationIds = getLocationScope(session, args.locationId);
+
+    const tableMap = new Map<
+      string,
+      { orderCount: number; totalRevenue: number }
+    >();
+
+    for (const locId of locationIds) {
+      const orders = await ctx.db
+        .query("orders")
+        .withIndex("by_tenant_location_status", (q) =>
+          q
+            .eq("tenantId", session.tenantId)
+            .eq("locationId", locId)
+            .eq("status", "completed")
+        )
+        .collect();
+
+      for (const order of orders) {
+        if (
+          order.completedAt != null &&
+          order.completedAt >= args.startDate &&
+          order.completedAt <= args.endDate
+        ) {
+          const tableName = order.tableName ?? "Takeout/Counter";
+          const existing = tableMap.get(tableName);
+          if (existing) {
+            existing.orderCount += 1;
+            existing.totalRevenue += order.total;
+          } else {
+            tableMap.set(tableName, { orderCount: 1, totalRevenue: order.total });
+          }
+        }
+      }
+    }
+
+    const result: Array<{
+      tableName: string;
+      orderCount: number;
+      totalRevenue: number;
+      avgOrderValue: number;
+    }> = [];
+
+    for (const [tableName, data] of tableMap.entries()) {
+      result.push({
+        tableName,
+        orderCount: data.orderCount,
+        totalRevenue: data.totalRevenue,
+        avgOrderValue: data.orderCount > 0 ? Math.round(data.totalRevenue / data.orderCount) : 0,
+      });
+    }
+
+    result.sort(
+      (a: { totalRevenue: number }, b: { totalRevenue: number }) =>
+        b.totalRevenue - a.totalRevenue
+    );
+
+    return result;
+  },
+});
+
+export const peakDayAnalysis = query({
+  args: {
+    token: v.string(),
+    startDate: v.number(),
+    endDate: v.number(),
+    locationId: v.optional(v.id("locations")),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner", "manager"]);
+
+    const locationIds = getLocationScope(session, args.locationId);
+
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const days: Array<{ orderCount: number; totalRevenue: number }> = [];
+    for (let i = 0; i < 7; i++) {
+      days.push({ orderCount: 0, totalRevenue: 0 });
+    }
+
+    for (const locId of locationIds) {
+      const orders = await ctx.db
+        .query("orders")
+        .withIndex("by_tenant_location_status", (q) =>
+          q
+            .eq("tenantId", session.tenantId)
+            .eq("locationId", locId)
+            .eq("status", "completed")
+        )
+        .collect();
+
+      for (const order of orders) {
+        if (
+          order.completedAt != null &&
+          order.completedAt >= args.startDate &&
+          order.completedAt <= args.endDate
+        ) {
+          const dayOfWeek = new Date(order.completedAt).getUTCDay();
+          days[dayOfWeek].orderCount += 1;
+          days[dayOfWeek].totalRevenue += order.total;
+        }
+      }
+    }
+
+    return days.map(
+      (d: { orderCount: number; totalRevenue: number }, i: number) => ({
+        dayOfWeek: i,
+        dayName: dayNames[i],
+        orderCount: d.orderCount,
+        totalRevenue: d.totalRevenue,
+        avgOrderValue: d.orderCount > 0 ? Math.round(d.totalRevenue / d.orderCount) : 0,
+      })
+    );
+  },
+});
+
+export const voidReport = query({
+  args: {
+    token: v.string(),
+    startDate: v.number(),
+    endDate: v.number(),
+    locationId: v.optional(v.id("locations")),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner"]);
+
+    const locationIds = getLocationScope(session, args.locationId);
+
+    let totalCompleted = 0;
+    const voids: Array<{
+      orderNumber: string;
+      voidedAt: number;
+      voidReason: string;
+      voidedByName: string;
+      originalTotal: number;
+    }> = [];
+
+    for (const locId of locationIds) {
+      // Count completed orders
+      const completedOrders = await ctx.db
+        .query("orders")
+        .withIndex("by_tenant_location_status", (q) =>
+          q
+            .eq("tenantId", session.tenantId)
+            .eq("locationId", locId)
+            .eq("status", "completed")
+        )
+        .collect();
+
+      for (const order of completedOrders) {
+        if (
+          order.completedAt != null &&
+          order.completedAt >= args.startDate &&
+          order.completedAt <= args.endDate
+        ) {
+          totalCompleted += 1;
+        }
+      }
+
+      // Voided orders
+      const voidedOrders = await ctx.db
+        .query("orders")
+        .withIndex("by_tenant_location_status", (q) =>
+          q
+            .eq("tenantId", session.tenantId)
+            .eq("locationId", locId)
+            .eq("status", "voided")
+        )
+        .collect();
+
+      for (const order of voidedOrders) {
+        if (
+          order.updatedAt >= args.startDate &&
+          order.updatedAt <= args.endDate
+        ) {
+          let voidedByName = "Unknown";
+          if (order.voidedBy) {
+            const voidUser = await ctx.db.get(order.voidedBy);
+            voidedByName = voidUser?.name ?? "Unknown";
+          }
+          voids.push({
+            orderNumber: order.orderNumber ?? "-",
+            voidedAt: order.updatedAt,
+            voidReason: order.voidReason ?? "No reason provided",
+            voidedByName,
+            originalTotal: order.total,
+          });
+        }
+      }
+    }
+
+    let totalVoided = 0;
+    for (const v of voids) {
+      totalVoided += v.originalTotal;
+    }
+
+    const totalOrders = totalCompleted + voids.length;
+    const voidRate = totalOrders > 0 ? (voids.length / totalOrders) * 100 : 0;
+
+    return {
+      totalVoided,
+      voidCount: voids.length,
+      voidRate: Math.round(voidRate * 10) / 10,
+      voids,
+    };
+  },
+});
+
+export const customerRepeatRate = query({
+  args: {
+    token: v.string(),
+    startDate: v.number(),
+    endDate: v.number(),
+    locationId: v.optional(v.id("locations")),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner", "manager"]);
+
+    const locationIds = getLocationScope(session, args.locationId);
+
+    let totalOrdersWithCustomer = 0;
+    const customerAgg = new Map<
+      string,
+      { customerId: Id<"customers">; orderCount: number; totalSpent: number }
+    >();
+
+    for (const locId of locationIds) {
+      const orders = await ctx.db
+        .query("orders")
+        .withIndex("by_tenant_location_status", (q) =>
+          q
+            .eq("tenantId", session.tenantId)
+            .eq("locationId", locId)
+            .eq("status", "completed")
+        )
+        .collect();
+
+      for (const order of orders) {
+        if (
+          order.completedAt != null &&
+          order.completedAt >= args.startDate &&
+          order.completedAt <= args.endDate &&
+          order.customerId
+        ) {
+          totalOrdersWithCustomer += 1;
+          const key = order.customerId as string;
+          const existing = customerAgg.get(key);
+          if (existing) {
+            existing.orderCount += 1;
+            existing.totalSpent += order.total;
+          } else {
+            customerAgg.set(key, {
+              customerId: order.customerId,
+              orderCount: 1,
+              totalSpent: order.total,
+            });
+          }
+        }
+      }
+    }
+
+    const uniqueCustomers = customerAgg.size;
+    const repeatRate =
+      uniqueCustomers > 0
+        ? Math.round(
+            ((totalOrdersWithCustomer - uniqueCustomers) / totalOrdersWithCustomer) * 100 * 10
+          ) / 10
+        : 0;
+
+    // Top customers
+    const topCustomers: Array<{
+      customerName: string;
+      orderCount: number;
+      totalSpent: number;
+    }> = [];
+
+    const sorted = Array.from(customerAgg.values()).sort(
+      (a: { totalSpent: number }, b: { totalSpent: number }) =>
+        b.totalSpent - a.totalSpent
+    );
+
+    for (const data of sorted.slice(0, 10)) {
+      const customer = await ctx.db.get(data.customerId);
+      topCustomers.push({
+        customerName: customer?.name ?? "Unknown",
+        orderCount: data.orderCount,
+        totalSpent: data.totalSpent,
+      });
+    }
+
+    return {
+      totalOrdersWithCustomer,
+      uniqueCustomers,
+      repeatRate,
+      topCustomers,
+    };
+  },
+});

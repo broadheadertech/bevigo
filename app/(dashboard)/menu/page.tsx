@@ -114,8 +114,8 @@ export default function MenuPage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-xl font-bold text-stone-900">Menu Management</h1>
-          <p className="text-sm text-stone-500 mt-0.5">Organize categories and menu items</p>
+          <h1 className="text-xl font-bold text-stone-900 dark:text-stone-100">Menu Management</h1>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">Organize categories and menu items</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -123,7 +123,7 @@ export default function MenuPage() {
               setEditingCategory(null);
               setShowCategoryForm(true);
             }}
-            className="px-4 py-2.5 border border-stone-200 text-stone-700 text-sm font-medium rounded-xl hover:bg-stone-50 transition-colors"
+            className="px-4 py-2.5 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 text-sm font-medium rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
           >
             + Add Category
           </button>
@@ -154,7 +154,7 @@ export default function MenuPage() {
               className={`text-left px-3 py-2 rounded-xl text-sm transition-colors ${
                 selectedCategoryId === null && !showFeaturedOnly
                   ? "bg-stone-900 text-white font-medium"
-                  : "hover:bg-stone-100 text-stone-600"
+                  : "hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-600 dark:text-stone-400"
               }`}
             >
               All Items
@@ -170,7 +170,7 @@ export default function MenuPage() {
               className={`text-left px-3 py-2 rounded-xl text-sm transition-colors flex items-center gap-1.5 ${
                 showFeaturedOnly
                   ? "bg-amber-50 text-amber-800 font-medium"
-                  : "hover:bg-stone-100 text-stone-600"
+                  : "hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-600 dark:text-stone-400"
               }`}
             >
               <span className="text-amber-500">&#9733;</span> Featured
@@ -192,7 +192,7 @@ export default function MenuPage() {
                     className={`flex-1 text-left px-3 py-2 rounded-xl text-sm transition-colors ${
                       selectedCategoryId === cat._id && !showFeaturedOnly
                         ? "bg-stone-900 text-white font-medium"
-                        : "hover:bg-stone-100 text-stone-600"
+                        : "hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-600 dark:text-stone-400"
                     }`}
                   >
                     {cat.name}

@@ -50,7 +50,7 @@ export function StartShiftDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm w-full max-w-md p-6">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm w-full max-w-md p-6">
         <h2 className="text-lg font-semibold text-stone-900 mb-4">
           Start Shift
         </h2>
@@ -84,7 +84,7 @@ export function StartShiftDialog({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-100 transition-colors"
+              className="px-4 py-2.5 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
             >
               Cancel
             </button>

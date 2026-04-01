@@ -123,7 +123,19 @@ const NAV_ITEMS: NavItem[] = [
         icon: "",
         roles: ["owner"],
       },
+      {
+        label: "Analytics",
+        href: "/reports/analytics",
+        icon: "",
+        roles: ["manager", "owner"],
+      },
     ],
+  },
+  {
+    label: "Tables",
+    href: "/tables",
+    icon: "M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z",
+    roles: ["owner"],
   },
   {
     label: "Locations",
@@ -137,19 +149,26 @@ const NAV_ITEMS: NavItem[] = [
     icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
     roles: ["owner"],
   },
+  // Billing hidden for now
+  // {
+  //   label: "Billing",
+  //   href: "/billing",
+  //   icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z",
+  //   roles: ["owner"],
+  //   children: [
+  //     {
+  //       label: "Upgrade",
+  //       href: "/billing/upgrade",
+  //       icon: "",
+  //       roles: ["owner"],
+  //     },
+  //   ],
+  // },
   {
-    label: "Billing",
-    href: "/billing",
-    icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z",
-    roles: ["owner"],
-    children: [
-      {
-        label: "Upgrade",
-        href: "/billing/upgrade",
-        icon: "",
-        roles: ["owner"],
-      },
-    ],
+    label: "Help",
+    href: "/help",
+    icon: "M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+    roles: ["owner", "manager", "barista"],
   },
   {
     label: "Settings",
@@ -234,7 +253,7 @@ export function RoleNavigation() {
                     className={`flex items-center gap-3 pl-11 pr-3 py-2 rounded-xl text-sm transition-all duration-150 ${
                       isActive(child.href)
                         ? "text-amber-700 font-medium"
-                        : "text-stone-500 hover:text-stone-700"
+                        : "text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300"
                     }`}
                   >
                     {child.label}

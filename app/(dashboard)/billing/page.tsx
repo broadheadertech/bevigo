@@ -126,8 +126,8 @@ export default function BillingPage() {
     <div>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-8">
         <div>
-          <h1 className="text-lg md:text-xl font-bold text-stone-900">Billing</h1>
-          <p className="text-sm text-stone-500 mt-0.5">
+          <h1 className="text-lg md:text-xl font-bold text-stone-900 dark:text-stone-100">Billing</h1>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
             Manage your subscription and usage
           </p>
         </div>
@@ -146,14 +146,14 @@ export default function BillingPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
           {/* Current Plan Card */}
-          <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-6">
             <h2 className="text-sm font-medium text-stone-400 uppercase tracking-wide mb-4">
               Current Plan
             </h2>
             {subscription && plan ? (
               <div className="space-y-4">
                 <div className="flex items-baseline gap-3">
-                  <span className="text-2xl font-bold text-stone-900">{plan.name}</span>
+                  <span className="text-2xl font-bold text-stone-900 dark:text-stone-100">{plan.name}</span>
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                       subscription.status === "active"
@@ -175,7 +175,7 @@ export default function BillingPage() {
                   <p className="text-xs text-stone-400 mb-2">Features</p>
                   <ul className="space-y-1.5">
                     {plan.features.map((feature: string) => (
-                      <li key={feature} className="flex items-center gap-2 text-sm text-stone-600">
+                      <li key={feature} className="flex items-center gap-2 text-sm text-stone-600 dark:text-stone-400">
                         <svg className="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
@@ -202,7 +202,7 @@ export default function BillingPage() {
           </div>
 
           {/* Usage Stats Card */}
-          <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-6">
             <h2 className="text-sm font-medium text-stone-400 uppercase tracking-wide mb-4">
               Usage This Month
             </h2>
@@ -228,13 +228,13 @@ export default function BillingPage() {
 
           {/* Cancel Subscription */}
           {subscription && subscription.status === "active" && plan && plan.slug !== "free" && (
-            <div className="md:col-span-2 bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6">
+            <div className="md:col-span-2 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-6">
               <h2 className="text-sm font-medium text-stone-400 uppercase tracking-wide mb-4">
                 Cancel Subscription
               </h2>
               {showCancelConfirm ? (
                 <div className="space-y-3">
-                  <p className="text-sm text-stone-600">
+                  <p className="text-sm text-stone-600 dark:text-stone-400">
                     Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your billing period.
                   </p>
                   <div className="flex gap-2">
@@ -246,7 +246,7 @@ export default function BillingPage() {
                     </button>
                     <button
                       onClick={() => setShowCancelConfirm(false)}
-                      className="px-4 py-2 border border-stone-200 text-stone-600 text-sm rounded-xl hover:bg-stone-50 transition-colors"
+                      className="px-4 py-2 border border-stone-200 text-stone-600 text-sm rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
                     >
                       Keep Plan
                     </button>

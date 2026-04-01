@@ -36,7 +36,7 @@ export function QrMenuLink({ locationSlug, locationName }: QrMenuLinkProps) {
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(fullUrl)}`;
 
   return (
-    <div className="rounded-lg border border-stone-200 bg-white p-4">
+    <div className="rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-4">
       <h3 className="font-semibold text-stone-900">
         Customer QR Menu - {locationName}
       </h3>

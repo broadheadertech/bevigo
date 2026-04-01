@@ -149,7 +149,7 @@ export default function CustomersPage() {
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-stone-900">Customers</h1>
+          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">Customers</h1>
           <p className="text-stone-600 text-sm mt-1">
             Manage your customer database and loyalty program
           </p>
@@ -170,7 +170,7 @@ export default function CustomersPage() {
 
       {/* Add / Edit Form */}
       {(showAddForm || editingCustomer) && (
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-5 mb-6">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-5 mb-6">
           <h3 className="text-sm font-semibold text-stone-900 mb-4">
             {editingCustomer ? "Edit Customer" : "New Customer"}
           </h3>
@@ -184,7 +184,7 @@ export default function CustomersPage() {
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder="Customer name"
-                className="w-full px-3 py-2 rounded-xl border border-stone-200 text-sm focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white text-sm focus:ring-amber-500/20 focus:border-amber-500 outline-none"
               />
             </div>
             <div>
@@ -196,7 +196,7 @@ export default function CustomersPage() {
                 value={formPhone}
                 onChange={(e) => setFormPhone(e.target.value)}
                 placeholder="09XX XXX XXXX"
-                className="w-full px-3 py-2 rounded-xl border border-stone-200 text-sm focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white text-sm focus:ring-amber-500/20 focus:border-amber-500 outline-none"
               />
             </div>
             <div>
@@ -208,7 +208,7 @@ export default function CustomersPage() {
                 value={formEmail}
                 onChange={(e) => setFormEmail(e.target.value)}
                 placeholder="email@example.com"
-                className="w-full px-3 py-2 rounded-xl border border-stone-200 text-sm focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white text-sm focus:ring-amber-500/20 focus:border-amber-500 outline-none"
               />
             </div>
           </div>
@@ -225,7 +225,7 @@ export default function CustomersPage() {
                 setShowAddForm(false);
                 cancelEdit();
               }}
-              className="px-4 py-2 text-stone-600 text-sm font-medium rounded-xl hover:bg-stone-100 transition-colors"
+              className="px-4 py-2 text-stone-600 text-sm font-medium rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
             >
               Cancel
             </button>
@@ -243,15 +243,15 @@ export default function CustomersPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name or phone..."
-              className="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-sm focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+              className="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white text-sm focus:ring-amber-500/20 focus:border-amber-500 outline-none"
             />
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-stone-200 bg-stone-50">
+                <tr className="border-b border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800">
                   <th className="text-left px-4 py-3 font-medium text-stone-600">
                     Name
                   </th>
@@ -279,17 +279,17 @@ export default function CustomersPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                 {(customers ?? []).map((c: CustomerRow) => (
                   <tr
                     key={c._id}
-                    className={`hover:bg-stone-50 transition-colors cursor-pointer ${
+                    className={`hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer ${
                       selectedCustomerId === c._id ? "bg-amber-50" : ""
                     }`}
                     onClick={() => selectCustomer(c._id)}
                   >
                     <td className="px-4 py-3">
-                      <span className="font-medium text-stone-900">
+                      <span className="font-medium text-stone-900 dark:text-stone-100">
                         {c.name}
                       </span>
                       {c.status === "inactive" && (
@@ -303,7 +303,7 @@ export default function CustomersPage() {
                     </td>
                     {!selectedCustomerId && (
                       <>
-                        <td className="px-4 py-3 text-right text-stone-600">
+                        <td className="px-4 py-3 text-right text-stone-600 dark:text-stone-400">
                           {c.visitCount}
                         </td>
                         <td className="px-4 py-3 text-right text-stone-700 font-medium">
@@ -358,11 +358,11 @@ export default function CustomersPage() {
         {/* Customer Detail Panel */}
         {selectedCustomerId && selectedCustomer && (
           <div className="w-[420px] flex-shrink-0">
-            <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm">
+            <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm">
               {/* Header */}
-              <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between">
+              <div className="px-5 py-4 border-b border-stone-200 dark:border-stone-700 flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-stone-900">
+                  <h3 className="font-semibold text-stone-900 dark:text-stone-100">
                     {selectedCustomer.name}
                   </h3>
                   <p className="text-xs text-stone-500 mt-0.5">
@@ -381,21 +381,21 @@ export default function CustomersPage() {
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 divide-x divide-stone-200 border-b border-stone-200">
+              <div className="grid grid-cols-3 divide-x divide-stone-200 dark:divide-stone-700 border-b border-stone-200 dark:border-stone-700">
                 <div className="px-4 py-3 text-center">
-                  <p className="text-lg font-bold text-stone-900">
+                  <p className="text-lg font-bold text-stone-900 dark:text-stone-100">
                     {selectedCustomer.visitCount}
                   </p>
                   <p className="text-xs text-stone-500">Visits</p>
                 </div>
                 <div className="px-4 py-3 text-center">
-                  <p className="text-lg font-bold text-stone-900">
+                  <p className="text-lg font-bold text-stone-900 dark:text-stone-100">
                     {formatCurrency(selectedCustomer.totalSpent)}
                   </p>
                   <p className="text-xs text-stone-500">Spent</p>
                 </div>
                 <div className="px-4 py-3 text-center">
-                  <p className="text-lg font-bold text-stone-900">
+                  <p className="text-lg font-bold text-stone-900 dark:text-stone-100">
                     {formatDate(selectedCustomer.lastVisitAt)}
                   </p>
                   <p className="text-xs text-stone-500">Last Visit</p>
@@ -403,7 +403,7 @@ export default function CustomersPage() {
               </div>
 
               {/* Loyalty Card */}
-              <div className="px-5 py-4 border-b border-stone-200">
+              <div className="px-5 py-4 border-b border-stone-200 dark:border-stone-700">
                 <LoyaltyCard
                   stampsEarned={loyaltyCard?.stampsEarned ?? 0}
                   stampsRequired={loyaltyCard?.stampsRequired ?? 10}
@@ -411,13 +411,13 @@ export default function CustomersPage() {
               </div>
 
               {/* Tabs */}
-              <div className="flex border-b border-stone-200">
+              <div className="flex border-b border-stone-200 dark:border-stone-700">
                 <button
                   onClick={() => setActiveTab("details")}
                   className={`flex-1 px-4 py-2.5 text-xs font-medium transition-colors ${
                     activeTab === "details"
                       ? "text-amber-700 border-b-2 border-amber-600"
-                      : "text-stone-500 hover:text-stone-700"
+                      : "text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300"
                   }`}
                 >
                   Details
@@ -427,7 +427,7 @@ export default function CustomersPage() {
                   className={`flex-1 px-4 py-2.5 text-xs font-medium transition-colors ${
                     activeTab === "orders"
                       ? "text-amber-700 border-b-2 border-amber-600"
-                      : "text-stone-500 hover:text-stone-700"
+                      : "text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300"
                   }`}
                 >
                   Orders
@@ -437,7 +437,7 @@ export default function CustomersPage() {
                   className={`flex-1 px-4 py-2.5 text-xs font-medium transition-colors ${
                     activeTab === "favorites"
                       ? "text-amber-700 border-b-2 border-amber-600"
-                      : "text-stone-500 hover:text-stone-700"
+                      : "text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300"
                   }`}
                 >
                   Favorites
@@ -476,7 +476,7 @@ export default function CustomersPage() {
                 )}
 
                 {activeTab === "orders" && (
-                  <div className="divide-y divide-stone-100">
+                  <div className="divide-y divide-stone-100 dark:divide-stone-800">
                     {(customerOrders ?? []).length === 0 ? (
                       <div className="px-5 py-8 text-center text-stone-400 text-sm">
                         No orders yet
@@ -488,7 +488,7 @@ export default function CustomersPage() {
                             <span className="text-xs font-mono text-stone-500">
                               {order.orderNumber ?? "N/A"}
                             </span>
-                            <span className="text-sm font-medium text-stone-900">
+                            <span className="text-sm font-medium text-stone-900 dark:text-stone-100">
                               {formatCurrency(order.total)}
                             </span>
                           </div>
@@ -533,7 +533,7 @@ export default function CustomersPage() {
                           (fav: CustomerFavorite, idx: number) => (
                             <div
                               key={idx}
-                              className="flex items-center justify-between py-2 px-3 bg-stone-50 rounded-xl"
+                              className="flex items-center justify-between py-2 px-3 bg-stone-50 dark:bg-stone-800 rounded-xl"
                             >
                               <span className="text-sm text-stone-900 font-medium">
                                 {fav.itemName}

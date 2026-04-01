@@ -74,10 +74,10 @@ export default function ReportSchedulePage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-lg md:text-xl font-bold text-stone-900">
+        <h1 className="text-lg md:text-xl font-bold text-stone-900 dark:text-stone-100">
           Scheduled Email Reports
         </h1>
-        <p className="text-sm text-stone-500 mt-0.5">
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
           Configure automated report delivery to your inbox
         </p>
       </div>
@@ -113,10 +113,10 @@ export default function ReportSchedulePage() {
       </div>
 
       {/* Settings form */}
-      <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6 max-w-lg">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-6 max-w-lg">
         <div className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1.5">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
               Email Address
             </label>
             <input
@@ -127,7 +127,7 @@ export default function ReportSchedulePage() {
                 setSaved(false);
               }}
               placeholder="owner@bevigo.com"
-              className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             />
             <p className="text-xs text-stone-400 mt-1">
               Reports will be sent to this email address.
@@ -135,7 +135,7 @@ export default function ReportSchedulePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1.5">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
               Frequency
             </label>
             <select
@@ -144,7 +144,7 @@ export default function ReportSchedulePage() {
                 setFrequency(e.target.value as ReportFrequency);
                 setSaved(false);
               }}
-              className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             >
               {frequencyOptions.map((opt: { value: ReportFrequency; label: string }) => (
                 <option key={opt.value} value={opt.value}>

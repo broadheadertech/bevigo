@@ -138,9 +138,11 @@ export const listItemsForLocation = query({
       }
     }
 
-    return items.map((item) => {
+    const results = [];
+    for (const item of items) {
       const overridePrice = overrideMap.get(item._id);
-      return {
+      const imageUrl = item.imageId ? await ctx.storage.getUrl(item.imageId) : null;
+      results.push({
         _id: item._id,
         name: item.name,
         description: item.description,
@@ -149,9 +151,11 @@ export const listItemsForLocation = query({
         effectivePrice: overridePrice ?? item.basePrice,
         hasOverride: overridePrice !== undefined,
         isFeatured: item.isFeatured,
+        imageUrl,
         sku: item.sku,
-      };
-    });
+      });
+    }
+    return results;
   },
 });
 

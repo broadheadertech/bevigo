@@ -76,15 +76,15 @@ export default function SettingsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-xl font-bold text-stone-900">Settings</h1>
-        <p className="text-sm text-stone-500 mt-0.5">Configure your POS system preferences</p>
+        <h1 className="text-xl font-bold text-stone-900 dark:text-stone-100">Settings</h1>
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">Configure your POS system preferences</p>
       </div>
 
       <div className="space-y-6 max-w-lg">
         {/* Session Settings Section */}
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6">
-          <h2 className="text-base font-semibold text-stone-900 mb-1">Session Settings</h2>
-          <p className="text-sm text-stone-500 mb-6">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-6">
+          <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-1">Session Settings</h2>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">
             Configure auto-lock timeout for register sessions. After this period
             of inactivity, the register will lock and require PIN entry.
           </p>
@@ -92,7 +92,7 @@ export default function SettingsPage() {
           <div className="mb-6">
             <label
               htmlFor="idle-timeout"
-              className="block text-sm font-medium text-stone-700 mb-2"
+              className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2"
             >
               Auto-lock idle timeout
             </label>
@@ -104,7 +104,7 @@ export default function SettingsPage() {
                 setSuccessMessage(null);
                 setError(null);
               }}
-              className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             >
               {TIMEOUT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -139,24 +139,24 @@ export default function SettingsPage() {
         </div>
 
         {/* Language Section */}
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6">
-          <h2 className="text-base font-semibold text-stone-900 mb-1">Language</h2>
-          <p className="text-sm text-stone-500 mb-6">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-6">
+          <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-1">Language</h2>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">
             Choose the display language for the POS interface.
           </p>
           <LocaleSelector />
         </div>
 
         {/* Location Management Section */}
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6">
-          <h2 className="text-base font-semibold text-stone-900 mb-1">Location Management</h2>
-          <p className="text-sm text-stone-500 mb-6">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-6">
+          <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-1">Location Management</h2>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">
             Clone configuration between locations, including menu pricing, tax
             settings, operating hours, and currency.
           </p>
           <button
             onClick={() => setShowCloneDialog(true)}
-            className="px-4 py-2.5 border border-stone-200 text-stone-700 text-sm font-medium rounded-xl hover:bg-stone-50 transition-colors"
+            className="px-4 py-2.5 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 text-sm font-medium rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
           >
             Clone Configuration
           </button>

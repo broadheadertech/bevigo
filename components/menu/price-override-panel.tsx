@@ -38,7 +38,7 @@ export function PriceOverridePanel({ menuItemId }: PriceOverridePanelProps) {
 
   if (!pricing) {
     return (
-      <div className="p-4 text-sm text-gray-500">Loading pricing data...</div>
+      <div className="p-4 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Loading pricing data...</div>
     );
   }
 
@@ -104,10 +104,10 @@ export function PriceOverridePanel({ menuItemId }: PriceOverridePanelProps) {
 
   return (
     <div className="border border-gray-200 rounded-lg p-4">
-      <h3 className="text-sm font-semibold text-gray-800 mb-1">
+      <h3 className="text-sm font-semibold text-gray-800 dark:text-stone-200 mb-1">
         Location Price Overrides
       </h3>
-      <p className="text-xs text-gray-500 mb-3">
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
         Base price: {formatPrice(pricing.basePrice)}. Override per location
         below.
       </p>
@@ -119,18 +119,18 @@ export function PriceOverridePanel({ menuItemId }: PriceOverridePanelProps) {
       )}
 
       {pricing.locations.length === 0 ? (
-        <p className="text-sm text-gray-500">No active locations found.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">No active locations found.</p>
       ) : (
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200">
-              <th className="text-left py-2 pr-4 font-medium text-gray-600">
+              <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-stone-400">
                 Location
               </th>
-              <th className="text-right py-2 pr-4 font-medium text-gray-600">
+              <th className="text-right py-2 pr-4 font-medium text-gray-600 dark:text-stone-400">
                 Effective Price
               </th>
-              <th className="text-right py-2 font-medium text-gray-600">
+              <th className="text-right py-2 font-medium text-gray-600 dark:text-stone-400">
                 Actions
               </th>
             </tr>
@@ -145,7 +145,7 @@ export function PriceOverridePanel({ menuItemId }: PriceOverridePanelProps) {
               return (
                 <tr
                   key={location._id}
-                  className="border-b border-gray-100 last:border-b-0"
+                  className="border-b border-gray-100 dark:border-stone-800 last:border-b-0"
                 >
                   <td className="py-2 pr-4 text-gray-800">{location.name}</td>
                   <td className="py-2 pr-4 text-right">
@@ -173,7 +173,7 @@ export function PriceOverridePanel({ menuItemId }: PriceOverridePanelProps) {
                       >
                         {formatPrice(effectivePrice)}
                         {!hasOverride && (
-                          <span className="ml-1 text-xs text-gray-400">
+                          <span className="ml-1 text-xs text-gray-400 dark:text-gray-500">
                             (base)
                           </span>
                         )}

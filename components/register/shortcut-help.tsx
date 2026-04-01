@@ -18,15 +18,15 @@ export function ShortcutHelp() {
   return (
     <div className="fixed bottom-4 right-4 z-40">
       {open && (
-        <div className="absolute bottom-12 right-0 w-64 bg-white border border-stone-200 rounded-xl shadow-lg p-4 mb-2">
-          <h3 className="text-sm font-semibold text-stone-900 mb-3">Keyboard Shortcuts</h3>
+        <div className="absolute bottom-12 right-0 w-64 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl shadow-lg p-4 mb-2">
+          <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100 mb-3">Keyboard Shortcuts</h3>
           <ul className="space-y-2">
             {shortcuts.map((s: { key: string; description: string }) => (
               <li key={s.key} className="flex items-center justify-between text-sm">
-                <kbd className="px-2 py-0.5 bg-stone-100 text-stone-700 text-xs font-mono rounded border border-stone-200">
+                <kbd className="px-2 py-0.5 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 text-xs font-mono rounded border border-stone-200 dark:border-stone-700">
                   {s.key}
                 </kbd>
-                <span className="text-stone-600 text-xs">{s.description}</span>
+                <span className="text-stone-600 dark:text-stone-400 text-xs">{s.description}</span>
               </li>
             ))}
           </ul>

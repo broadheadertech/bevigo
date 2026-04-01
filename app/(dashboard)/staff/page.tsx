@@ -138,8 +138,8 @@ export default function StaffPage() {
     <div>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-8">
         <div>
-          <h1 className="text-lg md:text-xl font-bold text-stone-900">Staff</h1>
-          <p className="text-sm text-stone-500 mt-0.5">Manage your team members and roles</p>
+          <h1 className="text-lg md:text-xl font-bold text-stone-900 dark:text-stone-100">Staff</h1>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">Manage your team members and roles</p>
         </div>
         <button
           onClick={openAddForm}
@@ -158,7 +158,7 @@ export default function StaffPage() {
             className={`px-3.5 py-1.5 text-sm font-medium rounded-full transition-colors capitalize ${
               filterRole === role
                 ? "bg-stone-900 text-white"
-                : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
+                : "bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-700"
             }`}
           >
             {role === "all" ? "All Roles" : role}
@@ -167,9 +167,9 @@ export default function StaffPage() {
       </div>
 
       {/* Staff Table */}
-      <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm overflow-hidden overflow-x-auto">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm overflow-hidden overflow-x-auto">
         <table className="w-full min-w-[600px]">
-          <thead className="bg-stone-50/50 border-b border-stone-100">
+          <thead className="bg-stone-50/50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800">
             <tr>
               <th className="text-left px-5 py-3 text-xs font-medium text-stone-400 uppercase tracking-wide">Name</th>
               <th className="text-left px-5 py-3 text-xs font-medium text-stone-400 uppercase tracking-wide">Role</th>
@@ -178,7 +178,7 @@ export default function StaffPage() {
               <th className="text-left px-5 py-3 text-xs font-medium text-stone-400 uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-stone-100">
+          <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
             {typedStaffList === undefined ? (
               <tr>
                 <td colSpan={5} className="px-5 py-12 text-center text-stone-400">
@@ -187,7 +187,7 @@ export default function StaffPage() {
               </tr>
             ) : filteredStaff && filteredStaff.length > 0 ? (
               filteredStaff.map((staff) => (
-                <tr key={staff._id} className="hover:bg-stone-50/50 transition-colors">
+                <tr key={staff._id} className="hover:bg-stone-50/50 dark:hover:bg-stone-800/50 transition-colors">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
@@ -196,7 +196,7 @@ export default function StaffPage() {
                         </span>
                       </div>
                       <div>
-                        <div className="font-medium text-stone-900">{staff.name}</div>
+                        <div className="font-medium text-stone-900 dark:text-stone-100">{staff.name}</div>
                         {staff.email && (
                           <div className="text-sm text-stone-400">{staff.email}</div>
                         )}
@@ -209,12 +209,12 @@ export default function StaffPage() {
                         ? "bg-amber-100 text-amber-800"
                         : staff.role === "manager"
                           ? "bg-stone-100 text-stone-700"
-                          : "bg-stone-50 text-stone-500"
+                          : "bg-stone-50 dark:bg-stone-800 text-stone-500"
                     }`}>
                       {staff.role}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 text-sm text-stone-600">
+                  <td className="px-5 py-3.5 text-sm text-stone-600 dark:text-stone-400">
                     {staff.locations.length > 0
                       ? staff.locations.map((l) => l.locationName).join(", ")
                       : <span className="text-stone-400">No locations</span>}
@@ -224,7 +224,7 @@ export default function StaffPage() {
                       className={`inline-block px-2.5 py-1 text-xs font-medium rounded-full capitalize ${
                         staff.status === "active"
                           ? "bg-emerald-50 text-emerald-700"
-                          : "bg-stone-100 text-stone-500"
+                          : "bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400"
                       }`}
                     >
                       {staff.status}
@@ -254,7 +254,7 @@ export default function StaffPage() {
       {/* Add/Edit Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-stone-200/60">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-xl w-full max-w-md p-6 border border-stone-200/60">
             <h2 className="text-lg font-bold text-stone-900 mb-4">
               {editingId ? "Edit Staff" : "Add Staff"}
             </h2>
@@ -267,7 +267,7 @@ export default function StaffPage() {
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
                   Name *
                 </label>
                 <input
@@ -275,24 +275,24 @@ export default function StaffPage() {
                   required
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+                  className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
                   Email
                 </label>
                 <input
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+                  className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
                   Role
                 </label>
                 <select
@@ -303,7 +303,7 @@ export default function StaffPage() {
                       role: e.target.value as "owner" | "manager" | "barista",
                     })
                   }
-                  className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+                  className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
                 >
                   {session.role === "owner" && <option value="owner">Owner</option>}
                   {session.role === "owner" && <option value="manager">Manager</option>}
@@ -313,7 +313,7 @@ export default function StaffPage() {
 
               {!editingId && (
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">
+                  <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
                     Quick-PIN (4-6 digits, optional)
                   </label>
                   <input
@@ -328,7 +328,7 @@ export default function StaffPage() {
                         quickPin: e.target.value.replace(/\D/g, ""),
                       })
                     }
-                    className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+                    className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
                     placeholder="e.g. 1234"
                   />
                 </div>
@@ -342,7 +342,7 @@ export default function StaffPage() {
                     setEditingId(null);
                     setError(null);
                   }}
-                  className="px-4 py-2.5 text-stone-700 border border-stone-200 rounded-xl hover:bg-stone-50 text-sm font-medium transition-colors"
+                  className="px-4 py-2.5 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 text-sm font-medium transition-colors"
                 >
                   Cancel
                 </button>

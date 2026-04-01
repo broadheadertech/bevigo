@@ -104,10 +104,10 @@ export default function AdjustmentsPage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-xl font-bold text-stone-900">
+          <h1 className="text-xl font-bold text-stone-900 dark:text-stone-100">
             Stock Adjustments
           </h1>
-          <p className="text-sm text-stone-500 mt-0.5">
+          <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
             Track wastage, corrections, stocktakes, and transfers
           </p>
         </div>
@@ -130,7 +130,7 @@ export default function AdjustmentsPage() {
                 className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
                   typeFilter === t.value
                     ? "bg-stone-900 text-white"
-                    : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
+                    : "bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-700"
                 }`}
               >
                 {t.label}
@@ -142,7 +142,7 @@ export default function AdjustmentsPage() {
           <select
             value={locationFilter}
             onChange={(e) => setLocationFilter(e.target.value)}
-            className="border border-stone-200 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+            className="border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
           >
             <option value="">All Locations</option>
             {activeLocations.map((loc: Location) => (
@@ -166,10 +166,10 @@ export default function AdjustmentsPage() {
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-stone-200">
+              <tr className="border-b border-stone-200 dark:border-stone-700">
                 <th className="text-left px-4 py-3 text-xs font-medium text-stone-400 uppercase tracking-wide">
                   Date
                 </th>
@@ -193,10 +193,10 @@ export default function AdjustmentsPage() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100">
+            <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
               {adjustments.map((adj: StockAdjustment) => (
                 <tr key={adj._id} className="hover:bg-stone-50/50">
-                  <td className="px-4 py-3 text-stone-600 whitespace-nowrap">
+                  <td className="px-4 py-3 text-stone-600 dark:text-stone-400 whitespace-nowrap">
                     {formatDate(adj.createdAt)}
                   </td>
                   <td className="px-4 py-3 text-stone-800 font-medium">
@@ -223,7 +223,7 @@ export default function AdjustmentsPage() {
                     {adj.quantity > 0 ? "+" : ""}
                     {adj.quantity}
                   </td>
-                  <td className="px-4 py-3 text-stone-600 max-w-[200px] truncate">
+                  <td className="px-4 py-3 text-stone-600 dark:text-stone-400 max-w-[200px] truncate">
                     {adj.reason}
                   </td>
                   <td className="px-4 py-3 text-stone-500">

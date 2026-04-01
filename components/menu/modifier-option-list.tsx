@@ -142,14 +142,14 @@ export function ModifierOptionList({
               <form
                 key={mod._id}
                 onSubmit={handleUpdate}
-                className="flex items-center gap-2 p-2 bg-blue-50 rounded"
+                className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-stone-800 rounded"
               >
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
+                  className="flex-1 border border-gray-300 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded px-2 py-1 text-sm"
                   placeholder="Option name"
                 />
                 <input
@@ -157,7 +157,7 @@ export function ModifierOptionList({
                   step="0.01"
                   value={priceDisplay}
                   onChange={(e) => setPriceDisplay(e.target.value)}
-                  className="w-24 border border-gray-300 rounded px-2 py-1 text-sm"
+                  className="w-24 border border-gray-300 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded px-2 py-1 text-sm"
                   placeholder="0.00"
                 />
                 <button
@@ -170,7 +170,7 @@ export function ModifierOptionList({
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="text-xs text-gray-500 hover:text-gray-700"
+                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 >
                   Cancel
                 </button>
@@ -178,15 +178,15 @@ export function ModifierOptionList({
             ) : (
               <div
                 key={mod._id}
-                className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-gray-50 group"
+                className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-gray-50 dark:hover:bg-stone-800 group"
               >
                 <div className="flex items-center gap-2">
                   <span
-                    className={`text-sm ${mod.status === "inactive" ? "text-gray-400 line-through" : "text-gray-700"}`}
+                    className={`text-sm ${mod.status === "inactive" ? "text-gray-400 dark:text-gray-500 line-through" : "text-gray-700"}`}
                   >
                     {mod.name}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
                     {formatPrice(mod.priceAdjustment)}
                   </span>
                   {mod.status === "inactive" && (
@@ -220,14 +220,14 @@ export function ModifierOptionList({
       {showAddForm ? (
         <form
           onSubmit={handleAdd}
-          className="flex items-center gap-2 mt-2 p-2 bg-gray-50 rounded"
+          className="flex items-center gap-2 mt-2 p-2 bg-gray-50 dark:bg-stone-800 rounded"
         >
           <input
             type="text"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
+            className="flex-1 border border-gray-300 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded px-2 py-1 text-sm"
             placeholder="Option name"
           />
           <input
@@ -235,7 +235,7 @@ export function ModifierOptionList({
             step="0.01"
             value={priceDisplay}
             onChange={(e) => setPriceDisplay(e.target.value)}
-            className="w-24 border border-gray-300 rounded px-2 py-1 text-sm"
+            className="w-24 border border-gray-300 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded px-2 py-1 text-sm"
             placeholder="0.00"
           />
           <button
@@ -248,7 +248,7 @@ export function ModifierOptionList({
           <button
             type="button"
             onClick={resetForm}
-            className="text-xs text-gray-500 hover:text-gray-700"
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
           >
             Cancel
           </button>

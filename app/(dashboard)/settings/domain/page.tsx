@@ -61,34 +61,34 @@ export default function DomainSettingsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-xl font-bold text-stone-900">Custom Domain</h1>
-        <p className="text-sm text-stone-500 mt-0.5">
+        <h1 className="text-xl font-bold text-stone-900 dark:text-stone-100">Custom Domain</h1>
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
           Configure a custom domain for your public menu and storefront
         </p>
       </div>
 
       <div className="space-y-6 max-w-lg">
         {/* Current domain */}
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6">
-          <h2 className="text-base font-semibold text-stone-900 mb-1">Current Domain</h2>
-          <p className="text-sm text-stone-500 mb-4">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-6">
+          <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-1">Current Domain</h2>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mb-4">
             Your public menu is accessible at:
           </p>
-          <div className="px-3 py-2.5 bg-stone-50 rounded-xl border border-stone-200 text-sm font-mono text-stone-700">
+          <div className="px-3 py-2.5 bg-stone-50 dark:bg-stone-800 rounded-xl border border-stone-200 dark:border-stone-700 text-sm font-mono text-stone-700">
             {tenantSlug}.bevigo.app
           </div>
         </div>
 
         {/* Custom domain */}
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-6">
           <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-base font-semibold text-stone-900">Custom Domain</h2>
+            <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100">Custom Domain</h2>
             <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
               Coming Soon
             </span>
           </div>
 
-          <p className="text-sm text-stone-500 mb-4">
+          <p className="text-sm text-stone-500 dark:text-stone-400 mb-4">
             Use your own domain for the public menu. Follow these steps:
           </p>
 
@@ -102,7 +102,7 @@ export default function DomainSettingsPage() {
           </ol>
 
           <div className="mb-4">
-            <label htmlFor="custom-domain" className="block text-sm font-medium text-stone-700 mb-1.5">
+            <label htmlFor="custom-domain" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
               Your Domain
             </label>
             <input
@@ -111,7 +111,7 @@ export default function DomainSettingsPage() {
               value={customDomain}
               onChange={(e) => { setCustomDomain(e.target.value); setSuccessMessage(null); }}
               placeholder="menu.yourcoffeeshop.com"
-              className="w-full rounded-xl border-stone-200 border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="w-full rounded-xl border-stone-200 dark:border-stone-700 border dark:bg-stone-800 dark:text-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             />
           </div>
 

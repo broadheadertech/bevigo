@@ -82,8 +82,8 @@ export function ModifierGroupForm({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-        <h2 className="text-lg font-bold mb-4">
+      <div className="bg-white dark:bg-stone-900 rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-4">
           {editingGroup ? "Edit Modifier Group" : "Add Modifier Group"}
         </h2>
 
@@ -95,7 +95,7 @@ export function ModifierGroupForm({
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-stone-300 mb-1">
               Name *
             </label>
             <input
@@ -103,7 +103,7 @@ export function ModifierGroupForm({
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2"
+              className="w-full border border-gray-300 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded px-3 py-2"
               placeholder="e.g. Size, Milk Type, Add-ons"
             />
           </div>
@@ -126,7 +126,7 @@ export function ModifierGroupForm({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-stone-300 mb-1">
                 Min Selections
               </label>
               <input
@@ -134,11 +134,11 @@ export function ModifierGroupForm({
                 min="0"
                 value={minSelect}
                 onChange={(e) => setMinSelect(Number(e.target.value))}
-                className="w-full border border-gray-300 rounded px-3 py-2"
+                className="w-full border border-gray-300 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-stone-300 mb-1">
                 Max Selections
               </label>
               <input
@@ -146,20 +146,20 @@ export function ModifierGroupForm({
                 min="1"
                 value={maxSelect}
                 onChange={(e) => setMaxSelect(Number(e.target.value))}
-                className="w-full border border-gray-300 rounded px-3 py-2"
+                className="w-full border border-gray-300 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded px-3 py-2"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-stone-300 mb-1">
               Sort Order
             </label>
             <input
               type="number"
               value={sortOrder}
               onChange={(e) => setSortOrder(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded px-3 py-2"
+              className="w-full border border-gray-300 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded px-3 py-2"
             />
           </div>
 
@@ -167,7 +167,7 @@ export function ModifierGroupForm({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-4 py-2 text-gray-600 dark:text-stone-400 border border-gray-300 dark:border-stone-700 rounded-lg hover:bg-gray-50 dark:hover:bg-stone-800"
             >
               Cancel
             </button>

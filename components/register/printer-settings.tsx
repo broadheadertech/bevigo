@@ -116,7 +116,7 @@ export function PrinterSettings() {
       <button
         type="button"
         onClick={() => setShowPanel(true)}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-stone-200 hover:bg-stone-50 transition-colors"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-stone-200 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
         title="Printer settings"
       >
         <span
@@ -145,9 +145,9 @@ export function PrinterSettings() {
   }
 
   return (
-    <div className="absolute top-12 right-4 z-40 w-72 bg-white rounded-2xl border border-stone-200/60 shadow-lg p-4">
+    <div className="absolute top-12 right-4 z-40 w-72 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-lg p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-stone-900">Printer</h3>
+        <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100">Printer</h3>
         <button
           type="button"
           onClick={() => setShowPanel(false)}
@@ -164,7 +164,7 @@ export function PrinterSettings() {
             connected ? "bg-green-500" : "bg-stone-300"
           }`}
         />
-        <span className="text-sm text-stone-600">
+        <span className="text-sm text-stone-600 dark:text-stone-400">
           {connected ? "Connected" : "Disconnected"}
         </span>
       </div>
@@ -182,7 +182,7 @@ export function PrinterSettings() {
           <button
             type="button"
             onClick={handleDisconnect}
-            className="flex-1 px-3 py-2 text-xs font-medium border border-stone-200 rounded-xl hover:bg-stone-50 transition-colors text-stone-700"
+            className="flex-1 px-3 py-2 text-xs font-medium border border-stone-200 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors text-stone-700"
           >
             Disconnect
           </button>
@@ -204,7 +204,7 @@ export function PrinterSettings() {
           type="button"
           onClick={handleTestPrint}
           disabled={isTesting}
-          className="w-full mb-3 px-3 py-2 text-xs font-medium border border-stone-200 rounded-xl hover:bg-stone-50 disabled:opacity-50 transition-colors text-stone-700"
+          className="w-full mb-3 px-3 py-2 text-xs font-medium border border-stone-200 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 disabled:opacity-50 transition-colors text-stone-700"
         >
           {isTesting ? "Printing..." : "Test Print"}
         </button>

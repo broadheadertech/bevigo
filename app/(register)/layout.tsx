@@ -37,28 +37,8 @@ export default function RegisterLayout({
 
   return (
     <AuthProvider token={token}>
-      <div className="relative h-screen w-screen overflow-hidden bg-stone-100">
+      <div className="relative h-screen w-screen overflow-hidden bg-stone-100 dark:bg-stone-950">
         <ConnectionStatus />
-        <button
-          onClick={() => lock()}
-          className="absolute top-3 right-3 z-40 flex h-10 w-10 items-center justify-center rounded-lg bg-stone-200 text-stone-600 hover:bg-stone-300 transition-colors"
-          aria-label="Lock register"
-          title="Lock register"
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-            />
-          </svg>
-        </button>
         {children}
         <InstallPrompt />
       </div>

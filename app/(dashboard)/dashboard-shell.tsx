@@ -22,11 +22,12 @@ function DashboardNav({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClose:
 
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-[260px] border-r border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 flex flex-col
+          fixed inset-y-0 left-0 z-50 w-[260px] flex flex-col
           transform transition-transform duration-200 ease-in-out
           md:relative md:translate-x-0
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
+        style={{ backgroundColor: 'var(--card)', borderRight: '1px solid var(--border-color)' }}
       >
         {/* Logo + close button on mobile */}
         <div className="px-5 py-5 border-b border-stone-100 dark:border-stone-800">
@@ -105,7 +106,7 @@ function DashboardNav({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClose:
 function MobileTopBar({ onOpen }: { onOpen: () => void }) {
   const { brandName, logoUrl } = useBranding();
   return (
-    <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-stone-950 border-b border-stone-200 dark:border-stone-800">
+    <div className="md:hidden flex items-center justify-between px-4 py-3" style={{ backgroundColor: 'var(--card)', borderBottom: '1px solid var(--border-color)' }}>
       <div className="flex items-center gap-2.5">
         <div className="w-7 h-7 flex items-center justify-center">
           {logoUrl ? (
@@ -154,7 +155,7 @@ export function DashboardShell({
   return (
     <AuthProvider token={token}>
       <BrandingProvider>
-        <div className="flex flex-col min-h-screen bg-stone-50 dark:bg-stone-900">
+        <div className="flex flex-col min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
           <MobileTopBar onOpen={handleOpen} />
           <div className="flex flex-1">
             <DashboardNav sidebarOpen={sidebarOpen} onClose={handleClose} />

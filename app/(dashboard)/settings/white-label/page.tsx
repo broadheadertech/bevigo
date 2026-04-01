@@ -42,8 +42,8 @@ export default function WhiteLabelSettingsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-xl font-bold text-stone-900">White-Label</h1>
-        <p className="text-sm text-stone-500 mt-0.5">
+        <h1 className="text-xl font-bold text-stone-900 dark:text-stone-100">White-Label</h1>
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
           Make the POS completely yours with white-label features
         </p>
       </div>
@@ -67,8 +67,8 @@ export default function WhiteLabelSettingsPage() {
         </div>
 
         {/* Features list */}
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6">
-          <h2 className="text-base font-semibold text-stone-900 mb-4">What&apos;s Included</h2>
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-6">
+          <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-4">What&apos;s Included</h2>
 
           <div className="space-y-4">
             {features.map((feature: { title: string; description: string; available: boolean }) => (
@@ -89,7 +89,7 @@ export default function WhiteLabelSettingsPage() {
                   )}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-stone-800">{feature.title}</p>
+                  <p className="text-sm font-medium text-stone-800 dark:text-stone-200">{feature.title}</p>
                   <p className="text-sm text-stone-500">{feature.description}</p>
                 </div>
               </div>
@@ -98,7 +98,7 @@ export default function WhiteLabelSettingsPage() {
         </div>
 
         {/* Contact CTA */}
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6 text-center">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-6 text-center">
           <p className="text-sm text-stone-600 mb-3">
             Interested in the full white-label experience?
           </p>

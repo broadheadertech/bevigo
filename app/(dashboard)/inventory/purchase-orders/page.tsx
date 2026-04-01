@@ -151,10 +151,10 @@ export default function PurchaseOrdersPage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-xl font-bold text-stone-900">
+          <h1 className="text-xl font-bold text-stone-900 dark:text-stone-100">
             Purchase Orders
           </h1>
-          <p className="text-sm text-stone-500 mt-0.5">
+          <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
             Manage supplier orders and receiving
           </p>
         </div>
@@ -176,7 +176,7 @@ export default function PurchaseOrdersPage() {
               className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
                 statusFilter === s
                   ? "bg-stone-900 text-white"
-                  : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
+                  : "bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-700"
               }`}
             >
               {s === "" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
@@ -190,7 +190,7 @@ export default function PurchaseOrdersPage() {
         <div>
           <button
             onClick={() => setSelectedOrderId(null)}
-            className="text-sm text-stone-500 hover:text-stone-700 mb-4 flex items-center gap-1 transition-colors"
+            className="text-sm text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 mb-4 flex items-center gap-1 transition-colors"
           >
             <svg
               className="w-4 h-4"
@@ -208,13 +208,13 @@ export default function PurchaseOrdersPage() {
             Back to list
           </button>
 
-          <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-6">
             <div className="flex items-start justify-between mb-6">
               <div>
-                <h2 className="text-lg font-bold text-stone-900">
+                <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100">
                   {orderDetail.supplier}
                 </h2>
-                <p className="text-sm text-stone-500 mt-0.5">
+                <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
                   {orderDetail.locationName} &middot; Created by{" "}
                   {orderDetail.userName}
                 </p>
@@ -254,7 +254,7 @@ export default function PurchaseOrdersPage() {
             </div>
 
             {orderDetail.notes && (
-              <p className="text-sm text-stone-600 mb-4 bg-stone-50 rounded-xl p-3">
+              <p className="text-sm text-stone-600 mb-4 bg-stone-50 dark:bg-stone-800 rounded-xl p-3">
                 {orderDetail.notes}
               </p>
             )}
@@ -270,7 +270,7 @@ export default function PurchaseOrdersPage() {
 
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-stone-200">
+                <tr className="border-b border-stone-200 dark:border-stone-700">
                   <th className="text-left py-2.5 text-xs font-medium text-stone-400 uppercase tracking-wide">
                     Ingredient
                   </th>
@@ -285,24 +285,24 @@ export default function PurchaseOrdersPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                 {orderDetail.items.map((item: PurchaseOrderItem) => (
                   <tr key={item._id}>
-                    <td className="py-3 text-stone-800">
+                    <td className="py-3 text-stone-800 dark:text-stone-200">
                       {item.ingredientName}{" "}
                       <span className="text-stone-400 text-xs">
                         {item.ingredientUnit}
                       </span>
                     </td>
-                    <td className="py-3 text-right text-stone-600">
+                    <td className="py-3 text-right text-stone-600 dark:text-stone-400">
                       {item.quantityOrdered}
                     </td>
-                    <td className="py-3 text-right text-stone-600">
+                    <td className="py-3 text-right text-stone-600 dark:text-stone-400">
                       {item.quantityReceived != null
                         ? item.quantityReceived
                         : "-"}
                     </td>
-                    <td className="py-3 text-right text-stone-600">
+                    <td className="py-3 text-right text-stone-600 dark:text-stone-400">
                       {item.unitCost != null
                         ? `${(item.unitCost / 100).toFixed(2)}`
                         : "-"}
@@ -340,17 +340,17 @@ export default function PurchaseOrdersPage() {
                 <button
                   key={order._id}
                   onClick={() => setSelectedOrderId(order._id)}
-                  className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-4 text-left hover:border-stone-300 transition-colors"
+                  className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-4 text-left hover:border-stone-300 transition-colors"
                 >
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-stone-900">
+                        <span className="font-semibold text-stone-900 dark:text-stone-100">
                           {order.supplier}
                         </span>
                         <StatusBadge status={order.status} />
                       </div>
-                      <p className="text-sm text-stone-500 mt-0.5">
+                      <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
                         {order.locationName} &middot; {order.itemCount} item
                         {order.itemCount !== 1 ? "s" : ""} &middot;{" "}
                         {formatDate(order._creationTime)}

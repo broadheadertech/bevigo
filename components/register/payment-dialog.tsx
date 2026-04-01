@@ -55,10 +55,10 @@ export function PaymentDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-stone-900">
+          <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100">
             Select Payment
           </h2>
           <button
@@ -71,7 +71,7 @@ export function PaymentDialog({
         </div>
 
         {/* Total */}
-        <div className="px-6 py-4 text-center border-b border-stone-100">
+        <div className="px-6 py-4 text-center border-b border-stone-100 dark:border-stone-800">
           <p className="text-sm text-stone-500">Total Due</p>
           <p className="text-3xl font-bold text-stone-900 mt-1">
             {formatPrice(orderTotal)}
@@ -85,7 +85,7 @@ export function PaymentDialog({
               key={option.type}
               onClick={() => handlePayment(option.type)}
               disabled={isProcessing}
-              className="flex flex-col items-center justify-center gap-2 min-h-[80px] min-w-[80px] rounded-xl border-2 border-stone-200 bg-stone-50 hover:border-green-500 hover:bg-green-50 active:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors p-4"
+              className="flex flex-col items-center justify-center gap-2 min-h-[80px] min-w-[80px] rounded-xl border-2 border-stone-200 bg-stone-50 dark:bg-stone-800 hover:border-green-500 hover:bg-green-50 active:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors p-4"
             >
               <span className="text-3xl" role="img" aria-label={option.label}>
                 {option.icon}

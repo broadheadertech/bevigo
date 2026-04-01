@@ -89,7 +89,7 @@ export function AdjustmentForm({ locations, onClose }: AdjustmentFormProps) {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-stone-200/60">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-xl w-full max-w-md p-6 border border-stone-200/60">
         <h2 className="text-lg font-bold text-stone-900 mb-4">
           Log Stock Adjustment
         </h2>
@@ -102,7 +102,7 @@ export function AdjustmentForm({ locations, onClose }: AdjustmentFormProps) {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
               Ingredient *
             </label>
             <select
@@ -113,7 +113,7 @@ export function AdjustmentForm({ locations, onClose }: AdjustmentFormProps) {
                   e.target.value as Id<"ingredients"> | ""
                 )
               }
-              className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             >
               <option value="">Select ingredient</option>
               {ingredients?.map((ing: Ingredient) => (
@@ -125,7 +125,7 @@ export function AdjustmentForm({ locations, onClose }: AdjustmentFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
               Location *
             </label>
             <select
@@ -134,7 +134,7 @@ export function AdjustmentForm({ locations, onClose }: AdjustmentFormProps) {
               onChange={(e) =>
                 setLocationId(e.target.value as Id<"locations"> | "")
               }
-              className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             >
               <option value="">Select location</option>
               {locations.map((loc: Location) => (
@@ -146,13 +146,13 @@ export function AdjustmentForm({ locations, onClose }: AdjustmentFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
               Type *
             </label>
             <select
               value={type}
               onChange={(e) => setType(e.target.value as AdjustmentType)}
-              className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             >
               {ADJUSTMENT_TYPES.map(
                 (t: { value: string; label: string }) => (
@@ -165,7 +165,7 @@ export function AdjustmentForm({ locations, onClose }: AdjustmentFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
               Quantity *{" "}
               <span className="text-stone-400 font-normal">
                 (negative to remove)
@@ -178,7 +178,7 @@ export function AdjustmentForm({ locations, onClose }: AdjustmentFormProps) {
                 step="any"
                 value={quantity || ""}
                 onChange={(e) => setQuantity(Number(e.target.value))}
-                className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+                className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
                 placeholder="e.g. -5 or 10"
               />
               {selectedIngredient && (
@@ -190,7 +190,7 @@ export function AdjustmentForm({ locations, onClose }: AdjustmentFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
               Reason *
             </label>
             <textarea
@@ -198,7 +198,7 @@ export function AdjustmentForm({ locations, onClose }: AdjustmentFormProps) {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={2}
-              className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors resize-none"
+              className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors resize-none"
               placeholder="e.g. Expired milk, physical count correction..."
             />
           </div>
@@ -207,7 +207,7 @@ export function AdjustmentForm({ locations, onClose }: AdjustmentFormProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 text-stone-700 border border-stone-200 rounded-xl hover:bg-stone-50 text-sm font-medium transition-colors"
+              className="px-4 py-2.5 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 text-sm font-medium transition-colors"
             >
               Cancel
             </button>

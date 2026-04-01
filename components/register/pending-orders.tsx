@@ -47,7 +47,7 @@ export function PendingOrders({
             className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors min-h-[48px] min-w-[48px] ${
               isActive
                 ? "bg-blue-600 text-white shadow-sm"
-                : "bg-white text-stone-700 border border-stone-300 hover:bg-stone-50 active:bg-stone-100"
+                : "bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-300 dark:border-stone-600 hover:bg-stone-50 dark:hover:bg-stone-700 active:bg-stone-100"
             }`}
           >
             <div className="whitespace-nowrap">
@@ -64,7 +64,7 @@ export function PendingOrders({
       })}
       <button
         onClick={onNewOrder}
-        className="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium bg-white text-stone-500 border border-dashed border-stone-300 hover:bg-stone-50 active:bg-stone-100 transition-colors min-h-[48px] min-w-[48px]"
+        className="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium bg-white dark:bg-stone-800 text-stone-500 dark:text-stone-400 border border-dashed border-stone-300 dark:border-stone-600 hover:bg-stone-50 dark:hover:bg-stone-700 active:bg-stone-100 transition-colors min-h-[48px] min-w-[48px]"
       >
         + New
       </button>

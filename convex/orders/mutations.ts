@@ -9,6 +9,7 @@ export const createDraftOrder = mutation({
   args: {
     token: v.string(),
     locationId: v.id("locations"),
+    tableId: v.optional(v.id("tables")),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -17,6 +18,16 @@ export const createDraftOrder = mutation({
     const location = await ctx.db.get(args.locationId);
     if (!location || location.tenantId !== session.tenantId) {
       throw new Error("Location not found");
+    }
+
+    // If tableId provided, look up table name for denormalization
+    let tableName: string | undefined;
+    if (args.tableId) {
+      const table = await ctx.db.get(args.tableId);
+      if (!table || table.tenantId !== session.tenantId) {
+        throw new Error("Table not found");
+      }
+      tableName = table.name;
     }
 
     const orderId = await ctx.db.insert("orders", {
@@ -29,6 +40,8 @@ export const createDraftOrder = mutation({
       total: 0,
       taxRate: location.taxRate,
       taxLabel: location.taxLabel,
+      tableId: args.tableId,
+      tableName,
       updatedAt: Date.now(),
     });
 
@@ -371,6 +384,42 @@ export const completeOrder = mutation({
     );
 
     return { orderId: args.orderId, orderNumber, total };
+  },
+});
+
+export const assignTableToOrder = mutation({
+  args: {
+    token: v.string(),
+    orderId: v.id("orders"),
+    tableId: v.optional(v.id("tables")),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+
+    const order = await ctx.db.get(args.orderId);
+    if (!order || order.tenantId !== session.tenantId) {
+      throw new Error("Order not found");
+    }
+    if (order.status !== "draft") {
+      throw new Error("Can only assign table to draft orders");
+    }
+
+    let tableName: string | undefined;
+    if (args.tableId) {
+      const table = await ctx.db.get(args.tableId);
+      if (!table || table.tenantId !== session.tenantId) {
+        throw new Error("Table not found");
+      }
+      tableName = table.name;
+    }
+
+    await ctx.db.patch(args.orderId, {
+      tableId: args.tableId,
+      tableName,
+      updatedAt: Date.now(),
+    });
+
+    return args.orderId;
   },
 });
 

@@ -95,11 +95,11 @@ export function ReceiveDialog({
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 border border-stone-200/60 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-xl w-full max-w-lg p-6 border border-stone-200/60 max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-bold text-stone-900 mb-1">
           Receive Purchase Order
         </h2>
-        <p className="text-sm text-stone-500 mb-4">
+        <p className="text-sm text-stone-500 dark:text-stone-400 mb-4">
           From <span className="font-medium text-stone-700">{supplier}</span>
         </p>
 
@@ -110,10 +110,10 @@ export function ReceiveDialog({
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <div className="bg-stone-50 rounded-xl overflow-hidden">
+          <div className="bg-stone-50 dark:bg-stone-800 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-stone-200">
+                <tr className="border-b border-stone-200 dark:border-stone-700">
                   <th className="text-left px-4 py-2.5 text-xs font-medium text-stone-400 uppercase tracking-wide">
                     Ingredient
                   </th>
@@ -125,16 +125,16 @@ export function ReceiveDialog({
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                 {items.map((item: PurchaseOrderItem) => (
                   <tr key={item._id}>
-                    <td className="px-4 py-3 text-stone-800">
+                    <td className="px-4 py-3 text-stone-800 dark:text-stone-200">
                       {item.ingredientName}
                       <span className="text-stone-400 ml-1 text-xs">
                         {item.ingredientUnit}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-stone-600">
+                    <td className="px-4 py-3 text-right text-stone-600 dark:text-stone-400">
                       {item.quantityOrdered}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -151,7 +151,7 @@ export function ReceiveDialog({
                             Number(e.target.value)
                           )
                         }
-                        className="w-24 text-right border border-stone-200 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors bg-white"
+                        className="w-24 text-right border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors bg-white"
                       />
                     </td>
                   </tr>
@@ -164,7 +164,7 @@ export function ReceiveDialog({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 text-stone-700 border border-stone-200 rounded-xl hover:bg-stone-50 text-sm font-medium transition-colors"
+              className="px-4 py-2.5 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 text-sm font-medium transition-colors"
             >
               Cancel
             </button>

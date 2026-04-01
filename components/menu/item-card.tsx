@@ -34,10 +34,10 @@ export function ItemCard({
   onToggleFeatured,
 }: ItemCardProps) {
   return (
-    <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-5 flex flex-col gap-2.5">
+    <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-5 flex flex-col gap-2.5">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-stone-900">{item.name}</h3>
+          <h3 className="font-semibold text-stone-900 dark:text-stone-100">{item.name}</h3>
           {item.isFeatured && (
             <span className="text-amber-500" title="Featured">
               &#9733;
@@ -49,7 +49,7 @@ export function ItemCard({
             item.status === "active"
               ? "bg-emerald-50 text-emerald-700"
               : item.status === "inactive"
-                ? "bg-stone-100 text-stone-500"
+                ? "bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400"
                 : "bg-red-50 text-red-600"
           }`}
         >
@@ -62,7 +62,7 @@ export function ItemCard({
       )}
 
       <div className="flex items-center justify-between mt-1">
-        <span className="text-lg font-bold text-stone-900">
+        <span className="text-lg font-bold text-stone-900 dark:text-stone-100">
           {formatCurrency(item.basePrice)}
         </span>
         {categoryName && (
@@ -70,7 +70,7 @@ export function ItemCard({
         )}
       </div>
 
-      <div className="flex gap-3 mt-2 pt-3 border-t border-stone-100">
+      <div className="flex gap-3 mt-2 pt-3 border-t border-stone-100 dark:border-stone-800">
         <button
           onClick={() => onEdit(item)}
           className="text-sm font-medium text-amber-700 hover:text-amber-800 transition-colors"

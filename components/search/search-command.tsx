@@ -147,12 +147,12 @@ export function SearchCommand() {
           onChange={handleInputChange}
           onFocus={() => setIsOpen(true)}
           placeholder="Search... (⌘K)"
-          className="w-full pl-9 pr-3 py-2 rounded-xl border border-stone-200 focus:ring-amber-500/20 focus:border-amber-500 text-sm outline-none bg-stone-50 placeholder:text-stone-400"
+          className="w-full pl-9 pr-3 py-2 rounded-xl border border-stone-200 focus:ring-amber-500/20 focus:border-amber-500 text-sm outline-none bg-stone-50 dark:bg-stone-800 placeholder:text-stone-400"
         />
       </div>
 
       {isOpen && debouncedQuery && (
-        <div className="absolute left-3 right-3 top-full mt-1 bg-white rounded-xl border border-stone-200/60 shadow-lg max-h-80 overflow-y-auto z-50">
+        <div className="absolute left-3 right-3 top-full mt-1 bg-white dark:bg-stone-900 rounded-xl border border-stone-200/60 dark:border-stone-700/60 shadow-lg max-h-80 overflow-y-auto z-50">
           {results === undefined ? (
             <div className="p-3 text-sm text-stone-400 text-center">
               Searching...
@@ -165,14 +165,14 @@ export function SearchCommand() {
             Object.entries(grouped).map(
               ([type, items]: [string, SearchResult[]]) => (
                 <div key={type}>
-                  <div className="px-3 py-1.5 text-xs font-medium text-stone-400 uppercase tracking-wider bg-stone-50">
+                  <div className="px-3 py-1.5 text-xs font-medium text-stone-400 uppercase tracking-wider bg-stone-50 dark:bg-stone-800">
                     {TYPE_LABELS[type] ?? type}
                   </div>
                   {items.map((result: SearchResult) => (
                     <button
                       key={result.id}
                       onClick={() => handleResultClick(result)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-stone-50 transition-colors"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
                     >
                       <svg
                         className="w-4 h-4 text-stone-400 shrink-0"

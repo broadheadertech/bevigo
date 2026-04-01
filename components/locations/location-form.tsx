@@ -100,7 +100,7 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-const inputClass = "w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors";
+const inputClass = "w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors";
 const smallInputClass = "border border-stone-200 rounded-xl px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors";
 
 export function LocationForm({
@@ -175,7 +175,7 @@ export function LocationForm({
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center z-50 overflow-y-auto py-8">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 my-auto border border-stone-200/60">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-xl w-full max-w-lg p-6 my-auto border border-stone-200/60">
         <h2 className="text-lg font-bold text-stone-900 mb-4">
           {editingLocation ? "Edit Location" : "Add Location"}
         </h2>
@@ -189,7 +189,7 @@ export function LocationForm({
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
               Name *
             </label>
             <input
@@ -204,7 +204,7 @@ export function LocationForm({
 
           {/* Slug */}
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
               Slug *
             </label>
             <input
@@ -222,7 +222,7 @@ export function LocationForm({
 
           {/* Address */}
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
               Address
             </label>
             <textarea
@@ -237,7 +237,7 @@ export function LocationForm({
           {/* Timezone + Currency row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
+              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
                 Timezone
               </label>
               <select
@@ -253,7 +253,7 @@ export function LocationForm({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
+              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
                 Currency
               </label>
               <select
@@ -273,7 +273,7 @@ export function LocationForm({
           {/* Tax row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
+              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
                 Tax Rate (%)
               </label>
               <input
@@ -290,7 +290,7 @@ export function LocationForm({
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
+              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
                 Tax Label
               </label>
               <input
@@ -305,7 +305,7 @@ export function LocationForm({
 
           {/* Status toggle */}
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
               Status
             </label>
             <div className="flex gap-4">
@@ -334,7 +334,7 @@ export function LocationForm({
 
           {/* Operating Hours */}
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
               Operating Hours
             </label>
             <div className="space-y-2">
@@ -387,7 +387,7 @@ export function LocationForm({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 text-stone-700 border border-stone-200 rounded-xl hover:bg-stone-50 text-sm font-medium transition-colors"
+              className="px-4 py-2.5 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 text-sm font-medium transition-colors"
             >
               Cancel
             </button>

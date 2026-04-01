@@ -71,20 +71,20 @@ export default function BrandingSettingsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-xl font-bold text-stone-900">Branding</h1>
-        <p className="text-sm text-stone-500 mt-0.5">
+        <h1 className="text-xl font-bold text-stone-900 dark:text-stone-100">Branding</h1>
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
           Customize your brand appearance across the POS and public menu
         </p>
       </div>
 
       <div className="grid gap-6 max-w-2xl lg:grid-cols-2">
         {/* Settings Form */}
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6">
-          <h2 className="text-base font-semibold text-stone-900 mb-4">Brand Settings</h2>
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-6">
+          <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-4">Brand Settings</h2>
 
           <div className="space-y-4">
             <div>
-              <label htmlFor="brand-name" className="block text-sm font-medium text-stone-700 mb-1.5">
+              <label htmlFor="brand-name" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
                 Brand Name
               </label>
               <input
@@ -93,7 +93,7 @@ export default function BrandingSettingsPage() {
                 value={brandName}
                 onChange={(e) => { setBrandName(e.target.value); setSuccessMessage(null); }}
                 placeholder="e.g. My Coffee Shop"
-                className="w-full rounded-xl border-stone-200 border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+                className="w-full rounded-xl border-stone-200 dark:border-stone-700 border dark:bg-stone-800 dark:text-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
               />
               <p className="mt-1 text-xs text-stone-400">
                 Replaces &quot;bevi&amp;go&quot; in the sidebar and public menu
@@ -101,7 +101,7 @@ export default function BrandingSettingsPage() {
             </div>
 
             <div>
-              <label htmlFor="brand-logo" className="block text-sm font-medium text-stone-700 mb-1.5">
+              <label htmlFor="brand-logo" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
                 Logo URL
               </label>
               <input
@@ -110,7 +110,7 @@ export default function BrandingSettingsPage() {
                 value={brandLogoUrl}
                 onChange={(e) => { setBrandLogoUrl(e.target.value); setSuccessMessage(null); }}
                 placeholder="https://example.com/logo.png"
-                className="w-full rounded-xl border-stone-200 border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+                className="w-full rounded-xl border-stone-200 dark:border-stone-700 border dark:bg-stone-800 dark:text-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
               />
               <p className="mt-1 text-xs text-stone-400">
                 Square image recommended (at least 64x64)
@@ -119,7 +119,7 @@ export default function BrandingSettingsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="primary-color" className="block text-sm font-medium text-stone-700 mb-1.5">
+                <label htmlFor="primary-color" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
                   Primary Color
                 </label>
                 <div className="flex items-center gap-2">
@@ -140,7 +140,7 @@ export default function BrandingSettingsPage() {
               </div>
 
               <div>
-                <label htmlFor="accent-color" className="block text-sm font-medium text-stone-700 mb-1.5">
+                <label htmlFor="accent-color" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1.5">
                   Accent Color
                 </label>
                 <div className="flex items-center gap-2">
@@ -184,12 +184,12 @@ export default function BrandingSettingsPage() {
         </div>
 
         {/* Live Preview */}
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6">
-          <h2 className="text-base font-semibold text-stone-900 mb-4">Preview</h2>
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-6">
+          <h2 className="text-base font-semibold text-stone-900 dark:text-stone-100 mb-4">Preview</h2>
 
           {/* Sidebar preview */}
           <div className="rounded-xl border border-stone-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-stone-100" style={{ backgroundColor: primaryColor + "10" }}>
+            <div className="px-4 py-3 border-b border-stone-100 dark:border-stone-800" style={{ backgroundColor: primaryColor + "10" }}>
               <div className="flex items-center gap-2.5">
                 {brandLogoUrl ? (
                   <img
@@ -237,7 +237,7 @@ export default function BrandingSettingsPage() {
 
           {/* Public menu preview */}
           <div className="mt-4 rounded-xl border border-stone-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-stone-200" style={{ backgroundColor: primaryColor + "08" }}>
+            <div className="px-4 py-3 border-b border-stone-200 dark:border-stone-700" style={{ backgroundColor: primaryColor + "08" }}>
               <p className="text-sm font-bold" style={{ color: primaryColor }}>
                 {brandName || "bevi&go"}
               </p>

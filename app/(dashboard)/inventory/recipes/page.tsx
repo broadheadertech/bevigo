@@ -71,8 +71,8 @@ export default function RecipesPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-xl font-bold text-stone-900">Recipes</h1>
-        <p className="text-sm text-stone-500 mt-0.5">
+        <h1 className="text-xl font-bold text-stone-900 dark:text-stone-100">Recipes</h1>
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
           Define ingredient recipes for menu items
         </p>
       </div>
@@ -108,7 +108,7 @@ export default function RecipesPage() {
                           className={`text-left px-3 py-2 rounded-xl text-sm transition-colors ${
                             selectedItemId === item._id
                               ? "bg-stone-900 text-white font-medium"
-                              : "hover:bg-stone-100 text-stone-600"
+                              : "hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-600 dark:text-stone-400"
                           }`}
                         >
                           {item.name}
@@ -125,7 +125,7 @@ export default function RecipesPage() {
         {/* Recipe editor */}
         <div className="flex-1">
           {!selectedItemId ? (
-            <div className="flex items-center justify-center h-64 bg-white rounded-2xl border border-stone-200/60 shadow-sm">
+            <div className="flex items-center justify-center h-64 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm">
               <div className="text-center">
                 <p className="text-stone-400 text-sm">
                   Select a menu item to view or edit its recipe

@@ -43,7 +43,7 @@ export default function ModifiersPage() {
   if (!token || !session) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Loading...</p>
       </div>
     );
   }
@@ -71,7 +71,7 @@ export default function ModifiersPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Modifier Groups</h1>
+          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">Modifier Groups</h1>
           <p className="text-sm text-gray-500 mt-1">
             Manage modifier options like sizes, milk types, and add-ons.
           </p>
@@ -89,7 +89,7 @@ export default function ModifiersPage() {
 
       {groups === undefined ? (
         <div className="flex items-center justify-center h-48">
-          <p className="text-gray-400">Loading modifier groups...</p>
+          <p className="text-gray-400 dark:text-gray-500">Loading modifier groups...</p>
         </div>
       ) : typedGroups.length > 0 ? (
         <div className="flex flex-col gap-4">
@@ -102,7 +102,7 @@ export default function ModifiersPage() {
             return (
               <div
                 key={group._id}
-                className="bg-white rounded-lg shadow"
+                className="bg-white dark:bg-stone-900 rounded-lg shadow"
               >
                 <div
                   className="flex items-center justify-between p-4 cursor-pointer"
@@ -114,7 +114,7 @@ export default function ModifiersPage() {
                     </span>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-gray-900">
+                        <h3 className="font-semibold text-gray-900 dark:text-stone-100">
                           {group.name}
                         </h3>
                         {group.required && (
@@ -143,7 +143,7 @@ export default function ModifiersPage() {
                 </div>
 
                 {isExpanded && (
-                  <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+                  <div className="px-4 pb-4 border-t border-gray-100 dark:border-stone-800 pt-3">
                     <ModifierOptionList
                       groupId={group._id}
                       modifiers={group.modifiers}
@@ -156,7 +156,7 @@ export default function ModifiersPage() {
         </div>
       ) : (
         <div className="flex items-center justify-center h-48">
-          <p className="text-gray-400">
+          <p className="text-gray-400 dark:text-gray-500">
             No modifier groups yet. Create one to get started.
           </p>
         </div>

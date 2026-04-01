@@ -164,18 +164,18 @@ export function ModifierPanel({
       />
 
       {/* Panel */}
-      <div className="relative w-full max-w-lg max-h-[90vh] bg-white rounded-t-2xl sm:rounded-2xl flex flex-col animate-slide-up shadow-2xl">
+      <div className="relative w-full max-w-lg max-h-[90vh] bg-white dark:bg-stone-900 rounded-t-2xl sm:rounded-2xl flex flex-col animate-slide-up shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-stone-200">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-stone-200 dark:border-stone-700">
           <div>
-            <h2 className="text-lg font-semibold text-stone-900">{itemName}</h2>
+            <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100">{itemName}</h2>
             <p className="text-sm text-stone-500">
               Base: {formatPrice(effectivePrice)}
             </p>
           </div>
           <button
             onClick={onCancel}
-            className="min-h-[48px] min-w-[48px] flex items-center justify-center rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors"
+            className="min-h-[48px] min-w-[48px] flex items-center justify-center rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
             aria-label="Cancel"
           >
             <svg
@@ -248,10 +248,10 @@ export function ModifierPanel({
                           onClick={() => toggleModifier(group, mod._id)}
                           className={`min-h-[48px] p-3 rounded-lg border-2 text-left transition-colors ${
                             isSelected
-                              ? "border-amber-500 bg-amber-50 text-stone-900"
+                              ? "border-amber-500 bg-amber-50 dark:bg-amber-950 text-stone-900 dark:text-stone-100"
                               : hasError
-                                ? "border-red-200 bg-white text-stone-700 hover:bg-stone-50"
-                                : "border-stone-200 bg-white text-stone-700 hover:bg-stone-50"
+                                ? "border-red-200 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700"
+                                : "border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700"
                           }`}
                         >
                           <div className="flex items-center justify-between">
@@ -296,17 +296,17 @@ export function ModifierPanel({
         </div>
 
         {/* Footer with running total and actions */}
-        <div className="border-t border-stone-200 px-4 py-3 space-y-3">
+        <div className="border-t border-stone-200 dark:border-stone-700 px-4 py-3 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm text-stone-500">Total</span>
-            <span className="text-lg font-bold text-stone-900">
+            <span className="text-lg font-bold text-stone-900 dark:text-stone-100">
               {formatPrice(runningTotal)}
             </span>
           </div>
           <div className="flex gap-3">
             <button
               onClick={onCancel}
-              className="flex-1 min-h-[48px] px-4 py-3 rounded-lg border border-stone-300 text-stone-700 font-medium hover:bg-stone-50 active:bg-stone-100 transition-colors"
+              className="flex-1 min-h-[48px] px-4 py-3 rounded-lg border border-stone-300 text-stone-700 font-medium hover:bg-stone-50 dark:hover:bg-stone-800 active:bg-stone-100 transition-colors"
             >
               Cancel
             </button>

@@ -104,8 +104,8 @@ export default function LocationsPage() {
     <div>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-8">
         <div>
-          <h1 className="text-lg md:text-xl font-bold text-stone-900">Locations</h1>
-          <p className="text-sm text-stone-500 mt-0.5">Manage your store branches and settings</p>
+          <h1 className="text-lg md:text-xl font-bold text-stone-900 dark:text-stone-100">Locations</h1>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">Manage your store branches and settings</p>
         </div>
         <button
           onClick={openAdd}
@@ -133,15 +133,15 @@ export default function LocationsPage() {
             <div
               key={loc._id}
               onClick={() => openEdit(loc)}
-              className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-5 cursor-pointer hover:shadow-md hover:border-stone-300/60 transition-all"
+              className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-5 cursor-pointer hover:shadow-md hover:border-stone-300/60 transition-all"
             >
               <div className="flex items-start justify-between mb-3">
-                <h3 className="font-semibold text-stone-900 text-lg">{loc.name}</h3>
+                <h3 className="font-semibold text-stone-900 dark:text-stone-100 text-lg">{loc.name}</h3>
                 <span
                   className={`inline-block px-2.5 py-1 text-xs font-medium rounded-full capitalize ${
                     loc.status === "active"
                       ? "bg-emerald-50 text-emerald-700"
-                      : "bg-stone-100 text-stone-500"
+                      : "bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400"
                   }`}
                 >
                   {loc.status}
@@ -149,7 +149,7 @@ export default function LocationsPage() {
               </div>
 
               {loc.address && (
-                <p className="text-sm text-stone-500 mb-3">{loc.address}</p>
+                <p className="text-sm text-stone-500 dark:text-stone-400 mb-3">{loc.address}</p>
               )}
 
               <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm">
@@ -157,13 +157,13 @@ export default function LocationsPage() {
                   <span className="text-stone-400">{loc.taxLabel}</span>{" "}
                   {(loc.taxRate / 100).toFixed(2)}%
                 </span>
-                <span className="inline-flex items-center px-2 py-0.5 bg-stone-50 rounded-full text-xs font-medium text-stone-600">
+                <span className="inline-flex items-center px-2 py-0.5 bg-stone-50 dark:bg-stone-800 rounded-full text-xs font-medium text-stone-600">
                   {loc.currency}
                 </span>
               </div>
 
               {loc.staffCount !== undefined && (
-                <p className="text-xs text-stone-400 mt-3 pt-3 border-t border-stone-100">
+                <p className="text-xs text-stone-400 mt-3 pt-3 border-t border-stone-100 dark:border-stone-800">
                   {loc.staffCount} staff member{loc.staffCount !== 1 ? "s" : ""}
                 </p>
               )}

@@ -43,7 +43,7 @@ export default function StaffAssignmentsPage() {
   if (!token || !session) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Loading...</p>
       </div>
     );
   }
@@ -51,7 +51,7 @@ export default function StaffAssignmentsPage() {
   if (session.role !== "owner") {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Only owners can manage staff-location assignments.</p>
+        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Only owners can manage staff-location assignments.</p>
       </div>
     );
   }
@@ -59,7 +59,7 @@ export default function StaffAssignmentsPage() {
   if (matrix === undefined) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Loading assignment matrix...</p>
+        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Loading assignment matrix...</p>
       </div>
     );
   }
@@ -165,9 +165,9 @@ export default function StaffAssignmentsPage() {
       case "manager":
         return "bg-blue-100 text-blue-700";
       case "barista":
-        return "bg-gray-100 text-gray-700";
+        return "bg-gray-100 dark:bg-stone-700 text-gray-700 dark:text-stone-300";
       default:
-        return "bg-gray-100 text-gray-700";
+        return "bg-gray-100 dark:bg-stone-700 text-gray-700 dark:text-stone-300";
     }
   };
 
@@ -175,7 +175,7 @@ export default function StaffAssignmentsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Staff-Location Assignments</h1>
+          <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100">Staff-Location Assignments</h1>
           <p className="text-sm text-gray-500 mt-1">
             Check or uncheck boxes to assign staff to locations. Save when done.
           </p>
@@ -184,7 +184,7 @@ export default function StaffAssignmentsPage() {
           {hasPendingChanges && (
             <button
               onClick={discardChanges}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 text-gray-600 dark:text-stone-400 border border-gray-300 dark:border-stone-700 rounded-lg hover:bg-gray-50 dark:hover:bg-stone-800 transition-colors"
             >
               Discard
             </button>
@@ -218,22 +218,22 @@ export default function StaffAssignmentsPage() {
       )}
 
       {users.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center text-gray-400">
+        <div className="bg-white dark:bg-stone-900 rounded-lg shadow p-8 text-center text-gray-400 dark:text-gray-500">
           No active staff members found. Add staff first.
         </div>
       ) : locations.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center text-gray-400">
+        <div className="bg-white dark:bg-stone-900 rounded-lg shadow p-8 text-center text-gray-400 dark:text-gray-500">
           No active locations found. Create locations first.
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <div className="bg-white dark:bg-stone-900 rounded-lg shadow overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-gray-50 dark:bg-stone-800 border-b">
               <tr>
-                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 sticky left-0 bg-gray-50 z-10">
+                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 sticky left-0 bg-gray-50 dark:bg-stone-800 z-10">
                   Staff Member
                 </th>
-                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">
+                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">
                   Role
                 </th>
                 {locations.map((loc) => (
@@ -252,10 +252,10 @@ export default function StaffAssignmentsPage() {
                   key={user.userId}
                   className="border-b last:border-0 hover:bg-gray-50"
                 >
-                  <td className="px-4 py-3 sticky left-0 bg-white z-10">
+                  <td className="px-4 py-3 sticky left-0 bg-white dark:bg-stone-900 z-10">
                     <div className="font-medium">{user.userName}</div>
                     {user.userEmail && (
-                      <div className="text-sm text-gray-500">{user.userEmail}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">{user.userEmail}</div>
                     )}
                   </td>
                   <td className="px-4 py-3">

@@ -15,12 +15,13 @@ import { ReceiptView } from "@/components/register/receipt-view";
 import { ShortcutHelp } from "@/components/register/shortcut-help";
 import { useRegisterShortcuts } from "@/hooks/use-register-shortcuts";
 import { ShiftIndicator } from "@/components/shifts/shift-indicator";
-import { PrinterSettings, useAutoPrint, usePrinterConnected } from "@/components/register/printer-settings";
+import { useAutoPrint, usePrinterConnected } from "@/components/register/printer-settings";
 import { receiptPrinter } from "@/lib/receipt-printer";
 import type { ReceiptData } from "@/lib/receipt-printer";
 import { useBarcodeScanner } from "@/hooks/use-barcode-scanner";
 import { CustomerLookup } from "@/components/register/customer-lookup";
 import { LoyaltyCard } from "@/components/customers/loyalty-card";
+import { TableSelector } from "@/components/register/table-selector";
 
 // Module-level variable to track last auto-printed order (avoids ref assignment during render)
 let lastPrintedOrderId: string | null = null;
@@ -34,6 +35,7 @@ type LocationItem = {
   effectivePrice: number;
   hasOverride: boolean;
   isFeatured: boolean;
+  imageUrl?: string | null;
   sku?: string;
 };
 
@@ -59,6 +61,11 @@ export default function RegisterPage() {
     token && locationId ? { token, locationId } : "skip"
   );
 
+  const activeShift = useQuery(
+    api.shifts.queries.getActiveShift,
+    token && locationId ? { token, locationId } : "skip"
+  ) as { _id: string; startedAt: number } | null | undefined;
+
   const createDraft = useMutation(api.orders.mutations.createDraftOrder);
   const addItem = useMutation(api.orders.mutations.addItemToOrder);
   const addItemWithModifiers = useMutation(api.orders.mutations.addItemWithModifiers);
@@ -75,6 +82,7 @@ export default function RegisterPage() {
   const [scanToast, setScanToast] = useState<string | null>(null);
   const scanToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showCustomerLookup, setShowCustomerLookup] = useState(false);
+  const [selectedTableId, setSelectedTableId] = useState<Id<"tables"> | null>(null);
 
   // Printer state
   const autoPrint = useAutoPrint();
@@ -162,10 +170,45 @@ export default function RegisterPage() {
     // If we already have a draft, use it
     if (currentDraft?._id) return currentDraft._id;
 
-    // Create a new draft
-    const orderId = await createDraft({ token, locationId });
+    // Create a new draft, optionally with a table
+    const orderId = await createDraft({
+      token,
+      locationId,
+      tableId: selectedTableId ?? undefined,
+    });
     return orderId;
-  }, [token, locationId, activeOrderId, currentDraft, createDraft]);
+  }, [token, locationId, activeOrderId, currentDraft, createDraft, selectedTableId]);
+
+  // Table assignment
+  const assignTable = useMutation(api.orders.mutations.assignTableToOrder);
+
+  const handleTableSelect = useCallback(
+    async (tableId: Id<"tables"> | null, occupiedOrderId?: Id<"orders">) => {
+      if (occupiedOrderId) {
+        // Switch to the occupied table's existing order
+        setActiveOrderId(occupiedOrderId);
+        setSelectedTableId(tableId);
+        return;
+      }
+
+      setSelectedTableId(tableId);
+
+      // If there's a current draft order, assign/unassign the table
+      const orderId = displayOrder?._id;
+      if (orderId && token) {
+        try {
+          await assignTable({
+            token,
+            orderId,
+            tableId: tableId ?? undefined,
+          });
+        } catch (err) {
+          console.error("Failed to assign table:", err);
+        }
+      }
+    },
+    [token, displayOrder, assignTable]
+  );
 
   // Customer engagement
   const linkCustomer = useMutation(api.orders.mutations.linkCustomerToOrder);
@@ -329,12 +372,16 @@ export default function RegisterPage() {
   const handleNewOrder = useCallback(async () => {
     if (!token || !locationId) return;
     try {
-      const orderId = await createDraft({ token, locationId });
+      const orderId = await createDraft({
+        token,
+        locationId,
+        tableId: selectedTableId ?? undefined,
+      });
       setActiveOrderId(orderId);
     } catch (err) {
       console.error("Failed to create new order:", err);
     }
-  }, [token, locationId, createDraft]);
+  }, [token, locationId, createDraft, selectedTableId]);
 
   const handleComplete = useCallback(() => {
     setShowPaymentDialog(true);
@@ -345,6 +392,7 @@ export default function RegisterPage() {
     setCompletedOrderNumber(orderNumber);
     setCompletedOrderId(displayOrder?._id ?? null);
     setActiveOrderId(null);
+    setSelectedTableId(null);
   }, [displayOrder]);
 
   const handleDismissToast = useCallback(() => {
@@ -367,6 +415,7 @@ export default function RegisterPage() {
     setActiveOrderId(null);
     setShowPaymentDialog(false);
     setSelectedItemForModifiers(null);
+    setSelectedTableId(null);
   }, []);
 
   const handleCancelAction = useCallback(() => {
@@ -389,7 +438,32 @@ export default function RegisterPage() {
   if (!token || !session || !locationId) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-stone-500">Loading register...</p>
+        <p className="text-stone-500 dark:text-stone-400">Loading register...</p>
+      </div>
+    );
+  }
+
+  // Require an active shift before taking orders
+  if (activeShift === null) {
+    return (
+      <div className="flex flex-col h-full">
+        <ShiftIndicator locationId={locationId} />
+        <div className="flex-1 flex items-center justify-center bg-stone-100 dark:bg-stone-900">
+          <div className="text-center max-w-sm px-6">
+            <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-2">Start a Shift First</h2>
+            <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">
+              You need to start a shift before taking orders. This tracks your opening cash and sales for the day.
+            </p>
+            <p className="text-xs text-stone-400 dark:text-stone-500">
+              Tap &quot;Start&quot; in the bar above to begin your shift.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -403,19 +477,12 @@ export default function RegisterPage() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Top bar: shift indicator + printer settings */}
-      <div className="relative flex items-center">
-        <div className="flex-1">
-          <ShiftIndicator locationId={locationId} />
-        </div>
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-30">
-          <PrinterSettings />
-        </div>
-      </div>
+      {/* Top bar: shift indicator */}
+      <ShiftIndicator locationId={locationId} />
 
       <div className="flex flex-1 min-h-0">
       {/* Left: Menu grid (~65%) */}
-      <div className="flex-[65] overflow-hidden bg-stone-100">
+      <div className="flex-[65] overflow-hidden bg-stone-100 dark:bg-stone-950">
         <MenuGrid
           categories={typedCategories}
           items={items ?? []}
@@ -431,6 +498,16 @@ export default function RegisterPage() {
           onSelectOrder={handleSelectOrder}
           onNewOrder={handleNewOrder}
         />
+        {/* Table selector */}
+        <div className="px-3 py-1 border-b" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--card)" }}>
+          <TableSelector
+            token={token}
+            locationId={locationId}
+            selectedTableId={selectedTableId}
+            onSelectTable={handleTableSelect}
+          />
+        </div>
+
         {/* Customer button + loyalty strip */}
         <div className="px-3 py-2 border-b border-stone-200 bg-white">
           {linkedCustomer ? (

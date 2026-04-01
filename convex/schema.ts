@@ -128,6 +128,7 @@ export default defineSchema({
     description: v.optional(v.string()),
     basePrice: v.number(),
     sku: v.optional(v.string()),
+    imageId: v.optional(v.id("_storage")),
     isFeatured: v.boolean(),
     sortOrder: v.number(),
     status: v.union(
@@ -207,6 +208,8 @@ export default defineSchema({
     taxRate: v.number(),
     taxLabel: v.string(),
     customerId: v.optional(v.id("customers")),
+    tableId: v.optional(v.id("tables")),
+    tableName: v.optional(v.string()),
     voidedBy: v.optional(v.id("users")),
     voidReason: v.optional(v.string()),
     completedAt: v.optional(v.number()),
@@ -396,6 +399,20 @@ export default defineSchema({
   })
     .index("by_tenant", ["tenantId"])
     .index("by_status", ["status"]),
+
+  tables: defineTable({
+    tenantId: v.id("tenants"),
+    locationId: v.id("locations"),
+    name: v.string(), // "Table 1", "Bar 2", "Outdoor A"
+    zone: v.optional(v.string()), // "Indoor", "Outdoor", "Bar", "VIP"
+    capacity: v.number(), // seats
+    sortOrder: v.number(),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    updatedAt: v.number(),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_location", ["locationId"])
+    .index("by_tenant_location", ["tenantId", "locationId"]),
 
   auditLog: defineTable({
     tenantId: v.id("tenants"),

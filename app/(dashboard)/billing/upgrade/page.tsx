@@ -77,14 +77,14 @@ export default function UpgradePage() {
     <div>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-8">
         <div>
-          <h1 className="text-lg md:text-xl font-bold text-stone-900">Choose a Plan</h1>
-          <p className="text-sm text-stone-500 mt-0.5">
+          <h1 className="text-lg md:text-xl font-bold text-stone-900 dark:text-stone-100">Choose a Plan</h1>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
             Select the plan that best fits your business
           </p>
         </div>
         <Link
           href="/billing"
-          className="self-start md:self-auto px-4 py-2 border border-stone-200 text-stone-600 text-sm rounded-xl hover:bg-stone-50 transition-colors"
+          className="self-start md:self-auto px-4 py-2 border border-stone-200 text-stone-600 text-sm rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
         >
           Back to Billing
         </Link>
@@ -118,15 +118,15 @@ export default function UpgradePage() {
             return (
               <div
                 key={plan._id}
-                className={`bg-white rounded-2xl border shadow-sm p-6 flex flex-col ${
+                className={`bg-white dark:bg-stone-900 rounded-2xl border shadow-sm p-6 flex flex-col ${
                   isCurrent
                     ? "border-amber-400 ring-2 ring-amber-100"
                     : "border-stone-200/60"
                 }`}
               >
-                <h3 className="text-lg font-bold text-stone-900">{plan.name}</h3>
+                <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">{plan.name}</h3>
                 <div className="mt-2 mb-4">
-                  <span className="text-3xl font-bold text-stone-900">
+                  <span className="text-3xl font-bold text-stone-900 dark:text-stone-100">
                     {plan.priceMonthly === 0 ? "Free" : `₱${plan.priceMonthly.toLocaleString()}`}
                   </span>
                   {plan.priceMonthly > 0 && (
@@ -145,7 +145,7 @@ export default function UpgradePage() {
 
                 <ul className="space-y-2 mb-6 flex-1">
                   {plan.features.map((feature: string) => (
-                    <li key={feature} className="flex items-start gap-2 text-sm text-stone-600">
+                    <li key={feature} className="flex items-start gap-2 text-sm text-stone-600 dark:text-stone-400">
                       <svg className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>

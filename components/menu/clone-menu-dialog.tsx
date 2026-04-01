@@ -106,8 +106,8 @@ export function CloneMenuDialog({ onClose }: CloneMenuDialogProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 max-h-[80vh] flex flex-col">
-        <h2 className="text-lg font-bold mb-4">Clone Menu Pricing</h2>
+      <div className="bg-white dark:bg-stone-900 rounded-lg shadow-xl w-full max-w-lg p-6 max-h-[80vh] flex flex-col">
+        <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-4">Clone Menu Pricing</h2>
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
@@ -118,7 +118,7 @@ export function CloneMenuDialog({ onClose }: CloneMenuDialogProps) {
         {step === "select" && (
           <div className="flex flex-col gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-stone-300 mb-1">
                 Source Location
               </label>
               <select
@@ -126,7 +126,7 @@ export function CloneMenuDialog({ onClose }: CloneMenuDialogProps) {
                 onChange={(e) =>
                   setSourceLocationId(e.target.value as Id<"locations"> | "")
                 }
-                className="w-full border border-gray-300 rounded px-3 py-2"
+                className="w-full border border-gray-300 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded px-3 py-2"
               >
                 <option value="">Select source location...</option>
                 {locationsList.map((loc) => (
@@ -138,7 +138,7 @@ export function CloneMenuDialog({ onClose }: CloneMenuDialogProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-stone-300 mb-1">
                 Target Location
               </label>
               <select
@@ -146,7 +146,7 @@ export function CloneMenuDialog({ onClose }: CloneMenuDialogProps) {
                 onChange={(e) =>
                   setTargetLocationId(e.target.value as Id<"locations"> | "")
                 }
-                className="w-full border border-gray-300 rounded px-3 py-2"
+                className="w-full border border-gray-300 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded px-3 py-2"
               >
                 <option value="">Select target location...</option>
                 {locationsList
@@ -167,7 +167,7 @@ export function CloneMenuDialog({ onClose }: CloneMenuDialogProps) {
                 </p>
               )}
 
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
               This will copy all location-specific price overrides from the
               source to the target location.
             </p>
@@ -176,7 +176,7 @@ export function CloneMenuDialog({ onClose }: CloneMenuDialogProps) {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 text-gray-600 dark:text-stone-400 border border-gray-300 dark:border-stone-700 rounded-lg hover:bg-gray-50 dark:hover:bg-stone-800"
               >
                 Cancel
               </button>
@@ -195,7 +195,7 @@ export function CloneMenuDialog({ onClose }: CloneMenuDialogProps) {
         {step === "preview" && (
           <div className="flex flex-col gap-4 overflow-hidden">
             {preview === undefined ? (
-              <p className="text-gray-400">Loading preview...</p>
+              <p className="text-gray-400 dark:text-gray-500">Loading preview...</p>
             ) : (
               <>
                 <div className="overflow-y-auto flex-1">
@@ -204,18 +204,18 @@ export function CloneMenuDialog({ onClose }: CloneMenuDialogProps) {
                   </h3>
 
                   {preview.sourceOverrides.length === 0 ? (
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-gray-400 dark:text-gray-500">
                       No price overrides found at the source location.
                     </p>
                   ) : (
-                    <div className="border border-gray-200 rounded overflow-hidden mb-4">
+                    <div className="border border-gray-200 dark:border-stone-700 rounded overflow-hidden mb-4">
                       <table className="w-full text-sm">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="text-left px-3 py-2 font-medium text-gray-600">
+                            <th className="text-left px-3 py-2 font-medium text-gray-600 dark:text-stone-400">
                               Item
                             </th>
-                            <th className="text-right px-3 py-2 font-medium text-gray-600">
+                            <th className="text-right px-3 py-2 font-medium text-gray-600 dark:text-stone-400">
                               Price
                             </th>
                           </tr>
@@ -224,7 +224,7 @@ export function CloneMenuDialog({ onClose }: CloneMenuDialogProps) {
                           {preview.sourceOverrides.map((o: SourceOverride) => (
                             <tr
                               key={o.menuItemId}
-                              className="border-t border-gray-100"
+                              className="border-t border-gray-100 dark:border-stone-800"
                             >
                               <td className="px-3 py-2">{o.itemName}</td>
                               <td className="px-3 py-2 text-right">
@@ -242,7 +242,7 @@ export function CloneMenuDialog({ onClose }: CloneMenuDialogProps) {
                       <h3 className="text-sm font-medium text-amber-700 mb-2">
                         Conflicts ({preview.conflicts.length})
                       </h3>
-                      <p className="text-xs text-gray-500 mb-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                         These items already have price overrides at the target
                         location.
                       </p>
@@ -302,7 +302,7 @@ export function CloneMenuDialog({ onClose }: CloneMenuDialogProps) {
                       setStep("select");
                       setOverwriteConflicts(false);
                     }}
-                    className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    className="px-4 py-2 text-gray-600 dark:text-stone-400 border border-gray-300 dark:border-stone-700 rounded-lg hover:bg-gray-50 dark:hover:bg-stone-800"
                   >
                     Back
                   </button>

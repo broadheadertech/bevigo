@@ -99,8 +99,8 @@ export function ManagerMenuView() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-xl font-bold text-stone-900">Menu (Location View)</h1>
-        <p className="text-sm text-stone-500 mt-0.5">
+        <h1 className="text-xl font-bold text-stone-900 dark:text-stone-100">Menu (Location View)</h1>
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
           You can set location-specific price overrides for your location.
         </p>
       </div>
@@ -120,9 +120,9 @@ export function ManagerMenuView() {
           <p className="text-stone-400">No menu items available.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm overflow-hidden">
           <table className="w-full">
-            <thead className="bg-stone-50/50 border-b border-stone-100">
+            <thead className="bg-stone-50/50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800">
               <tr>
                 <th className="text-left px-5 py-3 text-xs font-medium text-stone-400 uppercase tracking-wide">
                   Item
@@ -141,14 +141,14 @@ export function ManagerMenuView() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100">
+            <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
               {items.map((item) => (
                 <tr
                   key={item._id}
-                  className="hover:bg-stone-50/50 transition-colors"
+                  className="hover:bg-stone-50/50 dark:hover:bg-stone-800/50 transition-colors"
                 >
                   <td className="px-5 py-3.5">
-                    <div className="font-medium text-stone-900">
+                    <div className="font-medium text-stone-900 dark:text-stone-100">
                       {item.isFeatured && (
                         <span className="text-amber-500 mr-1">&#9733;</span>
                       )}
@@ -160,7 +160,7 @@ export function ManagerMenuView() {
                       </div>
                     )}
                   </td>
-                  <td className="px-5 py-3.5 text-sm text-stone-600">
+                  <td className="px-5 py-3.5 text-sm text-stone-600 dark:text-stone-400">
                     {categoryMap.get(item.categoryId as string) ?? "—"}
                   </td>
                   <td className="px-5 py-3.5 text-right text-sm text-stone-400">

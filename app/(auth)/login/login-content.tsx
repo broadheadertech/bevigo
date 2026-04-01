@@ -42,7 +42,7 @@ export default function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-stone-950">
+    <div className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor: 'var(--bg)', color: 'var(--fg)' }}>
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -52,14 +52,14 @@ export default function LoginContent() {
               <path d="M30 45 Q50 35 70 50" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" />
             </svg>
           </div>
-          <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100 tracking-tight" style={{ fontStyle: "italic" }}>bevi&amp;go</h1>
+          <h1 className="text-2xl font-semibold tracking-tight" style={{ fontStyle: "italic", color: 'var(--fg)' }}>bevi&amp;go</h1>
           <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
             {mode === "login" ? "Welcome back" : "Create your shop"}
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-sm border border-stone-200 dark:border-stone-800 p-6">
+        <div className="rounded-2xl shadow-sm p-6" style={{ backgroundColor: 'var(--card)', color: 'var(--card-fg)', borderWidth: '1px', borderColor: 'var(--border-color)' }}>
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm">
               {error}
@@ -78,7 +78,7 @@ export default function LoginContent() {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 rounded-xl px-4 py-2.5 text-sm text-stone-900 dark:text-white placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-shadow"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-shadow" style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', borderWidth: '1px', borderColor: 'var(--border-color)' }}
                     placeholder="Juan Dela Cruz"
                   />
                 </div>
@@ -91,7 +91,7 @@ export default function LoginContent() {
                     required
                     value={shopName}
                     onChange={(e) => setShopName(e.target.value)}
-                    className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 rounded-xl px-4 py-2.5 text-sm text-stone-900 dark:text-white placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-shadow"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-shadow" style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', borderWidth: '1px', borderColor: 'var(--border-color)' }}
                     placeholder="My Coffee Shop"
                   />
                 </div>
@@ -107,7 +107,7 @@ export default function LoginContent() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full border border-stone-200 rounded-xl px-4 py-2.5 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-shadow"
+                className="w-full rounded-xl px-4 py-2.5 text-sm placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-shadow" style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', borderWidth: '1px', borderColor: 'var(--border-color)' }}
                 placeholder="owner@coffeeshop.com"
               />
             </div>
@@ -122,7 +122,7 @@ export default function LoginContent() {
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border border-stone-200 rounded-xl px-4 py-2.5 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-shadow"
+                className="w-full rounded-xl px-4 py-2.5 text-sm placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-shadow" style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', borderWidth: '1px', borderColor: 'var(--border-color)' }}
                 placeholder={mode === "register" ? "Min 6 characters" : ""}
               />
             </div>

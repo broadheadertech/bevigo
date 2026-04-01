@@ -146,12 +146,12 @@ export default function ReportsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-lg md:text-xl font-bold text-stone-900">Sales Reports</h1>
-        <p className="text-sm text-stone-500 mt-0.5">Track revenue, products, and hourly trends</p>
+        <h1 className="text-lg md:text-xl font-bold text-stone-900 dark:text-stone-100">Sales Reports</h1>
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">Track revenue, products, and hourly trends</p>
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-4 mb-6">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-4 mb-6">
         <div className="flex flex-wrap gap-4 items-end">
           <button
             onClick={() => {
@@ -177,7 +177,7 @@ export default function ReportsPage() {
                 })), "hourly-volume.csv");
               }
             }}
-            className="px-3 py-2 border border-stone-200 text-stone-600 text-sm rounded-xl hover:bg-stone-50"
+            className="px-3 py-2 border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 text-sm rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800"
           >
             Export CSV
           </button>
@@ -235,7 +235,7 @@ export default function ReportsPage() {
                 );
               }
             }}
-            className="px-3 py-2 border border-stone-200 text-stone-600 text-sm rounded-xl hover:bg-stone-50"
+            className="px-3 py-2 border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 text-sm rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800"
           >
             Export PDF
           </button>
@@ -249,7 +249,7 @@ export default function ReportsPage() {
               type="date"
               value={startDateStr}
               onChange={(e) => setStartDateStr(e.target.value)}
-              className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             />
           </div>
           <div>
@@ -260,7 +260,7 @@ export default function ReportsPage() {
               type="date"
               value={endDateStr}
               onChange={(e) => setEndDateStr(e.target.value)}
-              className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             />
           </div>
           <div>
@@ -270,7 +270,7 @@ export default function ReportsPage() {
             <select
               value={selectedLocationId}
               onChange={(e) => setSelectedLocationId(e.target.value)}
-              className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             >
               <option value="">All Locations</option>
               {availableLocations.map((loc: LocationOption) => (
@@ -292,7 +292,7 @@ export default function ReportsPage() {
             className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${
               activeTab === tab.key
                 ? "bg-stone-900 text-white"
-                : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
+                : "bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-700"
             }`}
           >
             {tab.label}
@@ -338,12 +338,12 @@ function DailySummaryTab({ data }: { data: DailySummaryResult | undefined }) {
       {cards.map((card: { label: string; value: string }) => (
         <div
           key={card.label}
-          className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6"
+          className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-6"
         >
           <p className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-2">
             {card.label}
           </p>
-          <p className="text-2xl font-bold text-stone-900">{card.value}</p>
+          <p className="text-2xl font-bold text-stone-900 dark:text-stone-100">{card.value}</p>
         </div>
       ))}
     </div>
@@ -372,9 +372,9 @@ function ProductMixTab({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm overflow-hidden overflow-x-auto">
+    <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm overflow-hidden overflow-x-auto">
       <table className="w-full min-w-[500px]">
-        <thead className="bg-stone-50/50 border-b border-stone-100">
+        <thead className="bg-stone-50/50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800">
           <tr>
             <th className="text-left px-5 py-3 text-xs font-medium text-stone-400 uppercase tracking-wide">
               Item Name
@@ -390,20 +390,20 @@ function ProductMixTab({
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-stone-100">
+        <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
           {data.map((item: ProductMixItem) => (
             <tr
               key={item.itemName}
-              className="hover:bg-stone-50/50 transition-colors"
+              className="hover:bg-stone-50/50 dark:hover:bg-stone-800/50 transition-colors"
             >
-              <td className="px-5 py-3.5 font-medium text-stone-900">{item.itemName}</td>
-              <td className="px-5 py-3.5 text-right text-stone-600">
+              <td className="px-5 py-3.5 font-medium text-stone-900 dark:text-stone-100">{item.itemName}</td>
+              <td className="px-5 py-3.5 text-right text-stone-600 dark:text-stone-400">
                 {item.quantitySold}
               </td>
-              <td className="px-5 py-3.5 text-right text-stone-600">
+              <td className="px-5 py-3.5 text-right text-stone-600 dark:text-stone-400">
                 {formatCurrency(item.totalRevenue)}
               </td>
-              <td className="px-5 py-3.5 text-right text-stone-600">
+              <td className="px-5 py-3.5 text-right text-stone-600 dark:text-stone-400">
                 {item.percentageOfTotal.toFixed(1)}%
               </td>
             </tr>
@@ -452,10 +452,10 @@ function HourlyVolumeTab({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-6">
-      <p className="text-sm text-stone-500 mb-4">
+    <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-6">
+      <p className="text-sm text-stone-500 dark:text-stone-400 mb-4">
         Peak hour:{" "}
-        <span className="font-semibold text-stone-900">
+        <span className="font-semibold text-stone-900 dark:text-stone-100">
           {formatHour(peakHour.hour)}
         </span>{" "}
         ({peakHour.transactionCount} transactions,{" "}

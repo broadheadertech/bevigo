@@ -141,16 +141,16 @@ export default function StaffPerformancePage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-lg md:text-xl font-bold text-stone-900">
+        <h1 className="text-lg md:text-xl font-bold text-stone-900 dark:text-stone-100">
           Staff Performance
         </h1>
-        <p className="text-sm text-stone-500 mt-0.5">
+        <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
           Track order volume and revenue by team member
         </p>
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm p-4 mb-6">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm p-4 mb-6">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-medium text-stone-400 uppercase tracking-wide mb-1.5">
@@ -160,7 +160,7 @@ export default function StaffPerformancePage() {
               type="date"
               value={startDateStr}
               onChange={(e) => setStartDateStr(e.target.value)}
-              className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             />
           </div>
           <div>
@@ -171,7 +171,7 @@ export default function StaffPerformancePage() {
               type="date"
               value={endDateStr}
               onChange={(e) => setEndDateStr(e.target.value)}
-              className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             />
           </div>
           <div>
@@ -181,7 +181,7 @@ export default function StaffPerformancePage() {
             <select
               value={selectedLocationId}
               onChange={(e) => setSelectedLocationId(e.target.value)}
-              className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+              className="border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
             >
               <option value="">All Locations</option>
               {availableLocations.map((loc: LocationOption) => (
@@ -205,7 +205,7 @@ export default function StaffPerformancePage() {
                 "staff-performance.csv"
               );
             }}
-            className="px-3 py-2 border border-stone-200 text-stone-600 text-sm rounded-xl hover:bg-stone-50"
+            className="px-3 py-2 border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 text-sm rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800"
           >
             Export CSV
           </button>
@@ -222,9 +222,9 @@ export default function StaffPerformancePage() {
           No completed orders for this period.
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm overflow-hidden overflow-x-auto">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm overflow-hidden overflow-x-auto">
           <table className="w-full min-w-[550px]">
-            <thead className="bg-stone-50/50 border-b border-stone-100">
+            <thead className="bg-stone-50/50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800">
               <tr>
                 {(
                   [
@@ -246,25 +246,25 @@ export default function StaffPerformancePage() {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100">
+            <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
               {sortedData.map((row: StaffRow, idx: number) => (
                 <tr
                   key={`${row.userName}-${idx}`}
-                  className="hover:bg-stone-50/50 transition-colors"
+                  className="hover:bg-stone-50/50 dark:hover:bg-stone-800/50 transition-colors"
                 >
-                  <td className="px-5 py-3.5 font-medium text-stone-900">
+                  <td className="px-5 py-3.5 font-medium text-stone-900 dark:text-stone-100">
                     {row.userName}
                   </td>
-                  <td className="px-5 py-3.5 text-stone-600 capitalize">
+                  <td className="px-5 py-3.5 text-stone-600 dark:text-stone-400 capitalize">
                     {row.role}
                   </td>
-                  <td className="px-5 py-3.5 text-right text-stone-600">
+                  <td className="px-5 py-3.5 text-right text-stone-600 dark:text-stone-400">
                     {row.orderCount}
                   </td>
-                  <td className="px-5 py-3.5 text-right text-stone-600">
+                  <td className="px-5 py-3.5 text-right text-stone-600 dark:text-stone-400">
                     {formatCurrency(row.totalRevenue)}
                   </td>
-                  <td className="px-5 py-3.5 text-right text-stone-600">
+                  <td className="px-5 py-3.5 text-right text-stone-600 dark:text-stone-400">
                     {formatCurrency(row.avgOrderValue)}
                   </td>
                 </tr>

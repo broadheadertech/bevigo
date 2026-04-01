@@ -119,8 +119,8 @@ export default function InventoryPage() {
     <div>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-8">
         <div>
-          <h1 className="text-lg md:text-xl font-bold text-stone-900">Inventory</h1>
-          <p className="text-sm text-stone-500 mt-0.5">
+          <h1 className="text-lg md:text-xl font-bold text-stone-900 dark:text-stone-100">Inventory</h1>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
             Track ingredients and stock levels
           </p>
         </div>
@@ -138,7 +138,7 @@ export default function InventoryPage() {
                 })), "inventory.csv");
               }
             }}
-            className="px-3 py-2 border border-stone-200 text-stone-600 text-sm rounded-xl hover:bg-stone-50"
+            className="px-3 py-2 border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 text-sm rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800"
           >
             Export CSV
           </button>
@@ -158,13 +158,13 @@ export default function InventoryPage() {
 
       {/* Location selector + Tabs */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-6">
-        <div className="flex gap-1 bg-stone-100 p-1 rounded-xl">
+        <div className="flex gap-1 bg-stone-100 dark:bg-stone-800 p-1 rounded-xl">
           <button
             onClick={() => setActiveTab("ingredients")}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               activeTab === "ingredients"
-                ? "bg-white text-stone-900 shadow-sm"
-                : "text-stone-500 hover:text-stone-700"
+                ? "bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-sm"
+                : "text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300"
             }`}
           >
             Ingredients
@@ -173,8 +173,8 @@ export default function InventoryPage() {
             onClick={() => setActiveTab("lowstock")}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               activeTab === "lowstock"
-                ? "bg-white text-stone-900 shadow-sm"
-                : "text-stone-500 hover:text-stone-700"
+                ? "bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-sm"
+                : "text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300"
             }`}
           >
             Low Stock
@@ -187,7 +187,7 @@ export default function InventoryPage() {
             onChange={(e) =>
               setSelectedLocationId(e.target.value as Id<"locations"> | "")
             }
-            className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 bg-white"
+            className="border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 bg-white"
           >
             {typedLocations.length === 0 && (
               <option value="">No locations</option>
@@ -203,7 +203,7 @@ export default function InventoryPage() {
 
       {/* Ingredients Tab */}
       {activeTab === "ingredients" && (
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm overflow-hidden overflow-x-auto">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm overflow-hidden overflow-x-auto">
           {ingredients === undefined ? (
             <div className="flex items-center justify-center h-48">
               <p className="text-stone-400">Loading ingredients...</p>
@@ -241,7 +241,7 @@ export default function InventoryPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                 {typedIngredients.map((ingredient: IngredientRow) => {
                   const isLow =
                     ingredient.stockQuantity !== null &&
@@ -253,7 +253,7 @@ export default function InventoryPage() {
                         isLow ? "bg-red-50/50" : "hover:bg-stone-50/50"
                       }
                     >
-                      <td className="px-5 py-3 font-medium text-stone-800">
+                      <td className="px-5 py-3 font-medium text-stone-800 dark:text-stone-200">
                         {ingredient.name}
                       </td>
                       <td className="px-5 py-3 text-stone-600">
@@ -275,7 +275,7 @@ export default function InventoryPage() {
                               onChange={(e) =>
                                 setEditingStockValue(Number(e.target.value))
                               }
-                              className="w-20 border border-stone-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                              className="w-20 border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                             />
                             <button
                               onClick={() =>
@@ -311,7 +311,7 @@ export default function InventoryPage() {
                           </button>
                         )}
                       </td>
-                      <td className="px-5 py-3 text-stone-600 font-mono">
+                      <td className="px-5 py-3 text-stone-600 dark:text-stone-400 font-mono">
                         {ingredient.reorderThreshold}
                       </td>
                       <td className="px-5 py-3">
@@ -319,7 +319,7 @@ export default function InventoryPage() {
                           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                             ingredient.status === "active"
                               ? "bg-green-50 text-green-700"
-                              : "bg-stone-100 text-stone-500"
+                              : "bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400"
                           }`}
                         >
                           {ingredient.status}
@@ -363,7 +363,7 @@ export default function InventoryPage() {
 
       {/* Low Stock Tab */}
       {activeTab === "lowstock" && (
-        <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm overflow-hidden overflow-x-auto">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm overflow-hidden overflow-x-auto">
           {!locationId ? (
             <div className="flex items-center justify-center h-48">
               <p className="text-stone-400">
@@ -401,10 +401,10 @@ export default function InventoryPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                 {lowStock.map((item: LowStockRow) => (
                   <tr key={item._id} className="bg-red-50/50">
-                    <td className="px-5 py-3 font-medium text-stone-800">
+                    <td className="px-5 py-3 font-medium text-stone-800 dark:text-stone-200">
                       {item.name}
                     </td>
                     <td className="px-5 py-3 text-stone-600">
@@ -415,7 +415,7 @@ export default function InventoryPage() {
                     <td className="px-5 py-3 text-red-600 font-semibold font-mono">
                       {item.stockQuantity ?? 0} {item.unit}
                     </td>
-                    <td className="px-5 py-3 text-stone-600 font-mono">
+                    <td className="px-5 py-3 text-stone-600 dark:text-stone-400 font-mono">
                       {item.reorderThreshold} {item.unit}
                     </td>
                     <td className="px-5 py-3 text-amber-700 font-semibold font-mono">

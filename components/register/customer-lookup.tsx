@@ -62,10 +62,10 @@ export function CustomerLookup({ onLink, onClose }: CustomerLookupProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-xl w-full max-w-md mx-4">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200">
-          <h3 className="font-semibold text-stone-900">Link Customer</h3>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200 dark:border-stone-700">
+          <h3 className="font-semibold text-stone-900 dark:text-stone-100">Link Customer</h3>
           <button
             onClick={onClose}
             className="text-stone-400 hover:text-stone-700 p-1"
@@ -89,13 +89,13 @@ export function CustomerLookup({ onLink, onClose }: CustomerLookupProps) {
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Enter phone number..."
                 autoFocus
-                className="w-full px-4 py-3 rounded-xl border border-stone-200 text-sm focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                className="w-full px-4 py-3 rounded-xl border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white text-sm focus:ring-amber-500/20 focus:border-amber-500 outline-none"
               />
 
               {/* Result */}
               {phone.length >= 4 && foundCustomer === null && (
                 <div className="mt-4 text-center">
-                  <p className="text-sm text-stone-500 mb-3">
+                  <p className="text-sm text-stone-500 dark:text-stone-400 mb-3">
                     No customer found with that number
                   </p>
                   <button
@@ -111,10 +111,10 @@ export function CustomerLookup({ onLink, onClose }: CustomerLookupProps) {
               )}
 
               {foundCustomer && (
-                <div className="mt-4 p-4 bg-stone-50 rounded-xl">
+                <div className="mt-4 p-4 bg-stone-50 dark:bg-stone-800 rounded-xl">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <p className="font-medium text-stone-900">
+                      <p className="font-medium text-stone-900 dark:text-stone-100">
                         {foundCustomer.name}
                       </p>
                       <p className="text-xs text-stone-500">
@@ -143,7 +143,7 @@ export function CustomerLookup({ onLink, onClose }: CustomerLookupProps) {
               {phone.length < 4 && (
                 <button
                   onClick={() => setShowNewForm(true)}
-                  className="w-full mt-4 py-2.5 text-sm font-medium text-stone-600 border border-stone-200 rounded-xl hover:bg-stone-50 transition-colors"
+                  className="w-full mt-4 py-2.5 text-sm font-medium text-stone-600 border border-stone-200 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
                 >
                   + New Customer
                 </button>
@@ -163,7 +163,7 @@ export function CustomerLookup({ onLink, onClose }: CustomerLookupProps) {
                     onChange={(e) => setNewName(e.target.value)}
                     placeholder="Customer name"
                     autoFocus
-                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-sm focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white text-sm focus:ring-amber-500/20 focus:border-amber-500 outline-none"
                   />
                 </div>
                 <div>
@@ -175,7 +175,7 @@ export function CustomerLookup({ onLink, onClose }: CustomerLookupProps) {
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
                     placeholder="09XX XXX XXXX"
-                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-sm focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white text-sm focus:ring-amber-500/20 focus:border-amber-500 outline-none"
                   />
                 </div>
               </div>
@@ -189,7 +189,7 @@ export function CustomerLookup({ onLink, onClose }: CustomerLookupProps) {
                 </button>
                 <button
                   onClick={() => setShowNewForm(false)}
-                  className="px-4 py-2.5 text-sm text-stone-600 rounded-xl hover:bg-stone-100 transition-colors"
+                  className="px-4 py-2.5 text-sm text-stone-600 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
                 >
                   Back
                 </button>

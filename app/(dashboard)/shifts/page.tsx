@@ -116,8 +116,8 @@ export default function ShiftsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-900">Shifts</h1>
-          <p className="text-sm text-stone-500 mt-1">
+          <h1 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">Shifts</h1>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
             Track shift hours and cash drawer management
           </p>
         </div>
@@ -172,39 +172,39 @@ export default function ShiftsPage() {
       )}
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-stone-100">
-                <th className="text-left px-4 py-3 font-medium text-stone-500">
+              <tr className="border-b border-stone-100 dark:border-stone-800">
+                <th className="text-left px-4 py-3 font-medium text-stone-500 dark:text-stone-400">
                   Date
                 </th>
-                <th className="text-left px-4 py-3 font-medium text-stone-500">
+                <th className="text-left px-4 py-3 font-medium text-stone-500 dark:text-stone-400">
                   Staff
                 </th>
-                <th className="text-left px-4 py-3 font-medium text-stone-500">
+                <th className="text-left px-4 py-3 font-medium text-stone-500 dark:text-stone-400">
                   Duration
                 </th>
-                <th className="text-right px-4 py-3 font-medium text-stone-500">
+                <th className="text-right px-4 py-3 font-medium text-stone-500 dark:text-stone-400">
                   Opening
                 </th>
-                <th className="text-right px-4 py-3 font-medium text-stone-500">
+                <th className="text-right px-4 py-3 font-medium text-stone-500 dark:text-stone-400">
                   Closing
                 </th>
-                <th className="text-right px-4 py-3 font-medium text-stone-500">
+                <th className="text-right px-4 py-3 font-medium text-stone-500 dark:text-stone-400">
                   Expected
                 </th>
-                <th className="text-center px-4 py-3 font-medium text-stone-500">
+                <th className="text-center px-4 py-3 font-medium text-stone-500 dark:text-stone-400">
                   Variance
                 </th>
-                <th className="text-right px-4 py-3 font-medium text-stone-500">
+                <th className="text-right px-4 py-3 font-medium text-stone-500 dark:text-stone-400">
                   Orders
                 </th>
-                <th className="text-right px-4 py-3 font-medium text-stone-500">
+                <th className="text-right px-4 py-3 font-medium text-stone-500 dark:text-stone-400">
                   Revenue
                 </th>
-                <th className="text-center px-4 py-3 font-medium text-stone-500">
+                <th className="text-center px-4 py-3 font-medium text-stone-500 dark:text-stone-400">
                   Status
                 </th>
               </tr>
@@ -226,7 +226,7 @@ export default function ShiftsPage() {
                 shifts.map((shift: ShiftRow) => (
                   <tr
                     key={shift._id}
-                    className="border-b border-stone-50 hover:bg-stone-50/50 transition-colors"
+                    className="border-b border-stone-50 dark:border-stone-800 hover:bg-stone-50/50 dark:hover:bg-stone-800/50 dark:hover:bg-stone-800/50 transition-colors"
                   >
                     <td className="px-4 py-3 text-stone-900">
                       {formatDate(shift.startedAt)}

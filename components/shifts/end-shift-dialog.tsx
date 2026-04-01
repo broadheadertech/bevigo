@@ -78,13 +78,13 @@ export function EndShiftDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-2xl border border-stone-200/60 shadow-sm w-full max-w-md p-6">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm w-full max-w-md p-6">
         <h2 className="text-lg font-semibold text-stone-900 mb-4">
           End Shift
         </h2>
 
         {/* Shift summary */}
-        <div className="bg-stone-50 rounded-xl p-4 mb-4 space-y-2">
+        <div className="bg-stone-50 dark:bg-stone-800 rounded-xl p-4 mb-4 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-stone-500">Started</span>
             <span className="text-stone-900 font-medium">
@@ -107,7 +107,7 @@ export function EndShiftDialog({
 
         {result ? (
           <div className="space-y-3">
-            <div className="bg-stone-50 rounded-xl p-4 space-y-2">
+            <div className="bg-stone-50 dark:bg-stone-800 rounded-xl p-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-stone-500">Expected Cash</span>
                 <span className="text-stone-900 font-medium">
@@ -178,7 +178,7 @@ export function EndShiftDialog({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-100 transition-colors"
+                className="px-4 py-2.5 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
               >
                 Cancel
               </button>
