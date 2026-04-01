@@ -41,31 +41,56 @@ export default function LoginContent() {
     }
   };
 
+  const inputClass =
+    "w-full rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all placeholder:opacity-40";
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor: 'var(--bg)', color: 'var(--fg)' }}>
-      <div className="w-full max-w-sm">
+    <div
+      className="fixed inset-0 flex items-center justify-center overflow-auto"
+      style={{ backgroundColor: "var(--bg)", color: "var(--fg)" }}
+    >
+      {/* Subtle background glow */}
+      <div
+        className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-[0.04] blur-3xl pointer-events-none"
+        style={{ backgroundColor: "var(--accent-color)" }}
+      />
+
+      <div className="w-full max-w-md px-6 relative z-10">
         {/* Logo */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="bevi&go" className="h-16 mx-auto mb-4 object-contain" />
-          <p className="text-sm mt-1" style={{ color: 'var(--muted-fg)' }}>
-            {mode === "login" ? "Welcome back" : "Create your shop"}
+          <img
+            src="/logo.png"
+            alt="bevi&go"
+            className="h-20 mx-auto mb-2 object-contain drop-shadow-lg"
+          />
+          <p className="text-base font-light tracking-wide" style={{ color: "var(--muted-fg)" }}>
+            {mode === "login" ? "Welcome back" : "Create your coffee shop"}
           </p>
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl shadow-sm p-6" style={{ backgroundColor: 'var(--card)', color: 'var(--card-fg)', borderWidth: '1px', borderColor: 'var(--border-color)' }}>
+        <div
+          className="rounded-3xl p-8 backdrop-blur-sm shadow-2xl"
+          style={{
+            backgroundColor: "var(--card)",
+            border: "1px solid var(--border-color)",
+          }}
+        >
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm">
+            <div
+              className="mb-5 px-4 py-3 rounded-2xl text-sm font-medium"
+              style={{ backgroundColor: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}
+            >
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {mode === "register" && (
               <>
                 <div>
-                  <label className="block text-xs font-medium text-stone-500 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--muted-fg)" }}>
                     Your Name
                   </label>
                   <input
@@ -73,12 +98,13 @@ export default function LoginContent() {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full rounded-xl px-4 py-2.5 text-sm placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-shadow" style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', borderWidth: '1px', borderColor: 'var(--border-color)' }}
+                    className={inputClass}
+                    style={{ backgroundColor: "var(--muted)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
                     placeholder="Juan Dela Cruz"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-stone-500 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--muted-fg)" }}>
                     Shop Name
                   </label>
                   <input
@@ -86,7 +112,8 @@ export default function LoginContent() {
                     required
                     value={shopName}
                     onChange={(e) => setShopName(e.target.value)}
-                    className="w-full rounded-xl px-4 py-2.5 text-sm placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-shadow" style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', borderWidth: '1px', borderColor: 'var(--border-color)' }}
+                    className={inputClass}
+                    style={{ backgroundColor: "var(--muted)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
                     placeholder="My Coffee Shop"
                   />
                 </div>
@@ -94,7 +121,7 @@ export default function LoginContent() {
             )}
 
             <div>
-              <label className="block text-xs font-medium text-stone-500 uppercase tracking-wide mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--muted-fg)" }}>
                 Email
               </label>
               <input
@@ -102,13 +129,14 @@ export default function LoginContent() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl px-4 py-2.5 text-sm placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-shadow" style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', borderWidth: '1px', borderColor: 'var(--border-color)' }}
+                className={inputClass}
+                style={{ backgroundColor: "var(--muted)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
                 placeholder="owner@coffeeshop.com"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-stone-500 uppercase tracking-wide mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--muted-fg)" }}>
                 Password
               </label>
               <input
@@ -117,15 +145,20 @@ export default function LoginContent() {
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl px-4 py-2.5 text-sm placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-shadow" style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', borderWidth: '1px', borderColor: 'var(--border-color)' }}
-                placeholder={mode === "register" ? "Min 6 characters" : ""}
+                className={inputClass}
+                style={{ backgroundColor: "var(--muted)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
+                placeholder={mode === "register" ? "Min 6 characters" : "••••••••"}
               />
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-11 bg-amber-600 text-white text-sm font-semibold rounded-xl hover:bg-amber-700 active:bg-amber-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm mt-1"
+              className="w-full py-3.5 text-sm font-bold rounded-2xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] mt-1"
+              style={{
+                backgroundColor: "var(--accent-color)",
+                color: "white",
+              }}
             >
               {isLoading
                 ? "Please wait..."
@@ -136,29 +169,39 @@ export default function LoginContent() {
           </form>
         </div>
 
-        <div className="mt-5 text-center">
-          {mode === "login" ? (
-            <p className="text-sm text-stone-500">
-              Don&apos;t have an account?{" "}
-              <button
-                onClick={() => { setMode("register"); setError(null); }}
-                className="text-amber-600 hover:text-amber-700 font-semibold"
-              >
-                Sign Up
-              </button>
-            </p>
-          ) : (
-            <p className="text-sm text-stone-500">
-              Already have an account?{" "}
-              <button
-                onClick={() => { setMode("login"); setError(null); }}
-                className="text-amber-600 hover:text-amber-700 font-semibold"
-              >
-                Sign In
-              </button>
-            </p>
-          )}
+        {/* Toggle */}
+        <div className="mt-6 text-center">
+          <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
+            {mode === "login" ? (
+              <>
+                Don&apos;t have an account?{" "}
+                <button
+                  onClick={() => { setMode("register"); setError(null); }}
+                  className="font-semibold hover:underline transition-colors"
+                  style={{ color: "var(--accent-color)" }}
+                >
+                  Sign Up
+                </button>
+              </>
+            ) : (
+              <>
+                Already have an account?{" "}
+                <button
+                  onClick={() => { setMode("login"); setError(null); }}
+                  className="font-semibold hover:underline transition-colors"
+                  style={{ color: "var(--accent-color)" }}
+                >
+                  Sign In
+                </button>
+              </>
+            )}
+          </p>
         </div>
+
+        {/* Footer */}
+        <p className="text-center text-xs mt-8 opacity-30">
+          Powered by bevi&amp;go
+        </p>
       </div>
     </div>
   );

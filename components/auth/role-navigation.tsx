@@ -182,18 +182,19 @@ const NAV_ITEMS: NavItem[] = [
         icon: "",
         roles: ["owner"],
       },
-      {
-        label: "Custom Domain",
-        href: "/settings/domain",
-        icon: "",
-        roles: ["owner"],
-      },
-      {
-        label: "White-Label",
-        href: "/settings/white-label",
-        icon: "",
-        roles: ["owner"],
-      },
+      // Custom Domain and White-Label hidden for now
+      // {
+      //   label: "Custom Domain",
+      //   href: "/settings/domain",
+      //   icon: "",
+      //   roles: ["owner"],
+      // },
+      // {
+      //   label: "White-Label",
+      //   href: "/settings/white-label",
+      //   icon: "",
+      //   roles: ["owner"],
+      // },
     ],
   },
 ];

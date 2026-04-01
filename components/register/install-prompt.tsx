@@ -100,14 +100,14 @@ export function InstallPrompt() {
   }
 
   return (
-    <div className="absolute bottom-4 left-4 right-4 z-50 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-      <p className="text-sm font-medium text-amber-900">
+    <div className="absolute bottom-4 left-4 right-4 z-50 flex items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+      <p className="text-sm font-medium text-amber-400">
         Install bevi&amp;go for the best experience
       </p>
       <div className="flex items-center gap-2">
         <button
           onClick={handleDismiss}
-          className="rounded-lg px-3 py-1.5 text-sm text-amber-700 hover:bg-amber-100 transition-colors"
+          className="rounded-lg px-3 py-1.5 text-sm text-amber-400 hover:bg-amber-500/15 transition-colors"
         >
           Dismiss
         </button>

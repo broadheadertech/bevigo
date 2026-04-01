@@ -67,7 +67,7 @@ export default function DashboardPage() {
   if (!token || !session) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-stone-400">Loading...</p>
+        <p style={{ color: 'var(--muted-fg)' }}>Loading...</p>
       </div>
     );
   }
@@ -77,17 +77,18 @@ export default function DashboardPage() {
     return (
       <div>
         <div className="mb-8">
-          <h1 className="text-xl font-bold text-stone-900 dark:text-stone-100">
+          <h1 className="text-xl font-bold" style={{ color: 'var(--fg)' }}>
             {greeting}{session.userName ? `, ${session.userName}` : ""}
           </h1>
-          <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
+          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-fg)' }}>
             Welcome to <span className="italic">bevi&amp;go</span> POS
           </p>
         </div>
         <div className="flex gap-3">
           <Link
             href="/order"
-            className="px-5 py-3 bg-stone-900 text-white text-sm font-semibold rounded-xl hover:bg-stone-800 transition-colors shadow-sm"
+            className="px-5 py-3 text-sm font-semibold rounded-2xl hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 shadow-lg"
+            style={{ backgroundColor: 'var(--accent-color)', color: 'white' }}
           >
             Open Register
           </Link>
@@ -121,10 +122,10 @@ export default function DashboardPage() {
       {/* Greeting + Location Selector */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-xl font-bold text-stone-900 dark:text-stone-100">
+          <h1 className="text-xl font-bold" style={{ color: 'var(--fg)' }}>
             {greeting}{session.userName ? `, ${session.userName}` : ""}
           </h1>
-          <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">
+          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-fg)' }}>
             Welcome to <span className="italic">bevi&amp;go</span> POS
           </p>
         </div>
@@ -134,7 +135,8 @@ export default function DashboardPage() {
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
               setSelectedLocationId(e.target.value)
             }
-            className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+            className="rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-colors"
+            style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
           >
             <option value="">All Locations</option>
             {availableLocations.map((loc: LocationOption) => (
@@ -148,7 +150,7 @@ export default function DashboardPage() {
 
       {/* Low Stock Alert */}
       {metrics && metrics.lowStockCount > 0 && (
-        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex items-center gap-3">
+        <div className="mb-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl px-5 py-4 flex items-center gap-3">
           <svg
             className="w-5 h-5 text-amber-600 shrink-0"
             fill="none"
@@ -163,12 +165,12 @@ export default function DashboardPage() {
             />
           </svg>
           <div>
-            <p className="text-sm font-medium text-amber-900">
+            <p className="text-sm font-medium text-amber-400">
               {metrics.lowStockCount} ingredient{metrics.lowStockCount !== 1 ? "s" : ""} below reorder threshold
             </p>
             <Link
               href="/inventory"
-              className="text-sm text-amber-700 hover:text-amber-800 font-medium"
+              className="text-sm text-amber-400 hover:text-amber-300 font-medium"
             >
               View Inventory
             </Link>
@@ -181,15 +183,15 @@ export default function DashboardPage() {
         {metricCards.map((card: { label: string; value: string; accent?: boolean }) => (
           <div
             key={card.label}
-            className="bg-white dark:bg-stone-800 rounded-2xl border border-stone-200/60 dark:border-stone-700 shadow-sm p-6"
+            className="rounded-3xl shadow-lg p-8"
+            style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}
           >
-            <p className="text-xs font-medium text-stone-400 dark:text-stone-500 uppercase tracking-wide mb-2">
+            <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-fg)' }}>
               {card.label}
             </p>
             <p
-              className={`text-2xl font-bold ${
-                card.accent ? "text-stone-900 dark:text-stone-100" : "text-stone-900 dark:text-stone-100"
-              }`}
+              className="text-2xl font-bold"
+              style={{ color: 'var(--fg)' }}
             >
               {card.value}
             </p>
@@ -199,25 +201,28 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--muted-fg)' }}>
           Quick Actions
         </h2>
         <div className="flex gap-3">
           <Link
             href="/order"
-            className="px-5 py-3 bg-stone-900 text-white text-sm font-semibold rounded-xl hover:bg-stone-800 transition-colors shadow-sm"
+            className="px-5 py-3.5 text-sm font-bold rounded-2xl hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 shadow-lg"
+            style={{ backgroundColor: 'var(--accent-color)', color: 'white' }}
           >
             Open Register
           </Link>
           <Link
             href="/reports"
-            className="px-5 py-3 border border-stone-200 text-stone-700 text-sm font-medium rounded-xl hover:bg-stone-50 transition-colors"
+            className="px-5 py-3 text-sm font-medium rounded-2xl transition-colors"
+            style={{ border: '1px solid var(--border-color)', color: 'var(--fg)' }}
           >
             View Reports
           </Link>
           <Link
             href="/menu"
-            className="px-5 py-3 border border-stone-200 text-stone-700 text-sm font-medium rounded-xl hover:bg-stone-50 transition-colors"
+            className="px-5 py-3 text-sm font-medium rounded-2xl transition-colors"
+            style={{ border: '1px solid var(--border-color)', color: 'var(--fg)' }}
           >
             Manage Menu
           </Link>

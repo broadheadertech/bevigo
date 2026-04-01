@@ -59,6 +59,7 @@ import type * as search_queries from "../search/queries.js";
 import type * as seed from "../seed.js";
 import type * as seedFullData from "../seedFullData.js";
 import type * as seedHelpers from "../seedHelpers.js";
+import type * as seedModifierAssignments from "../seedModifierAssignments.js";
 import type * as seedRecipes from "../seedRecipes.js";
 import type * as seedTables from "../seedTables.js";
 import type * as settings_mutations from "../settings/mutations.js";
@@ -132,6 +133,7 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   seedFullData: typeof seedFullData;
   seedHelpers: typeof seedHelpers;
+  seedModifierAssignments: typeof seedModifierAssignments;
   seedRecipes: typeof seedRecipes;
   seedTables: typeof seedTables;
   "settings/mutations": typeof settings_mutations;

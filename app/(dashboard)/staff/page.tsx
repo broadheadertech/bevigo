@@ -138,12 +138,13 @@ export default function StaffPage() {
     <div>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-8">
         <div>
-          <h1 className="text-lg md:text-xl font-bold text-stone-900 dark:text-stone-100">Staff</h1>
-          <p className="text-sm text-stone-500 dark:text-stone-400 mt-0.5">Manage your team members and roles</p>
+          <h1 className="text-lg md:text-xl font-bold" style={{ color: 'var(--fg)' }}>Staff</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-fg)' }}>Manage your team members and roles</p>
         </div>
         <button
           onClick={openAddForm}
-          className="px-4 py-2.5 bg-stone-900 text-white text-sm font-semibold rounded-xl hover:bg-stone-800 active:bg-stone-700 transition-colors shadow-sm self-start md:self-auto"
+          className="px-4 py-3.5 text-sm font-bold rounded-2xl hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 shadow-lg self-start md:self-auto"
+          style={{ backgroundColor: 'var(--accent-color)', color: 'white' }}
         >
           + Add Staff
         </button>
@@ -155,11 +156,11 @@ export default function StaffPage() {
           <button
             key={role}
             onClick={() => setFilterRole(role)}
-            className={`px-3.5 py-1.5 text-sm font-medium rounded-full transition-colors capitalize ${
-              filterRole === role
-                ? "bg-stone-900 text-white"
-                : "bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-700"
-            }`}
+            className="px-3.5 py-1.5 text-sm font-medium rounded-full transition-colors capitalize"
+            style={filterRole === role
+              ? { backgroundColor: 'var(--accent-color)', color: 'white' }
+              : { backgroundColor: 'var(--card)', border: '1px solid var(--border-color)', color: 'var(--muted-fg)' }
+            }
           >
             {role === "all" ? "All Roles" : role}
           </button>
@@ -167,18 +168,18 @@ export default function StaffPage() {
       </div>
 
       {/* Staff Table */}
-      <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 shadow-sm overflow-hidden overflow-x-auto">
-        <table className="w-full min-w-[600px]">
-          <thead className="bg-stone-50/50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800">
+      <div className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+        <table className="w-full min-w-150">
+          <thead style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
             <tr>
-              <th className="text-left px-5 py-3 text-xs font-medium text-stone-400 uppercase tracking-wide">Name</th>
-              <th className="text-left px-5 py-3 text-xs font-medium text-stone-400 uppercase tracking-wide">Role</th>
-              <th className="text-left px-5 py-3 text-xs font-medium text-stone-400 uppercase tracking-wide">Location(s)</th>
-              <th className="text-left px-5 py-3 text-xs font-medium text-stone-400 uppercase tracking-wide">Status</th>
-              <th className="text-left px-5 py-3 text-xs font-medium text-stone-400 uppercase tracking-wide">Actions</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest">Name</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest">Role</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest">Location(s)</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest">Status</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
+          <tbody>
             {typedStaffList === undefined ? (
               <tr>
                 <td colSpan={5} className="px-5 py-12 text-center text-stone-400">
@@ -187,18 +188,18 @@ export default function StaffPage() {
               </tr>
             ) : filteredStaff && filteredStaff.length > 0 ? (
               filteredStaff.map((staff) => (
-                <tr key={staff._id} className="hover:bg-stone-50/50 dark:hover:bg-stone-800/50 transition-colors">
+                <tr key={staff._id} className="transition-colors" style={{ borderBottom: '1px solid var(--border-color)' }}>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                        <span className="text-xs font-semibold text-amber-700">
+                      <div className="w-8 h-8 rounded-full bg-amber-500/15 flex items-center justify-center shrink-0">
+                        <span className="text-xs font-semibold text-amber-400">
                           {getInitials(staff.name)}
                         </span>
                       </div>
                       <div>
-                        <div className="font-medium text-stone-900 dark:text-stone-100">{staff.name}</div>
+                        <div className="font-medium" style={{ color: 'var(--fg)' }}>{staff.name}</div>
                         {staff.email && (
-                          <div className="text-sm text-stone-400">{staff.email}</div>
+                          <div className="text-sm" style={{ color: 'var(--muted-fg)' }}>{staff.email}</div>
                         )}
                       </div>
                     </div>
@@ -206,15 +207,15 @@ export default function StaffPage() {
                   <td className="px-5 py-3.5">
                     <span className={`inline-block px-2.5 py-1 text-xs font-medium rounded-full capitalize ${
                       staff.role === "owner"
-                        ? "bg-amber-100 text-amber-800"
+                        ? "bg-amber-500/15 text-amber-400"
                         : staff.role === "manager"
-                          ? "bg-stone-100 text-stone-700"
-                          : "bg-stone-50 dark:bg-stone-800 text-stone-500"
+                          ? "bg-stone-500/10 text-stone-400"
+                          : "bg-stone-500/10 text-stone-500"
                     }`}>
                       {staff.role}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 text-sm text-stone-600 dark:text-stone-400">
+                  <td className="px-5 py-3.5 text-sm" style={{ color: 'var(--muted-fg)' }}>
                     {staff.locations.length > 0
                       ? staff.locations.map((l) => l.locationName).join(", ")
                       : <span className="text-stone-400">No locations</span>}
@@ -223,8 +224,8 @@ export default function StaffPage() {
                     <span
                       className={`inline-block px-2.5 py-1 text-xs font-medium rounded-full capitalize ${
                         staff.status === "active"
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400"
+                          ? "bg-emerald-500/10 text-emerald-400"
+                          : "bg-stone-500/10 text-stone-500"
                       }`}
                     >
                       {staff.status}
@@ -233,7 +234,7 @@ export default function StaffPage() {
                   <td className="px-5 py-3.5">
                     <button
                       onClick={() => openEditForm(staff)}
-                      className="text-sm font-medium text-amber-700 hover:text-amber-800 transition-colors"
+                      className="text-sm font-medium text-amber-400 hover:text-amber-300 transition-colors"
                     >
                       Edit
                     </button>
@@ -253,21 +254,21 @@ export default function StaffPage() {
 
       {/* Add/Edit Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-xl w-full max-w-md p-6 border border-stone-200/60">
-            <h2 className="text-lg font-bold text-stone-900 mb-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="rounded-3xl shadow-2xl w-full max-w-md p-8" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+            <h2 className="text-lg font-bold mb-4" style={{ color: 'var(--fg)' }}>
               {editingId ? "Edit Staff" : "Add Staff"}
             </h2>
 
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm">
                 {error}
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-fg)' }}>
                   Name *
                 </label>
                 <input
@@ -275,24 +276,26 @@ export default function StaffPage() {
                   required
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+                  className="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-colors"
+                  style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-fg)' }}>
                   Email
                 </label>
                 <input
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+                  className="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-colors"
+                  style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-fg)' }}>
                   Role
                 </label>
                 <select
@@ -303,7 +306,8 @@ export default function StaffPage() {
                       role: e.target.value as "owner" | "manager" | "barista",
                     })
                   }
-                  className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+                  className="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-colors"
+                  style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
                 >
                   {session.role === "owner" && <option value="owner">Owner</option>}
                   {session.role === "owner" && <option value="manager">Manager</option>}
@@ -313,7 +317,7 @@ export default function StaffPage() {
 
               {!editingId && (
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-fg)' }}>
                     Quick-PIN (4-6 digits, optional)
                   </label>
                   <input
@@ -328,7 +332,8 @@ export default function StaffPage() {
                         quickPin: e.target.value.replace(/\D/g, ""),
                       })
                     }
-                    className="w-full border border-stone-200 dark:border-stone-700 dark:bg-stone-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+                    className="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-colors"
+                    style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
                     placeholder="e.g. 1234"
                   />
                 </div>
@@ -342,14 +347,16 @@ export default function StaffPage() {
                     setEditingId(null);
                     setError(null);
                   }}
-                  className="px-4 py-2.5 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 text-sm font-medium transition-colors"
+                  className="px-4 py-3 rounded-2xl text-sm font-medium transition-colors"
+                  style={{ border: '1px solid var(--border-color)', color: 'var(--fg)' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2.5 bg-stone-900 text-white rounded-xl hover:bg-stone-800 disabled:opacity-50 text-sm font-medium transition-colors"
+                  className="px-4 py-3.5 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 disabled:opacity-50 text-sm"
+                  style={{ backgroundColor: 'var(--accent-color)', color: 'white' }}
                 >
                   {isSubmitting
                     ? "Saving..."

@@ -79,9 +79,9 @@ export function ItemModifierAssignment({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-stone-900 rounded-lg shadow-xl w-full max-w-md p-6">
-        <h2 className="text-lg font-bold mb-4">Assign Modifier Groups</h2>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="rounded-3xl shadow-2xl w-full max-w-md p-8" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+        <h2 className="text-lg font-bold mb-4" style={{ color: 'var(--fg)' }}>Assign Modifier Groups</h2>
 
         {allGroups === undefined ? (
           <p className="text-sm text-gray-400 py-4">
@@ -111,7 +111,7 @@ export function ItemModifierAssignment({
                       {group.name}
                     </span>
                     {group.required && (
-                      <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full">
+                      <span className="text-xs px-1.5 py-0.5 bg-red-500/15 text-red-400 rounded-full">
                         Required
                       </span>
                     )}

@@ -61,7 +61,7 @@ export function QrMenuLink({ locationSlug, locationName }: QrMenuLinkProps) {
 
       {/* URL Display */}
       <div className="mt-4 flex items-center gap-2">
-        <code className="flex-1 truncate rounded bg-stone-100 px-3 py-2 text-sm text-stone-700">
+        <code className="flex-1 truncate rounded px-3 py-2 text-sm" style={{ backgroundColor: 'var(--muted)', color: 'var(--muted-fg)' }}>
           {fullUrl || menuPath}
         </code>
         <button
