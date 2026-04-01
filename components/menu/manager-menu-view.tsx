@@ -120,32 +120,33 @@ export function ManagerMenuView() {
  <p style={{ color: 'var(--muted-fg)' }}>No menu items available.</p>
  </div>
  ) : (
- <div className="rounded-2xl border shadow-lg overflow-hidden">
+ <div className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  <table className="w-full">
- <thead className="border-b" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <tr>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <thead>
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Item
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Category
  </th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Base Price
  </th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Location Price
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Actions
  </th>
  </tr>
  </thead>
- <tbody className="divide-y divide-stone-100">
+ <tbody>
  {items.map((item) => (
  <tr
  key={item._id}
- className="hover: transition-colors"
+ className="transition-colors"
+ style={{ borderBottom: '1px solid var(--border-color)' }}
  >
  <td className="px-5 py-3.5">
  <div className="font-medium" style={{ color: 'var(--fg)' }}>

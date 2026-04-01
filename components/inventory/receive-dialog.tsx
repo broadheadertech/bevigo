@@ -110,34 +110,34 @@ export function ReceiveDialog({
  )}
 
  <form onSubmit={handleSubmit} className="flex flex-col gap-3">
- <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--muted)' }}>
+ <div className="rounded-3xl shadow-lg overflow-hidden" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  <table className="w-full text-sm">
  <thead>
- <tr className="border-b" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <th className="text-left px-4 py-2.5 text-xs font-medium uppercase tracking-wide">
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Ingredient
  </th>
- <th className="text-right px-4 py-2.5 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Ordered
  </th>
- <th className="text-right px-4 py-2.5 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Received
  </th>
  </tr>
  </thead>
- <tbody className="divide-y divide-stone-100">
+ <tbody>
  {items.map((item: PurchaseOrderItem) => (
- <tr key={item._id}>
- <td className="px-4 py-3">
+ <tr key={item._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+ <td className="px-5 py-3.5" style={{ color: 'var(--fg)' }}>
  {item.ingredientName}
- <span className="text-stone-400 ml-1 text-xs">
+ <span className="ml-1 text-xs" style={{ color: 'var(--muted-fg)' }}>
  {item.ingredientUnit}
  </span>
  </td>
- <td className="px-4 py-3 text-right">
+ <td className="px-5 py-3.5 text-right" style={{ color: 'var(--muted-fg)' }}>
  {item.quantityOrdered}
  </td>
- <td className="px-4 py-3 text-right">
+ <td className="px-5 py-3.5 text-right">
  <input
  type="number"
  min={0}

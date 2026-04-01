@@ -248,90 +248,91 @@ export default function CustomersPage() {
  </div>
 
  {/* Table */}
- <div className="rounded-2xl border shadow-lg overflow-hidden" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+ <div className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  <table className="w-full text-sm">
  <thead>
- <tr className="border-b" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <th className="text-left px-4 py-3 font-medium">
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Name
  </th>
- <th className="text-left px-4 py-3 font-medium">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Phone
  </th>
  {!selectedCustomerId && (
  <>
- <th className="text-right px-4 py-3 font-medium">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Visits
  </th>
- <th className="text-right px-4 py-3 font-medium">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Total Spent
  </th>
- <th className="text-left px-4 py-3 font-medium">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Last Visit
  </th>
  </>
  )}
- <th className="text-center px-4 py-3 font-medium">
+ <th className="text-center px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Loyalty
  </th>
- <th className="text-right px-4 py-3 font-medium">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Actions
  </th>
  </tr>
  </thead>
- <tbody className="divide-y divide-stone-100">
+ <tbody>
  {(customers ?? []).map((c: CustomerRow) => (
  <tr
  key={c._id}
- className={` transition-colors cursor-pointer ${
+ className={`transition-colors cursor-pointer ${
  selectedCustomerId === c._id ?"bg-amber-500/10" :""
  }`}
  onClick={() => selectCustomer(c._id)}
+ style={{ borderBottom: '1px solid var(--border-color)' }}
  >
- <td className="px-4 py-3">
+ <td className="px-5 py-3.5">
  <span className="font-medium" style={{ color: 'var(--fg)' }}>
  {c.name}
  </span>
  {c.status ==="inactive" && (
- <span className="ml-2 text-xs">
+ <span className="ml-2 text-xs" style={{ color: 'var(--muted-fg)' }}>
  (inactive)
  </span>
  )}
  </td>
- <td className="px-4 py-3">
+ <td className="px-5 py-3.5" style={{ color: 'var(--muted-fg)' }}>
  {c.phone ||"--"}
  </td>
  {!selectedCustomerId && (
  <>
- <td className="px-4 py-3 text-right">
+ <td className="px-5 py-3.5 text-right" style={{ color: 'var(--muted-fg)' }}>
  {c.visitCount}
  </td>
- <td className="px-4 py-3 text-right font-medium" style={{ color: 'var(--fg)' }}>
+ <td className="px-5 py-3.5 text-right font-medium" style={{ color: 'var(--fg)' }}>
  {formatCurrency(c.totalSpent)}
  </td>
- <td className="px-4 py-3">
+ <td className="px-5 py-3.5" style={{ color: 'var(--muted-fg)' }}>
  {formatDate(c.lastVisitAt)}
  </td>
  </>
  )}
- <td className="px-4 py-3 text-center">
+ <td className="px-5 py-3.5 text-center">
  {c.loyaltyCardFull ? (
  <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-amber-500/15 text-amber-400">
  Full!
  </span>
  ) : (
- <span className="text-stone-500 text-xs">
+ <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>
  {c.loyaltyStamps}/{c.loyaltyRequired}
  </span>
  )}
  </td>
- <td className="px-4 py-3 text-right">
+ <td className="px-5 py-3.5 text-right">
  <button
  onClick={(e) => {
  e.stopPropagation();
  startEdit(c);
  }}
- className="text-stone-400 text-xs"
+ className="text-xs text-amber-400 hover:text-amber-300 font-medium transition-colors"
  >
  Edit
  </button>
@@ -342,7 +343,8 @@ export default function CustomersPage() {
  <tr>
  <td
  colSpan={selectedCustomerId ? 4 : 7}
- className="px-4 py-8 text-center"
+ className="px-5 py-12 text-center"
+ style={{ color: 'var(--muted-fg)' }}
  >
  {search
  ?"No customers match your search"

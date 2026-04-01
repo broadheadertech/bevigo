@@ -503,23 +503,23 @@ export function BulkPriceDialog({
  Preview ({activeChanges.length} change
  {activeChanges.length !== 1 ?"s" :""})
  </h3>
- <div className="border rounded max-h-56 overflow-y-auto">
+ <div className="rounded-3xl shadow-lg overflow-hidden max-h-56 overflow-y-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  <table className="w-full text-sm">
- <thead className="bg-gray-50 sticky top-0" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <tr>
- <th className="text-left px-3 py-2 font-medium">
+ <thead className="sticky top-0">
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Item
  </th>
- <th className="text-left px-3 py-2 font-medium">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Location
  </th>
- <th className="text-right px-3 py-2 font-medium">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Current
  </th>
- <th className="text-right px-3 py-2 font-medium">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  New
  </th>
- <th className="text-right px-3 py-2 font-medium">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Change
  </th>
  </tr>
@@ -530,22 +530,23 @@ export function BulkPriceDialog({
  return (
  <tr
  key={i}
- className={`border-t ${row.skipped ?"opacity-40" :""}`}
+ className={row.skipped ?"opacity-40" :""}
+ style={{ borderBottom: '1px solid var(--border-color)' }}
  >
- <td className="px-3 py-2">{row.itemName}</td>
- <td className="px-3 py-2">
+ <td className="px-5 py-3.5" style={{ color: 'var(--fg)' }}>{row.itemName}</td>
+ <td className="px-5 py-3.5" style={{ color: 'var(--muted-fg)' }}>
  {row.locationName ??"Base Price"}
  </td>
- <td className="px-3 py-2 text-right font-mono">
+ <td className="px-5 py-3.5 text-right font-mono" style={{ color: 'var(--muted-fg)' }}>
  {formatPrice(row.oldPrice)}
  </td>
- <td className="px-3 py-2 text-right font-mono">
+ <td className="px-5 py-3.5 text-right font-mono" style={{ color: 'var(--muted-fg)' }}>
  {row.skipped
  ?"skipped"
  : formatPrice(row.newPrice)}
  </td>
  <td
- className={`px-3 py-2 text-right font-mono ${
+ className={`px-5 py-3.5 text-right font-mono ${
  row.skipped
  ?""
  : diff > 0

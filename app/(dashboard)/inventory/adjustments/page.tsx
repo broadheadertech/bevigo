@@ -166,46 +166,46 @@ export default function AdjustmentsPage() {
  </p>
  </div>
  ) : (
- <div className="rounded-2xl border shadow-lg overflow-hidden">
+ <div className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  <table className="w-full text-sm">
  <thead>
- <tr className="border-b" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wide">
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Date
  </th>
- <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Ingredient
  </th>
- <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Type
  </th>
- <th className="text-right px-4 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Quantity
  </th>
- <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Reason
  </th>
- <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Location
  </th>
- <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  User
  </th>
  </tr>
  </thead>
- <tbody className="divide-y divide-stone-100">
+ <tbody>
  {adjustments.map((adj: StockAdjustment) => (
- <tr key={adj._id} className="hover:">
- <td className="px-4 py-3 whitespace-nowrap">
+ <tr key={adj._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+ <td className="px-5 py-3.5 whitespace-nowrap" style={{ color: 'var(--muted-fg)' }}>
  {formatDate(adj.createdAt)}
  </td>
- <td className="px-4 py-3 font-medium" style={{ color: 'var(--fg)' }}>
+ <td className="px-5 py-3.5 font-medium" style={{ color: 'var(--fg)' }}>
  {adj.ingredientName}
- <span className="text-stone-400 ml-1 text-xs font-normal">
+ <span className="ml-1 text-xs font-normal" style={{ color: 'var(--muted-fg)' }}>
  {adj.ingredientUnit}
  </span>
  </td>
- <td className="px-4 py-3">
+ <td className="px-5 py-3.5">
  <span
  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${TYPE_STYLES[adj.type] ??"bg-stone-500/10"}`}
  >
@@ -214,7 +214,7 @@ export default function AdjustmentsPage() {
  </span>
  </td>
  <td
- className={`px-4 py-3 text-right font-medium ${
+ className={`px-5 py-3.5 text-right font-medium ${
  adj.quantity < 0
  ?"text-red-600"
  :"text-emerald-600"
@@ -223,13 +223,13 @@ export default function AdjustmentsPage() {
  {adj.quantity > 0 ?"+" :""}
  {adj.quantity}
  </td>
- <td className="px-4 py-3 max-w-[200px] truncate">
+ <td className="px-5 py-3.5 max-w-[200px] truncate" style={{ color: 'var(--muted-fg)' }}>
  {adj.reason}
  </td>
- <td className="px-4 py-3">
+ <td className="px-5 py-3.5" style={{ color: 'var(--muted-fg)' }}>
  {adj.locationName}
  </td>
- <td className="px-4 py-3">
+ <td className="px-5 py-3.5" style={{ color: 'var(--muted-fg)' }}>
  {adj.userName}
  </td>
  </tr>

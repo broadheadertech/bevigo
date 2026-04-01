@@ -141,32 +141,33 @@ export default function ValuationPage() {
  No ingredients with stock found.
  </div>
  ) : (
- <div className="rounded-2xl border shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+ <div className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  <table className="w-full min-w-[600px]">
- <thead className="border-b" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <tr>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <thead>
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Ingredient
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Category
  </th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Stock
  </th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Avg Unit Cost
  </th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Total Value
  </th>
  </tr>
  </thead>
- <tbody className="divide-y divide-stone-100">
+ <tbody>
  {valuationData.items.map((row: ValuationItem) => (
  <tr
  key={row.ingredientName}
- className="hover: transition-colors"
+ className="transition-colors"
+ style={{ borderBottom: '1px solid var(--border-color)' }}
  >
  <td className="px-5 py-3.5 font-medium" style={{ color: 'var(--fg)' }}>
  {row.ingredientName}
@@ -186,7 +187,7 @@ export default function ValuationPage() {
  </tr>
  ))}
  {/* Totals row */}
- <tr className="font-semibold" style={{ backgroundColor: 'var(--muted)' }}>
+ <tr className="font-semibold" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
  <td className="px-5 py-3.5" colSpan={4}>
  Total
  </td>

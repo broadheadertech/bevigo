@@ -352,7 +352,7 @@ export default function OrderAnalyticsPage() {
  <div className="flex flex-wrap gap-4 items-end">
  <div>
  <label
- className="block text-xs font-medium uppercase tracking-wide mb-1.5"
+ className="block text-xs font-semibold uppercase tracking-widest mb-1.5"
  style={{ color:"var(--muted-fg)" }}
  >
  Start Date
@@ -367,7 +367,7 @@ export default function OrderAnalyticsPage() {
  </div>
  <div>
  <label
- className="block text-xs font-medium uppercase tracking-wide mb-1.5"
+ className="block text-xs font-semibold uppercase tracking-widest mb-1.5"
  style={{ color:"var(--muted-fg)" }}
  >
  End Date
@@ -382,7 +382,7 @@ export default function OrderAnalyticsPage() {
  </div>
  <div>
  <label
- className="block text-xs font-medium uppercase tracking-wide mb-1.5"
+ className="block text-xs font-semibold uppercase tracking-widest mb-1.5"
  style={{ color:"var(--muted-fg)" }}
  >
  Location
@@ -477,7 +477,7 @@ function PaymentTypesTab({ data }: { data: PaymentTypeRow[] | undefined }) {
  }}
  >
  <p
- className="text-xs font-medium uppercase tracking-wide mb-4"
+ className="text-xs font-semibold uppercase tracking-widest mb-4"
  style={{ color:"var(--muted-fg)" }}
  >
  Revenue Distribution
@@ -522,35 +522,35 @@ function PaymentTypesTab({ data }: { data: PaymentTypeRow[] | undefined }) {
 
  {/* Table */}
  <div
- className="rounded-2xl border shadow-lg overflow-hidden overflow-x-auto"
+ className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto"
  style={{
  backgroundColor:"var(--card)",
- borderColor:"var(--border-color)",
+ border:"1px solid var(--border-color)",
  }}
  >
  <table className="w-full min-w-[400px]">
  <thead>
- <tr style={{ backgroundColor:"var(--muted)" }}>
+ <tr style={{ backgroundColor:"var(--muted)", borderBottom:"1px solid var(--border-color)" }}>
  <th
- className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide"
+ className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest"
  style={{ color:"var(--muted-fg)" }}
  >
  Payment Type
  </th>
  <th
- className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide"
+ className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest"
  style={{ color:"var(--muted-fg)" }}
  >
  Orders
  </th>
  <th
- className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide"
+ className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest"
  style={{ color:"var(--muted-fg)" }}
  >
  Revenue
  </th>
  <th
- className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide"
+ className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest"
  style={{ color:"var(--muted-fg)" }}
  >
  % of Total
@@ -561,8 +561,7 @@ function PaymentTypesTab({ data }: { data: PaymentTypeRow[] | undefined }) {
  {data.map((row: PaymentTypeRow) => (
  <tr
  key={row.paymentType}
- className="border-t"
- style={{ borderColor:"var(--border-color)" }}
+ style={{ borderBottom:"1px solid var(--border-color)" }}
  >
  <td className="px-5 py-3.5 font-medium" style={{ color:"var(--card-fg)" }}>
  <span className="flex items-center gap-2">
@@ -627,7 +626,7 @@ function TimePeriodsTab({ data }: { data: TimePeriodRow[] | undefined }) {
  }}
  >
  <p
- className="text-xs font-medium uppercase tracking-wide mb-4"
+ className="text-xs font-semibold uppercase tracking-widest mb-4"
  style={{ color:"var(--muted-fg)" }}
  >
  Revenue by Time Block
@@ -671,19 +670,19 @@ function TimePeriodsTab({ data }: { data: TimePeriodRow[] | undefined }) {
 
  {/* Table */}
  <div
- className="rounded-2xl border shadow-lg overflow-hidden overflow-x-auto"
+ className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto"
  style={{
  backgroundColor:"var(--card)",
- borderColor:"var(--border-color)",
+ border:"1px solid var(--border-color)",
  }}
  >
  <table className="w-full min-w-[500px]">
  <thead>
- <tr style={{ backgroundColor:"var(--muted)" }}>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Period</th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Orders</th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Revenue</th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Avg Order</th>
+ <tr style={{ backgroundColor:"var(--muted)", borderBottom:"1px solid var(--border-color)" }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Period</th>
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Orders</th>
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Revenue</th>
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Avg Order</th>
  </tr>
  </thead>
  <tbody>
@@ -692,9 +691,8 @@ function TimePeriodsTab({ data }: { data: TimePeriodRow[] | undefined }) {
  return (
  <tr
  key={row.period}
- className="border-t"
  style={{
- borderColor:"var(--border-color)",
+ borderBottom:"1px solid var(--border-color)",
  backgroundColor: isPeak ?"rgba(245, 158, 11, 0.08)" : undefined,
  }}
  >
@@ -739,21 +737,21 @@ function StaffTab({ data }: { data: StaffRow[] | undefined }) {
 
  return (
  <div
- className="rounded-2xl border shadow-lg overflow-hidden overflow-x-auto"
+ className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto"
  style={{
  backgroundColor:"var(--card)",
- borderColor:"var(--border-color)",
+ border:"1px solid var(--border-color)",
  }}
  >
  <table className="w-full min-w-[600px]">
  <thead>
- <tr style={{ backgroundColor:"var(--muted)" }}>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Staff Name</th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Role</th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Orders</th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Revenue</th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Avg Order</th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Voids</th>
+ <tr style={{ backgroundColor:"var(--muted)", borderBottom:"1px solid var(--border-color)" }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Staff Name</th>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Role</th>
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Orders</th>
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Revenue</th>
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Avg Order</th>
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Voids</th>
  </tr>
  </thead>
  <tbody>
@@ -762,9 +760,8 @@ function StaffTab({ data }: { data: StaffRow[] | undefined }) {
  return (
  <tr
  key={row.userName}
- className="border-t"
  style={{
- borderColor:"var(--border-color)",
+ borderBottom:"1px solid var(--border-color)",
  backgroundColor: isTop ?"rgba(245, 158, 11, 0.08)" : undefined,
  }}
  >
@@ -810,27 +807,26 @@ function TablesTab({ data }: { data: TableRow[] | undefined }) {
 
  return (
  <div
- className="rounded-2xl border shadow-lg overflow-hidden overflow-x-auto"
+ className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto"
  style={{
  backgroundColor:"var(--card)",
- borderColor:"var(--border-color)",
+ border:"1px solid var(--border-color)",
  }}
  >
  <table className="w-full min-w-[500px]">
  <thead>
- <tr style={{ backgroundColor:"var(--muted)" }}>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Table / Zone</th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Orders</th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Revenue</th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Avg Order</th>
+ <tr style={{ backgroundColor:"var(--muted)", borderBottom:"1px solid var(--border-color)" }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Table / Zone</th>
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Orders</th>
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Revenue</th>
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Avg Order</th>
  </tr>
  </thead>
  <tbody>
  {data.map((row: TableRow) => (
  <tr
  key={row.tableName}
- className="border-t"
- style={{ borderColor:"var(--border-color)" }}
+ style={{ borderBottom:"1px solid var(--border-color)" }}
  >
  <td className="px-5 py-3.5 font-medium" style={{ color:"var(--card-fg)" }}>{row.tableName}</td>
  <td className="px-5 py-3.5 text-right" style={{ color:"var(--muted-fg)" }}>{row.orderCount}</td>
@@ -877,7 +873,7 @@ function PeakDaysTab({ data }: { data: PeakDayRow[] | undefined }) {
  }}
  >
  <p
- className="text-xs font-medium uppercase tracking-wide mb-4"
+ className="text-xs font-semibold uppercase tracking-widest mb-4"
  style={{ color:"var(--muted-fg)" }}
  >
  Orders per Day of Week
@@ -929,19 +925,19 @@ function PeakDaysTab({ data }: { data: PeakDayRow[] | undefined }) {
 
  {/* Table */}
  <div
- className="rounded-2xl border shadow-lg overflow-hidden overflow-x-auto"
+ className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto"
  style={{
  backgroundColor:"var(--card)",
- borderColor:"var(--border-color)",
+ border:"1px solid var(--border-color)",
  }}
  >
  <table className="w-full min-w-[500px]">
  <thead>
- <tr style={{ backgroundColor:"var(--muted)" }}>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Day</th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Orders</th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Revenue</th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Avg Order</th>
+ <tr style={{ backgroundColor:"var(--muted)", borderBottom:"1px solid var(--border-color)" }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Day</th>
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Orders</th>
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Revenue</th>
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Avg Order</th>
  </tr>
  </thead>
  <tbody>
@@ -950,9 +946,8 @@ function PeakDaysTab({ data }: { data: PeakDayRow[] | undefined }) {
  return (
  <tr
  key={row.dayOfWeek}
- className="border-t"
  style={{
- borderColor:"var(--border-color)",
+ borderBottom:"1px solid var(--border-color)",
  backgroundColor: isBusiest ?"rgba(245, 158, 11, 0.08)" : undefined,
  }}
  >
@@ -1004,7 +999,7 @@ function VoidsTab({ data }: { data: VoidReportResult | undefined }) {
  }}
  >
  <p
- className="text-xs font-medium uppercase tracking-wide mb-2"
+ className="text-xs font-semibold uppercase tracking-widest mb-2"
  style={{ color:"var(--muted-fg)" }}
  >
  {card.label}
@@ -1018,28 +1013,27 @@ function VoidsTab({ data }: { data: VoidReportResult | undefined }) {
 
  {data.voids.length > 0 ? (
  <div
- className="rounded-2xl border shadow-lg overflow-hidden overflow-x-auto"
+ className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto"
  style={{
  backgroundColor:"var(--card)",
- borderColor:"var(--border-color)",
+ border:"1px solid var(--border-color)",
  }}
  >
  <table className="w-full min-w-[600px]">
  <thead>
- <tr style={{ backgroundColor:"var(--muted)" }}>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Order #</th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Date</th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Original Total</th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Reason</th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Voided By</th>
+ <tr style={{ backgroundColor:"var(--muted)", borderBottom:"1px solid var(--border-color)" }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Order #</th>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Date</th>
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Original Total</th>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Reason</th>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Voided By</th>
  </tr>
  </thead>
  <tbody>
  {data.voids.map((v: VoidItem, idx: number) => (
  <tr
  key={`${v.orderNumber}-${idx}`}
- className="border-t"
- style={{ borderColor:"var(--border-color)" }}
+ style={{ borderBottom:"1px solid var(--border-color)" }}
  >
  <td className="px-5 py-3.5 font-medium" style={{ color:"var(--card-fg)" }}>{v.orderNumber}</td>
  <td className="px-5 py-3.5" style={{ color:"var(--muted-fg)" }}>
@@ -1095,7 +1089,7 @@ function CustomerRepeatTab({ data }: { data: RepeatRateResult | undefined }) {
  }}
  >
  <p
- className="text-xs font-medium uppercase tracking-wide mb-2"
+ className="text-xs font-semibold uppercase tracking-widest mb-2"
  style={{ color:"var(--muted-fg)" }}
  >
  {card.label}
@@ -1109,26 +1103,25 @@ function CustomerRepeatTab({ data }: { data: RepeatRateResult | undefined }) {
 
  {data.topCustomers.length > 0 ? (
  <div
- className="rounded-2xl border shadow-lg overflow-hidden overflow-x-auto"
+ className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto"
  style={{
  backgroundColor:"var(--card)",
- borderColor:"var(--border-color)",
+ border:"1px solid var(--border-color)",
  }}
  >
  <table className="w-full min-w-[400px]">
  <thead>
- <tr style={{ backgroundColor:"var(--muted)" }}>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Name</th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Orders</th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color:"var(--muted-fg)" }}>Total Spent</th>
+ <tr style={{ backgroundColor:"var(--muted)", borderBottom:"1px solid var(--border-color)" }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Name</th>
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Orders</th>
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color:"var(--muted-fg)" }}>Total Spent</th>
  </tr>
  </thead>
  <tbody>
  {data.topCustomers.map((c: TopCustomer) => (
  <tr
  key={c.customerName}
- className="border-t"
- style={{ borderColor:"var(--border-color)" }}
+ style={{ borderBottom:"1px solid var(--border-color)" }}
  >
  <td className="px-5 py-3.5 font-medium" style={{ color:"var(--card-fg)" }}>{c.customerName}</td>
  <td className="px-5 py-3.5 text-right" style={{ color:"var(--muted-fg)" }}>{c.orderCount}</td>

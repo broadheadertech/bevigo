@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation } from"convex/react";
+import { useQuery, useMutation, useAction } from"convex/react";
 import { api } from"../../../convex/_generated/api";
 import { useAuth } from"@/lib/auth-context";
 import { useState, useEffect } from"react";
@@ -23,12 +23,16 @@ export default function SettingsPage() {
  token ? { token } :"skip"
  );
  const updateTimeout = useMutation(api.settings.mutations.updateIdleLockTimeout);
+ const resetPinAction = useAction(api.staff.mutations.resetPin);
 
  const [selectedTimeout, setSelectedTimeout] = useState<number>(5 * 60 * 1000);
  const [isSaving, setIsSaving] = useState(false);
  const [successMessage, setSuccessMessage] = useState<string | null>(null);
  const [error, setError] = useState<string | null>(null);
  const [showCloneDialog, setShowCloneDialog] = useState(false);
+ const [myPin, setMyPin] = useState("");
+ const [pinSaving, setPinSaving] = useState(false);
+ const [pinMessage, setPinMessage] = useState<string | null>(null);
 
  // Sync from server settings when loaded
  useEffect(() => {
@@ -135,6 +139,60 @@ export default function SettingsPage() {
  className="px-4 py-2.5 text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
  >
  {isSaving ?"Saving..." :"Save"}
+ </button>
+ </div>
+
+ {/* My Quick-PIN Section */}
+ <div className="rounded-2xl border shadow-lg p-6" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+ <h2 className="text-base font-semibold mb-1" style={{ color: 'var(--fg)' }}>My Quick-PIN</h2>
+ <p className="text-sm mb-6" style={{ color: 'var(--muted-fg)' }}>
+  Set your 4-6 digit PIN for register access and quick switching. This PIN is used to unlock the register after idle lock.
+ </p>
+
+ <div className="mb-4">
+  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-fg)' }}>
+   New PIN
+  </label>
+  <input
+   type="text"
+   inputMode="numeric"
+   pattern="\d{4,6}"
+   maxLength={6}
+   value={myPin}
+   onChange={(e) => { setMyPin(e.target.value.replace(/\D/g, "")); setPinMessage(null); }}
+   className="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-colors"
+   style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
+   placeholder="Enter 4-6 digit PIN"
+  />
+ </div>
+
+ {pinMessage && (
+  <div className={`mb-4 p-3 rounded-xl text-sm ${pinMessage.includes("success") ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border border-red-500/20 text-red-400"}`}>
+   {pinMessage}
+  </div>
+ )}
+
+ <button
+  onClick={async () => {
+   if (!token || !session) return;
+   if (myPin.length < 4) { setPinMessage("PIN must be 4-6 digits"); return; }
+   setPinSaving(true);
+   setPinMessage(null);
+   try {
+    await resetPinAction({ token, userId: session.userId, newPin: myPin });
+    setPinMessage("PIN set successfully!");
+    setMyPin("");
+   } catch (err) {
+    setPinMessage(err instanceof Error ? err.message : "Failed to set PIN");
+   } finally {
+    setPinSaving(false);
+   }
+  }}
+  disabled={pinSaving || myPin.length < 4}
+  className="px-4 py-2.5 text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+  style={{ backgroundColor: 'var(--accent-color)' }}
+ >
+  {pinSaving ? "Saving..." : "Set PIN"}
  </button>
  </div>
 

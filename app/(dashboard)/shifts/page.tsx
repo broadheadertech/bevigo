@@ -172,39 +172,38 @@ export default function ShiftsPage() {
  )}
 
  {/* Table */}
- <div className="rounded-2xl border shadow-lg overflow-hidden" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
- <div className="overflow-x-auto">
+ <div className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  <table className="w-full text-sm">
  <thead>
- <tr className="border-b" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <th className="text-left px-4 py-3 font-medium">
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Date
  </th>
- <th className="text-left px-4 py-3 font-medium">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Staff
  </th>
- <th className="text-left px-4 py-3 font-medium">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Duration
  </th>
- <th className="text-right px-4 py-3 font-medium">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Opening
  </th>
- <th className="text-right px-4 py-3 font-medium">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Closing
  </th>
- <th className="text-right px-4 py-3 font-medium">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Expected
  </th>
- <th className="text-center px-4 py-3 font-medium">
+ <th className="text-center px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Variance
  </th>
- <th className="text-right px-4 py-3 font-medium">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Orders
  </th>
- <th className="text-right px-4 py-3 font-medium">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Revenue
  </th>
- <th className="text-center px-4 py-3 font-medium">
+ <th className="text-center px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Status
  </th>
  </tr>
@@ -212,13 +211,13 @@ export default function ShiftsPage() {
  <tbody>
  {!shifts ? (
  <tr>
- <td colSpan={10} className="text-center py-8">
+ <td colSpan={10} className="px-5 py-12 text-center" style={{ color: 'var(--muted-fg)' }}>
  Loading shifts...
  </td>
  </tr>
  ) : shifts.length === 0 ? (
  <tr>
- <td colSpan={10} className="text-center py-8">
+ <td colSpan={10} className="px-5 py-12 text-center" style={{ color: 'var(--muted-fg)' }}>
  No shifts found
  </td>
  </tr>
@@ -226,40 +225,41 @@ export default function ShiftsPage() {
  shifts.map((shift: ShiftRow) => (
  <tr
  key={shift._id}
- className="border-b border-stone-50 hover: transition-colors"
+ className="transition-colors"
+ style={{ borderBottom: '1px solid var(--border-color)' }}
  >
- <td className="px-4 py-3">
+ <td className="px-5 py-3.5" style={{ color: 'var(--fg)' }}>
  {formatDate(shift.startedAt)}
  </td>
- <td className="px-4 py-3">
+ <td className="px-5 py-3.5" style={{ color: 'var(--fg)' }}>
  {shift.userName}
  </td>
- <td className="px-4 py-3">
+ <td className="px-5 py-3.5" style={{ color: 'var(--muted-fg)' }}>
  {formatDuration(shift.startedAt, shift.endedAt)}
  </td>
- <td className="px-4 py-3 text-right">
+ <td className="px-5 py-3.5 text-right" style={{ color: 'var(--muted-fg)' }}>
  {formatCurrency(shift.openingCash)}
  </td>
- <td className="px-4 py-3 text-right">
+ <td className="px-5 py-3.5 text-right" style={{ color: 'var(--muted-fg)' }}>
  {shift.closingCash !== undefined
  ? formatCurrency(shift.closingCash)
  :"-"}
  </td>
- <td className="px-4 py-3 text-right">
+ <td className="px-5 py-3.5 text-right" style={{ color: 'var(--muted-fg)' }}>
  {shift.expectedCash !== undefined
  ? formatCurrency(shift.expectedCash)
  :"-"}
  </td>
- <td className="px-4 py-3 text-center">
+ <td className="px-5 py-3.5 text-center">
  <VarianceBadge variance={shift.variance} />
  </td>
- <td className="px-4 py-3 text-right">
+ <td className="px-5 py-3.5 text-right" style={{ color: 'var(--muted-fg)' }}>
  {shift.orderCount}
  </td>
- <td className="px-4 py-3 text-right">
+ <td className="px-5 py-3.5 text-right" style={{ color: 'var(--muted-fg)' }}>
  {formatCurrency(shift.totalRevenue)}
  </td>
- <td className="px-4 py-3 text-center">
+ <td className="px-5 py-3.5 text-center">
  {shift.status ==="active" ? (
  <span className="inline-flex px-2 py-0.5 rounded-2xl text-xs font-medium text-green-400 bg-green-500/10">
  Active
@@ -275,7 +275,6 @@ export default function ShiftsPage() {
  )}
  </tbody>
  </table>
- </div>
  </div>
 
  {/* Start Shift Dialog */}

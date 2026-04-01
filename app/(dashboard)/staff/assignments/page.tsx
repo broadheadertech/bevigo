@@ -226,20 +226,21 @@ export default function StaffAssignmentsPage() {
  No active locations found. Create locations first.
  </div>
  ) : (
- <div className="rounded-2xl shadow overflow-x-auto">
+ <div className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  <table className="w-full">
- <thead className="bg-gray-50" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <tr>
- <th className="text-left px-4 py-3 text-sm font-medium sticky left-0 z-10">
+ <thead>
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest sticky left-0 z-10" style={{ color: 'var(--muted-fg)', backgroundColor: 'var(--muted)' }}>
  Staff Member
  </th>
- <th className="text-left px-4 py-3 text-sm font-medium">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Role
  </th>
  {locations.map((loc) => (
  <th
  key={loc.locationId}
- className="text-center px-4 py-3 text-sm font-medium min-w-[120px]"
+ className="text-center px-5 py-3 text-xs font-semibold uppercase tracking-widest min-w-[120px]"
+ style={{ color: 'var(--muted-fg)' }}
  >
  {loc.locationName}
  </th>
@@ -250,15 +251,15 @@ export default function StaffAssignmentsPage() {
  {users.map((user) => (
  <tr
  key={user.userId}
- className="border-b last:border-0"
+ style={{ borderBottom: '1px solid var(--border-color)' }}
  >
- <td className="px-4 py-3 sticky left-0 z-10">
+ <td className="px-5 py-3.5 sticky left-0 z-10" style={{ backgroundColor: 'var(--card)' }}>
  <div className="font-medium" style={{ color: 'var(--fg)' }}>{user.userName}</div>
  {user.userEmail && (
- <div className="text-sm">{user.userEmail}</div>
+ <div className="text-sm" style={{ color: 'var(--muted-fg)' }}>{user.userEmail}</div>
  )}
  </td>
- <td className="px-4 py-3">
+ <td className="px-5 py-3.5">
  <span
  className={`inline-block px-2 py-1 text-xs font-medium rounded-full capitalize ${getRoleBadgeColor(user.userRole)}`}
  >
@@ -273,7 +274,7 @@ export default function StaffAssignmentsPage() {
  return (
  <td
  key={loc.locationId}
- className={`text-center px-4 py-3 ${isPending ?"bg-yellow-50" :""}`}
+ className={`text-center px-5 py-3.5 ${isPending ?"bg-yellow-50" :""}`}
  >
  <input
  type="checkbox"

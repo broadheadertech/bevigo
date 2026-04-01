@@ -263,34 +263,34 @@ export default function OrderHistoryPage() {
  No orders found for the selected filters.
  </div>
  ) : (
- <div className="rounded-2xl border shadow-lg overflow-hidden" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+ <div className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  <table className="w-full">
- <thead className="border-b" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <tr>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <thead>
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Order #
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Date / Time
  </th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Items
  </th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Total
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Payment
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Status
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Barista
  </th>
  </tr>
  </thead>
- <tbody className="divide-y divide-stone-100">
+ <tbody>
  {orders.map((order: OrderHistoryItem) => (
  <OrderRow
  key={order._id}
@@ -326,20 +326,21 @@ function OrderRow({
  <tr
  className="hover: transition-colors cursor-pointer"
  onClick={onToggle}
+ style={{ borderBottom: '1px solid var(--border-color)' }}
  >
  <td className="px-5 py-3.5 font-medium" style={{ color: 'var(--fg)' }}>
  {order.orderNumber ||"--"}
  </td>
- <td className="px-5 py-3.5">
+ <td className="px-5 py-3.5" style={{ color: 'var(--muted-fg)' }}>
  {formatDateTime(order.completedAt)}
  </td>
- <td className="px-5 py-3.5 text-right">
+ <td className="px-5 py-3.5 text-right" style={{ color: 'var(--muted-fg)' }}>
  {order.itemCount}
  </td>
  <td className="px-5 py-3.5 text-right font-medium" style={{ color: 'var(--fg)' }}>
  {formatCurrency(order.total)}
  </td>
- <td className="px-5 py-3.5 capitalize">
+ <td className="px-5 py-3.5 capitalize" style={{ color: 'var(--muted-fg)' }}>
  {order.paymentType ==="ewallet" ?"E-Wallet" : order.paymentType}
  </td>
  <td className="px-5 py-3.5">
@@ -353,7 +354,7 @@ function OrderRow({
  {order.status}
  </span>
  </td>
- <td className="px-5 py-3.5">{order.baristaName}</td>
+ <td className="px-5 py-3.5" style={{ color: 'var(--muted-fg)' }}>{order.baristaName}</td>
  </tr>
  {isExpanded && (
  <tr>

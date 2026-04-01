@@ -275,35 +275,36 @@ export default function COGSPage() {
  No sales data for this period.
  </div>
  ) : (
- <div className="rounded-2xl border shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+ <div className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  <table className="w-full min-w-[600px]">
- <thead className="border-b" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <tr>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <thead>
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Item
  </th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Qty Sold
  </th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Revenue
  </th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  COGS
  </th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Gross Profit
  </th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Margin %
  </th>
  </tr>
  </thead>
- <tbody className="divide-y divide-stone-100">
+ <tbody>
  {cogsData.map((row: COGSItem) => (
  <tr
  key={row.itemName}
- className="hover: transition-colors"
+ className="transition-colors"
+ style={{ borderBottom: '1px solid var(--border-color)' }}
  >
  <td className="px-5 py-3.5 font-medium" style={{ color: 'var(--fg)' }}>
  {row.itemName}

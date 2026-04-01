@@ -130,28 +130,28 @@ export function RecipeEditor({ menuItemId, menuItemName }: RecipeEditorProps) {
  <div className="mb-4">
  <table className="w-full text-sm">
  <thead>
- <tr className="border-b" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <th className="text-left py-2.5 text-xs font-medium uppercase tracking-wide">
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Ingredient
  </th>
- <th className="text-left py-2.5 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Quantity
  </th>
- <th className="text-left py-2.5 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Unit
  </th>
- <th className="text-right py-2.5 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Actions
  </th>
  </tr>
  </thead>
- <tbody className="divide-y divide-stone-100">
+ <tbody>
  {typedRecipeItems.map((item: RecipeItem) => (
- <tr key={item._id}>
- <td className="py-2.5">
+ <tr key={item._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+ <td className="px-5 py-3.5" style={{ color: 'var(--fg)' }}>
  {item.ingredientName}
  </td>
- <td className="py-2.5">
+ <td className="px-5 py-3.5">
  {editingId === item._id ? (
  <input
  type="number"
@@ -169,7 +169,7 @@ export function RecipeEditor({ menuItemId, menuItemName }: RecipeEditorProps) {
  </span>
  )}
  </td>
- <td className="py-2.5">
+ <td className="px-5 py-3.5">
  {item.ingredientUnit}
  </td>
  <td className="py-2.5 text-right">

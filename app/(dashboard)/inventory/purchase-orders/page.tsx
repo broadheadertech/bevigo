@@ -268,41 +268,42 @@ export default function PurchaseOrdersPage() {
  )}
  </div>
 
+ <div className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  <table className="w-full text-sm">
  <thead>
- <tr className="border-b" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <th className="text-left py-2.5 text-xs font-medium uppercase tracking-wide">
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Ingredient
  </th>
- <th className="text-right py-2.5 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Ordered
  </th>
- <th className="text-right py-2.5 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Received
  </th>
- <th className="text-right py-2.5 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Unit Cost
  </th>
  </tr>
  </thead>
- <tbody className="divide-y divide-stone-100">
+ <tbody>
  {orderDetail.items.map((item: PurchaseOrderItem) => (
- <tr key={item._id}>
- <td className="py-3">
+ <tr key={item._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+ <td className="px-5 py-3.5" style={{ color: 'var(--fg)' }}>
  {item.ingredientName}{""}
- <span className="text-stone-400 text-xs">
+ <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>
  {item.ingredientUnit}
  </span>
  </td>
- <td className="py-3 text-right">
+ <td className="px-5 py-3.5 text-right" style={{ color: 'var(--muted-fg)' }}>
  {item.quantityOrdered}
  </td>
- <td className="py-3 text-right">
+ <td className="px-5 py-3.5 text-right" style={{ color: 'var(--muted-fg)' }}>
  {item.quantityReceived != null
  ? item.quantityReceived
  :"-"}
  </td>
- <td className="py-3 text-right">
+ <td className="px-5 py-3.5 text-right" style={{ color: 'var(--muted-fg)' }}>
  {item.unitCost != null
  ? `${(item.unitCost / 100).toFixed(2)}`
  :"-"}
@@ -311,6 +312,7 @@ export default function PurchaseOrdersPage() {
  ))}
  </tbody>
  </table>
+ </div>
  </div>
 
  {showReceiveDialog && orderDetail.status ==="ordered" && (

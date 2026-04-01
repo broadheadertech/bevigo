@@ -56,6 +56,7 @@ export default function StaffPage() {
   );
   const createStaff = useAction(api.staff.mutations.create);
   const updateStaff = useMutation(api.staff.mutations.update);
+  const resetPin = useAction(api.staff.mutations.resetPin);
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<Id<"users"> | null>(null);
@@ -114,6 +115,14 @@ export default function StaffPage() {
           role: form.role,
           locationIds: form.locationIds,
         });
+        // Reset PIN if a new one was entered
+        if (form.quickPin && form.quickPin.length >= 4) {
+          await resetPin({
+            token,
+            userId: editingId,
+            newPin: form.quickPin,
+          });
+        }
       } else {
         await createStaff({
           token,
@@ -170,19 +179,19 @@ export default function StaffPage() {
       {/* Staff Table */}
       <div className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
         <table className="w-full min-w-150">
-          <thead style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
-            <tr>
-              <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest">Name</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest">Role</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest">Location(s)</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest">Status</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest">Actions</th>
+          <thead>
+            <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+              <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Name</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Role</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Location(s)</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Status</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {typedStaffList === undefined ? (
               <tr>
-                <td colSpan={5} className="px-5 py-12 text-center text-stone-400">
+                <td colSpan={5} className="px-5 py-12 text-center" style={{ color: 'var(--muted-fg)' }}>
                   Loading staff...
                 </td>
               </tr>
@@ -243,7 +252,7 @@ export default function StaffPage() {
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="px-5 py-12 text-center text-stone-400">
+                <td colSpan={5} className="px-5 py-12 text-center" style={{ color: 'var(--muted-fg)' }}>
                   No staff members found.
                 </td>
               </tr>
@@ -315,29 +324,27 @@ export default function StaffPage() {
                 </select>
               </div>
 
-              {!editingId && (
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-fg)' }}>
-                    Quick-PIN (4-6 digits, optional)
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="\d{4,6}"
-                    maxLength={6}
-                    value={form.quickPin}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        quickPin: e.target.value.replace(/\D/g, ""),
-                      })
-                    }
-                    className="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-colors"
-                    style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
-                    placeholder="e.g. 1234"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-fg)' }}>
+                  {editingId ? "Reset Quick-PIN (leave blank to keep current)" : "Quick-PIN (4-6 digits, optional)"}
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="\d{4,6}"
+                  maxLength={6}
+                  value={form.quickPin}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      quickPin: e.target.value.replace(/\D/g, ""),
+                    })
+                  }
+                  className="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-colors"
+                  style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
+                  placeholder={editingId ? "Leave blank to keep current PIN" : "e.g. 1234"}
+                />
+              </div>
 
               <div className="flex justify-end gap-3 mt-2">
                 <button

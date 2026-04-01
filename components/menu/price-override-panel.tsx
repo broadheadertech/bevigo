@@ -103,8 +103,8 @@ export function PriceOverridePanel({ menuItemId }: PriceOverridePanelProps) {
  };
 
  return (
- <div className="border rounded-2xl p-4">
- <h3 className="text-sm font-semibold text-gray-800 mb-1" style={{ color: 'var(--fg)' }}>
+ <div className="rounded-3xl shadow-lg p-4" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+ <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--fg)' }}>
  Location Price Overrides
  </h3>
  <p className="text-xs mb-3">
@@ -123,14 +123,14 @@ export function PriceOverridePanel({ menuItemId }: PriceOverridePanelProps) {
  ) : (
  <table className="w-full text-sm">
  <thead>
- <tr className="border-b" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <th className="text-left py-2 pr-4 font-medium">
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Location
  </th>
- <th className="text-right py-2 pr-4 font-medium">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Effective Price
  </th>
- <th className="text-right py-2 font-medium">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Actions
  </th>
  </tr>
@@ -145,10 +145,10 @@ export function PriceOverridePanel({ menuItemId }: PriceOverridePanelProps) {
  return (
  <tr
  key={location._id}
- className="border-b last:border-b-0"
+ style={{ borderBottom: '1px solid var(--border-color)' }}
  >
- <td className="py-2 pr-4 text-gray-800">{location.name}</td>
- <td className="py-2 pr-4 text-right">
+ <td className="px-5 py-3.5" style={{ color: 'var(--fg)' }}>{location.name}</td>
+ <td className="px-5 py-3.5 text-right">
  {isEditing ? (
  <input
  type="number"
@@ -180,7 +180,7 @@ export function PriceOverridePanel({ menuItemId }: PriceOverridePanelProps) {
  </span>
  )}
  </td>
- <td className="py-2 text-right">
+ <td className="px-5 py-3.5 text-right">
  {isEditing ? (
  <span className="inline-flex gap-1">
  <button

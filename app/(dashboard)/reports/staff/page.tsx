@@ -222,10 +222,10 @@ export default function StaffPerformancePage() {
  No completed orders for this period.
  </div>
  ) : (
- <div className="rounded-2xl border shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+ <div className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  <table className="w-full min-w-[550px]">
- <thead className="border-b" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <tr>
+ <thead>
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
  {(
  [
  { key:"userName" as SortKey, label:"Name" },
@@ -238,7 +238,8 @@ export default function StaffPerformancePage() {
  <th
  key={col.key}
  onClick={() => handleSort(col.key)}
- className={`${col.key ==="userName" || col.key ==="role" ?"text-left" :"text-right"} px-5 py-3 text-xs font-medium uppercase tracking-wide cursor-pointer select-none`}
+ className={`${col.key ==="userName" || col.key ==="role" ?"text-left" :"text-right"} px-5 py-3 text-xs font-semibold uppercase tracking-widest cursor-pointer select-none`}
+ style={{ color: 'var(--muted-fg)' }}
  >
  {col.label}
  {sortIndicator(col.key)}
@@ -246,11 +247,12 @@ export default function StaffPerformancePage() {
  ))}
  </tr>
  </thead>
- <tbody className="divide-y divide-stone-100">
+ <tbody>
  {sortedData.map((row: StaffRow, idx: number) => (
  <tr
  key={`${row.userName}-${idx}`}
- className="hover: transition-colors"
+ className="transition-colors"
+ style={{ borderBottom: '1px solid var(--border-color)' }}
  >
  <td className="px-5 py-3.5 font-medium" style={{ color: 'var(--fg)' }}>
  {row.userName}

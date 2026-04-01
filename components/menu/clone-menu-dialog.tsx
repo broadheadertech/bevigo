@@ -208,14 +208,14 @@ export function CloneMenuDialog({ onClose }: CloneMenuDialogProps) {
  No price overrides found at the source location.
  </p>
  ) : (
- <div className="border rounded overflow-hidden mb-4">
+ <div className="rounded-3xl shadow-lg overflow-hidden mb-4" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  <table className="w-full text-sm">
- <thead className="bg-gray-50" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <tr>
- <th className="text-left px-3 py-2 font-medium">
+ <thead>
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Item
  </th>
- <th className="text-right px-3 py-2 font-medium">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Price
  </th>
  </tr>
@@ -224,10 +224,10 @@ export function CloneMenuDialog({ onClose }: CloneMenuDialogProps) {
  {preview.sourceOverrides.map((o: SourceOverride) => (
  <tr
  key={o.menuItemId}
- className="border-t"
+ style={{ borderBottom: '1px solid var(--border-color)' }}
  >
- <td className="px-3 py-2">{o.itemName}</td>
- <td className="px-3 py-2 text-right">
+ <td className="px-5 py-3.5" style={{ color: 'var(--fg)' }}>{o.itemName}</td>
+ <td className="px-5 py-3.5 text-right" style={{ color: 'var(--muted-fg)' }}>
  ${formatPrice(o.price)}
  </td>
  </tr>
@@ -246,17 +246,17 @@ export function CloneMenuDialog({ onClose }: CloneMenuDialogProps) {
  These items already have price overrides at the target
  location.
  </p>
- <div className="border border-amber-500/20 rounded overflow-hidden mb-4">
+ <div className="rounded-3xl shadow-lg overflow-hidden mb-4" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  <table className="w-full text-sm">
- <thead className="bg-amber-50" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <tr>
- <th className="text-left px-3 py-2 font-medium text-amber-400">
+ <thead>
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest text-amber-400">
  Item
  </th>
- <th className="text-right px-3 py-2 font-medium text-amber-400">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest text-amber-400">
  Source
  </th>
- <th className="text-right px-3 py-2 font-medium text-amber-400">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest text-amber-400">
  Target
  </th>
  </tr>
@@ -265,13 +265,13 @@ export function CloneMenuDialog({ onClose }: CloneMenuDialogProps) {
  {preview.conflicts.map((c: Conflict) => (
  <tr
  key={c.menuItemId}
- className="border-t border-amber-500/10"
+ style={{ borderBottom: '1px solid var(--border-color)' }}
  >
- <td className="px-3 py-2">{c.itemName}</td>
- <td className="px-3 py-2 text-right">
+ <td className="px-5 py-3.5" style={{ color: 'var(--fg)' }}>{c.itemName}</td>
+ <td className="px-5 py-3.5 text-right" style={{ color: 'var(--muted-fg)' }}>
  ${formatPrice(c.sourcePrice)}
  </td>
- <td className="px-3 py-2 text-right">
+ <td className="px-5 py-3.5 text-right" style={{ color: 'var(--muted-fg)' }}>
  ${formatPrice(c.targetPrice)}
  </td>
  </tr>

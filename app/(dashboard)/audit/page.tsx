@@ -159,34 +159,35 @@ export default function AuditLogPage() {
  </div>
 
  {/* Table */}
- <div className="rounded-2xl border shadow-lg overflow-hidden" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+ <div className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  <table className="w-full">
- <thead className="border-b" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <tr>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide w-8" />
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <thead>
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest w-8" style={{ color: 'var(--muted-fg)' }} />
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Timestamp
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  User
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Action
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Entity Type
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Entity ID
  </th>
  </tr>
  </thead>
- <tbody className="divide-y divide-stone-100">
+ <tbody>
  {typedEntries === undefined ? (
  <tr>
  <td
  colSpan={6}
  className="px-5 py-12 text-center"
+ style={{ color: 'var(--muted-fg)' }}
  >
  Loading audit log...
  </td>
@@ -197,7 +198,8 @@ export default function AuditLogPage() {
  return (
  <tr
  key={entry._id}
- className="hover: transition-colors group"
+ className="transition-colors group"
+ style={{ borderBottom: '1px solid var(--border-color)' }}
  >
  <td colSpan={6} className="p-0">
  <div
@@ -253,6 +255,7 @@ export default function AuditLogPage() {
  <td
  colSpan={6}
  className="px-5 py-12 text-center"
+ style={{ color: 'var(--muted-fg)' }}
  >
  No audit log entries found.
  </td>

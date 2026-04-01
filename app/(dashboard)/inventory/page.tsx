@@ -203,7 +203,7 @@ export default function InventoryPage() {
 
  {/* Ingredients Tab */}
  {activeTab ==="ingredients" && (
- <div className="rounded-2xl border shadow-lg overflow-hidden overflow-x-auto">
+ <div className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  {ingredients === undefined ? (
  <div className="flex items-center justify-center h-48">
  <p style={{ color: 'var(--muted-fg)' }}>Loading ingredients...</p>
@@ -217,31 +217,31 @@ export default function InventoryPage() {
  ) : (
  <table className="w-full text-sm min-w-[700px]">
  <thead>
- <tr className="border-b" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Name
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Category
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Unit
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Stock
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Threshold
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Status
  </th>
- <th className="text-right px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Actions
  </th>
  </tr>
  </thead>
- <tbody className="divide-y divide-stone-100">
+ <tbody>
  {typedIngredients.map((ingredient: IngredientRow) => {
  const isLow =
  ingredient.stockQuantity !== null &&
@@ -250,21 +250,22 @@ export default function InventoryPage() {
  <tr
  key={ingredient._id}
  className={
- isLow ?"bg-red-500/5" :"hover:"
+ isLow ?"bg-red-500/5" :""
  }
+ style={{ borderBottom: '1px solid var(--border-color)' }}
  >
- <td className="px-5 py-3 font-medium" style={{ color: 'var(--fg)' }}>
+ <td className="px-5 py-3.5.5 font-medium" style={{ color: 'var(--fg)' }}>
  {ingredient.name}
  </td>
- <td className="px-5 py-3">
+ <td className="px-5 py-3.5">
  {ingredient.category ?? (
  <span style={{ color: 'var(--muted-fg)' }}>--</span>
  )}
  </td>
- <td className="px-5 py-3">
+ <td className="px-5 py-3.5">
  {ingredient.unit}
  </td>
- <td className="px-5 py-3">
+ <td className="px-5 py-3.5">
  {editingStockId === ingredient._id ? (
  <span className="flex items-center gap-2">
  <input
@@ -311,10 +312,10 @@ export default function InventoryPage() {
  </button>
  )}
  </td>
- <td className="px-5 py-3 font-mono">
+ <td className="px-5 py-3.5 font-mono">
  {ingredient.reorderThreshold}
  </td>
- <td className="px-5 py-3">
+ <td className="px-5 py-3.5">
  <span
  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
  ingredient.status ==="active"
@@ -325,7 +326,7 @@ export default function InventoryPage() {
  {ingredient.status}
  </span>
  </td>
- <td className="px-5 py-3 text-right">
+ <td className="px-5 py-3.5 text-right">
  <span className="flex items-center justify-end gap-2">
  {session.role ==="owner" && (
  <>
@@ -383,42 +384,42 @@ export default function InventoryPage() {
  ) : (
  <table className="w-full text-sm min-w-[500px]">
  <thead>
- <tr className="border-b" style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Name
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Category
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Current Stock
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Threshold
  </th>
- <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide">
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Deficit
  </th>
  </tr>
  </thead>
- <tbody className="divide-y divide-stone-100">
+ <tbody>
  {lowStock.map((item: LowStockRow) => (
- <tr key={item._id} className="bg-red-500/5">
- <td className="px-5 py-3 font-medium" style={{ color: 'var(--fg)' }}>
+ <tr key={item._id} className="bg-red-500/5" style={{ borderBottom: '1px solid var(--border-color)' }}>
+ <td className="px-5 py-3.5.5 font-medium" style={{ color: 'var(--fg)' }}>
  {item.name}
  </td>
- <td className="px-5 py-3">
+ <td className="px-5 py-3.5">
  {item.category ?? (
  <span style={{ color: 'var(--muted-fg)' }}>--</span>
  )}
  </td>
- <td className="px-5 py-3 text-red-600 font-semibold font-mono">
+ <td className="px-5 py-3.5 text-red-600 font-semibold font-mono">
  {item.stockQuantity ?? 0} {item.unit}
  </td>
- <td className="px-5 py-3 font-mono">
+ <td className="px-5 py-3.5 font-mono">
  {item.reorderThreshold} {item.unit}
  </td>
- <td className="px-5 py-3 text-amber-400 font-semibold font-mono">
+ <td className="px-5 py-3.5 text-amber-400 font-semibold font-mono">
  -{item.deficit} {item.unit}
  </td>
  </tr>
