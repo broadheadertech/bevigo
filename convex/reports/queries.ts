@@ -1069,6 +1069,107 @@ export const voidReport = query({
   },
 });
 
+export const discountReport = query({
+  args: {
+    token: v.string(),
+    startDate: v.number(),
+    endDate: v.number(),
+    locationId: v.optional(v.id("locations")),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner", "manager"]);
+
+    const locationIds = getLocationScope(session, args.locationId);
+
+    let totalDiscounted = 0;
+    let discountCount = 0;
+    const reasonMap = new Map<string, { count: number; totalAmount: number }>();
+
+    for (const locId of locationIds) {
+      const orders = await ctx.db
+        .query("orders")
+        .withIndex("by_tenant_location_status", (q) =>
+          q
+            .eq("tenantId", session.tenantId)
+            .eq("locationId", locId)
+            .eq("status", "completed")
+        )
+        .collect();
+
+      for (const order of orders) {
+        if (
+          order.completedAt != null &&
+          order.completedAt >= args.startDate &&
+          order.completedAt <= args.endDate &&
+          order.discountAmount != null &&
+          order.discountAmount > 0
+        ) {
+          totalDiscounted += order.discountAmount;
+          discountCount += 1;
+
+          const reason = order.discountReason ?? "Unknown";
+          const existing = reasonMap.get(reason);
+          if (existing) {
+            existing.count += 1;
+            existing.totalAmount += order.discountAmount;
+          } else {
+            reasonMap.set(reason, { count: 1, totalAmount: order.discountAmount });
+          }
+        }
+      }
+    }
+
+    // Calculate average discount percentage across discounted orders
+    let totalPercentSum = 0;
+    if (discountCount > 0) {
+      for (const locId of locationIds) {
+        const orders = await ctx.db
+          .query("orders")
+          .withIndex("by_tenant_location_status", (q) =>
+            q
+              .eq("tenantId", session.tenantId)
+              .eq("locationId", locId)
+              .eq("status", "completed")
+          )
+          .collect();
+
+        for (const order of orders) {
+          if (
+            order.completedAt != null &&
+            order.completedAt >= args.startDate &&
+            order.completedAt <= args.endDate &&
+            order.discountAmount != null &&
+            order.discountAmount > 0 &&
+            order.subtotal > 0
+          ) {
+            totalPercentSum += (order.discountAmount / order.subtotal) * 100;
+          }
+        }
+      }
+    }
+
+    const avgDiscountPercent =
+      discountCount > 0 ? Math.round((totalPercentSum / discountCount) * 10) / 10 : 0;
+
+    const byReason: Array<{ reason: string; count: number; totalAmount: number }> = [];
+    for (const [reason, data] of reasonMap.entries()) {
+      byReason.push({ reason, count: data.count, totalAmount: data.totalAmount });
+    }
+    byReason.sort(
+      (a: { totalAmount: number }, b: { totalAmount: number }) =>
+        b.totalAmount - a.totalAmount
+    );
+
+    return {
+      totalDiscounted,
+      discountCount,
+      avgDiscountPercent,
+      byReason,
+    };
+  },
+});
+
 export const customerRepeatRate = query({
   args: {
     token: v.string(),

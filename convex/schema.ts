@@ -101,6 +101,8 @@ export default defineSchema({
     accentColor: v.optional(v.string()),
     // Custom domain (Epic 15)
     customDomain: v.optional(v.string()),
+    // Points earn rate: 1 point per X cents spent (default: 1000 = 1pt per ₱10)
+    pointsEarnRate: v.optional(v.number()),
     updatedAt: v.number(),
   }).index("by_tenant", ["tenantId"]),
 
@@ -211,6 +213,17 @@ export default defineSchema({
     }))),
     taxRate: v.number(),
     taxLabel: v.string(),
+    // Refund fields
+    refundedAt: v.optional(v.number()),
+    refundedBy: v.optional(v.id("users")),
+    refundReason: v.optional(v.string()),
+    refundAmount: v.optional(v.number()), // partial or full refund amount
+    // Discount fields
+    discountType: v.optional(v.union(v.literal("percentage"), v.literal("fixed"))),
+    discountValue: v.optional(v.number()), // percentage (e.g., 10 = 10%) or fixed amount in cents
+    discountAmount: v.optional(v.number()), // calculated discount in cents
+    discountReason: v.optional(v.string()), // "Senior/PWD", "Employee", "Manager", "Custom"
+    discountApprovedBy: v.optional(v.id("users")), // manager/owner who approved
     customerId: v.optional(v.id("customers")),
     tableId: v.optional(v.id("tables")),
     tableName: v.optional(v.string()),
@@ -360,6 +373,7 @@ export default defineSchema({
     email: v.optional(v.string()),
     visitCount: v.number(),
     totalSpent: v.number(),
+    pointsBalance: v.optional(v.number()), // accumulated redeemable points
     lastVisitAt: v.optional(v.number()),
     status: v.union(v.literal("active"), v.literal("inactive")),
     updatedAt: v.number(),
@@ -368,6 +382,52 @@ export default defineSchema({
     .index("by_tenant_phone", ["tenantId", "phone"])
     .index("by_tenant_email", ["tenantId", "email"])
     .index("by_tenant_customer_number", ["tenantId", "customerNumber"]),
+
+  // Predefined discounts — owner configures, baristas select at register
+  discountPresets: defineTable({
+    tenantId: v.id("tenants"),
+    name: v.string(), // "Senior/PWD", "Employee 20%", "Happy Hour"
+    type: v.union(v.literal("percentage"), v.literal("fixed")),
+    value: v.number(), // percentage or fixed amount in cents
+    reason: v.string(), // auto-fills the reason field
+    requiresAuth: v.boolean(), // requires manager PIN
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    sortOrder: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_tenant_status", ["tenantId", "status"]),
+
+  // Points transaction history
+  pointsLedger: defineTable({
+    customerId: v.id("customers"),
+    tenantId: v.id("tenants"),
+    type: v.union(v.literal("earned"), v.literal("redeemed"), v.literal("expired"), v.literal("adjusted")),
+    points: v.number(), // positive for earned, negative for redeemed
+    description: v.string(), // "Order #ORD-xxx (₱480)", "Redeemed: Free Latte"
+    orderId: v.optional(v.id("orders")),
+    rewardId: v.optional(v.id("rewards")),
+    createdAt: v.number(),
+  })
+    .index("by_customer", ["customerId"])
+    .index("by_tenant", ["tenantId"])
+    .index("by_tenant_type", ["tenantId", "type"]),
+
+  // Rewards catalog — what customers can redeem points for
+  rewards: defineTable({
+    tenantId: v.id("tenants"),
+    name: v.string(), // "Free Any Drink", "Free Pastry", "bevi&go Mug"
+    description: v.optional(v.string()),
+    pointsCost: v.number(), // points required to redeem
+    category: v.union(v.literal("drink"), v.literal("food"), v.literal("merch"), v.literal("discount")),
+    discountAmount: v.optional(v.number()), // for discount type: amount off in cents
+    maxValue: v.optional(v.number()), // max product value for "free item" rewards
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    sortOrder: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_tenant_status", ["tenantId", "status"]),
 
   loyaltyCards: defineTable({
     customerId: v.id("customers"),

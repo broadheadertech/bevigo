@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { useAuth } from "@/lib/auth-context";
 import { Id } from "../../convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/currency";
@@ -39,6 +40,8 @@ export function PaymentDialog({
   const [mode, setMode] = useState<"select" | "split">("select");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingPayment, setPendingPayment] = useState<PaymentType | null>(null);
+  const [pendingSplit, setPendingSplit] = useState(false);
 
   // Split payment state
   const [splits, setSplits] = useState<SplitPayment[]>([
@@ -50,28 +53,32 @@ export function PaymentDialog({
   const splitTotal = splits.reduce((sum, s) => sum + s.amount, 0);
   const splitRemaining = orderTotal - splitTotal;
 
-  // Full payment with single type
-  const handleFullPayment = async (paymentType: PaymentType) => {
-    if (!token || isProcessing) return;
+  // Step 1: Select payment type → show confirm
+  const handleSelectPayment = (paymentType: PaymentType) => {
+    setPendingPayment(paymentType);
+  };
+
+  // Step 2: Confirmed → process payment
+  const handleConfirmedPayment = async () => {
+    if (!token || isProcessing || !pendingPayment) return;
     setIsProcessing(true);
     setError(null);
     try {
       const result = await completeOrder({
         token,
         orderId,
-        paymentType,
+        paymentType: pendingPayment,
       });
       onCompleted(result.orderNumber);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed");
       setIsProcessing(false);
+      setPendingPayment(null);
     }
   };
 
-  // Split payment
-  const handleSplitPayment = async () => {
-    if (!token || isProcessing) return;
-
+  // Split payment — validate then show confirm
+  const handleSplitPaymentClick = () => {
     const activeSplits = splits.filter((s) => s.amount > 0);
     if (activeSplits.length < 2) {
       setError("Split payment needs at least 2 payment methods");
@@ -81,7 +88,13 @@ export function PaymentDialog({
       setError("Amounts must add up to the total");
       return;
     }
+    setPendingSplit(true);
+  };
 
+  const handleConfirmedSplitPayment = async () => {
+    if (!token || isProcessing) return;
+
+    const activeSplits = splits.filter((s) => s.amount > 0);
     setIsProcessing(true);
     setError(null);
     try {
@@ -95,6 +108,7 @@ export function PaymentDialog({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed");
       setIsProcessing(false);
+      setPendingSplit(false);
     }
   };
 
@@ -168,7 +182,7 @@ export function PaymentDialog({
               {paymentOptions.map((option) => (
                 <button
                   key={option.type}
-                  onClick={() => handleFullPayment(option.type)}
+                  onClick={() => handleSelectPayment(option.type)}
                   disabled={isProcessing}
                   className="flex flex-col items-center justify-center gap-2 min-h-[90px] rounded-2xl transition-all duration-150 hover:scale-[1.03] active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: "var(--muted)", border: "1px solid var(--border-color)" }}
@@ -275,7 +289,7 @@ export function PaymentDialog({
                 Back
               </button>
               <button
-                onClick={handleSplitPayment}
+                onClick={handleSplitPaymentClick}
                 disabled={isProcessing || Math.abs(splitRemaining) > 1}
                 className="flex-1 py-3 rounded-2xl text-sm font-bold text-white disabled:opacity-50 transition-all duration-150 hover:scale-[1.01] active:scale-[0.99]"
                 style={{ backgroundColor: "var(--accent-color)" }}
@@ -299,6 +313,28 @@ export function PaymentDialog({
           </div>
         )}
       </div>
+
+      {/* Confirm single payment */}
+      <ConfirmModal
+        open={!!pendingPayment}
+        title="Confirm Payment"
+        message={`Complete this order for ${formatCurrency(orderTotal)} via ${pendingPayment === "ewallet" ? "E-Wallet" : pendingPayment === "card" ? "Card" : "Cash"}?`}
+        confirmLabel="Confirm Payment"
+        cancelLabel="Go Back"
+        onConfirm={handleConfirmedPayment}
+        onCancel={() => setPendingPayment(null)}
+      />
+
+      {/* Confirm split payment */}
+      <ConfirmModal
+        open={pendingSplit}
+        title="Confirm Split Payment"
+        message={`Complete this split payment of ${formatCurrency(orderTotal)}?`}
+        confirmLabel="Confirm Payment"
+        cancelLabel="Go Back"
+        onConfirm={handleConfirmedSplitPayment}
+        onCancel={() => setPendingSplit(false)}
+      />
     </div>
   );
 }

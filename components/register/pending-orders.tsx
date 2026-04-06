@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Id } from "../../convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/currency";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 type PendingOrder = {
   _id: Id<"orders">;
@@ -32,7 +34,10 @@ export function PendingOrders({
   onNewOrder,
   onDeleteOrder,
 }: PendingOrdersProps) {
+  const [confirmDeleteId, setConfirmDeleteId] = useState<Id<"orders"> | null>(null);
   const parkedOrders = orders.filter((o) => o._id !== activeOrderId);
+  const confirmOrder = confirmDeleteId ? parkedOrders.find((o) => o._id === confirmDeleteId) : null;
+  const confirmIndex = confirmOrder ? parkedOrders.indexOf(confirmOrder) : -1;
 
   return (
     <div className="px-3 py-2" style={{ borderBottom: "1px solid var(--border-color)" }}>
@@ -90,9 +95,7 @@ export function PendingOrders({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (window.confirm(`Cancel parked order P${index + 1} with ${order.itemCount} item${order.itemCount !== 1 ? "s" : ""} (${formatCurrency(order.subtotal)})?`)) {
-                        onDeleteOrder(order._id);
-                      }
+                      setConfirmDeleteId(order._id);
                     }}
                     className="w-5 h-5 flex items-center justify-center rounded-full text-[10px] shrink-0 transition-colors hover:bg-red-500/20 text-red-400"
                     title="Cancel parked order"
@@ -105,6 +108,26 @@ export function PendingOrders({
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        open={!!confirmDeleteId}
+        title="Cancel Parked Order"
+        message={
+          confirmOrder
+            ? `Cancel parked order P${confirmIndex + 1} with ${confirmOrder.itemCount} item${confirmOrder.itemCount !== 1 ? "s" : ""} (${formatCurrency(confirmOrder.subtotal)})?`
+            : ""
+        }
+        confirmLabel="Cancel Order"
+        cancelLabel="Keep"
+        variant="danger"
+        onConfirm={() => {
+          if (confirmDeleteId && onDeleteOrder) {
+            onDeleteOrder(confirmDeleteId);
+          }
+          setConfirmDeleteId(null);
+        }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }

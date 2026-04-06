@@ -9,6 +9,14 @@ import { formatCurrency } from"@/lib/currency";
 import { LoyaltyCard } from"@/components/customers/loyalty-card";
 import { Pagination, usePagination } from"@/components/ui/pagination";
 
+type PointsLedgerEntry = {
+ _id: string;
+ type: "earned" | "redeemed" | "expired" | "adjusted";
+ points: number;
+ description: string;
+ createdAt: number;
+};
+
 type CustomerRow = {
  _id: Id<"customers">;
  customerNumber?: string;
@@ -76,6 +84,13 @@ export default function CustomersPage() {
  token && selectedCustomerId ? { token, customerId: selectedCustomerId } :"skip"
  ) as CustomerFavorite[] | undefined;
 
+ const customerPoints = useQuery(
+ api.points.queries.getCustomerPoints,
+ token && selectedCustomerId ? { token, customerId: selectedCustomerId } :"skip"
+ ) as { balance: number; recentHistory: PointsLedgerEntry[] } | undefined;
+
+ const adjustPoints = useMutation(api.points.mutations.adjustPoints);
+
  const createCustomer = useMutation(api.customers.mutations.createCustomer);
  const updateCustomer = useMutation(api.customers.mutations.updateCustomer);
 
@@ -132,6 +147,29 @@ export default function CustomersPage() {
  setFormPhone("");
  setFormEmail("");
  }, []);
+
+ const [showAdjustPoints, setShowAdjustPoints] = useState(false);
+ const [adjustAmount, setAdjustAmount] = useState("");
+ const [adjustDesc, setAdjustDesc] = useState("");
+
+ const handleAdjustPoints = useCallback(async () => {
+ if (!token || !selectedCustomerId || !adjustAmount) return;
+ const pts = parseInt(adjustAmount, 10);
+ if (isNaN(pts) || pts === 0) return;
+ try {
+ await adjustPoints({
+ token,
+ customerId: selectedCustomerId,
+ points: pts,
+ description: adjustDesc.trim() || (pts > 0 ?"Manual adjustment (added)" :"Manual adjustment (removed)"),
+ });
+ setShowAdjustPoints(false);
+ setAdjustAmount("");
+ setAdjustDesc("");
+ } catch (err) {
+ alert(err instanceof Error ? err.message :"Failed to adjust points");
+ }
+ }, [token, selectedCustomerId, adjustAmount, adjustDesc, adjustPoints]);
 
  const selectCustomer = useCallback((customerId: Id<"customers">) => {
  setSelectedCustomerId(customerId);
@@ -423,6 +461,84 @@ export default function CustomersPage() {
  stampsEarned={loyaltyCard?.stampsEarned ?? 0}
  stampsRequired={loyaltyCard?.stampsRequired ?? 10}
  />
+ </div>
+
+ {/* Points Balance */}
+ <div className="px-5 py-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+ <div className="flex items-center justify-between mb-2">
+ <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-fg)' }}>Points</span>
+ <button
+ onClick={() => setShowAdjustPoints(!showAdjustPoints)}
+ className="text-xs font-medium px-2 py-1 rounded-lg transition-colors"
+ style={{ backgroundColor: 'var(--muted)', color: 'var(--accent-color)' }}
+ >
+ Adjust
+ </button>
+ </div>
+ <div className="flex items-baseline gap-1">
+ <span className="text-2xl font-bold" style={{ color: 'var(--accent-color)' }}>
+ {customerPoints?.balance ?? 0}
+ </span>
+ <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>pts</span>
+ </div>
+
+ {showAdjustPoints && (
+ <div className="mt-3 p-3 rounded-xl" style={{ backgroundColor: 'var(--muted)' }}>
+ <div className="space-y-2">
+ <input
+ type="number"
+ value={adjustAmount}
+ onChange={(e) => setAdjustAmount(e.target.value)}
+ placeholder="Points (+/-)"
+ className="w-full px-3 py-1.5 rounded-lg text-sm outline-none"
+ style={{ backgroundColor: 'var(--card)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
+ />
+ <input
+ type="text"
+ value={adjustDesc}
+ onChange={(e) => setAdjustDesc(e.target.value)}
+ placeholder="Reason (optional)"
+ className="w-full px-3 py-1.5 rounded-lg text-sm outline-none"
+ style={{ backgroundColor: 'var(--card)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
+ />
+ <div className="flex gap-2">
+ <button
+ onClick={handleAdjustPoints}
+ disabled={!adjustAmount || parseInt(adjustAmount) === 0}
+ className="px-3 py-1.5 text-xs text-white font-medium rounded-lg disabled:opacity-50"
+ style={{ backgroundColor: 'var(--accent-color)' }}
+ >
+ Apply
+ </button>
+ <button
+ onClick={() => { setShowAdjustPoints(false); setAdjustAmount(""); setAdjustDesc(""); }}
+ className="px-3 py-1.5 text-xs font-medium rounded-lg"
+ style={{ color: 'var(--muted-fg)' }}
+ >
+ Cancel
+ </button>
+ </div>
+ </div>
+ </div>
+ )}
+
+ {(customerPoints?.recentHistory ?? []).length > 0 && (
+ <div className="mt-3 space-y-1">
+ {(customerPoints?.recentHistory ?? []).slice(0, 5).map((entry: PointsLedgerEntry) => (
+ <div key={entry._id} className="flex items-center justify-between py-1">
+ <div className="flex-1 min-w-0">
+ <p className="text-xs truncate" style={{ color: 'var(--fg)' }}>{entry.description}</p>
+ <p className="text-[10px]" style={{ color: 'var(--muted-fg)' }}>
+ {new Date(entry.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+ </p>
+ </div>
+ <span className={`text-xs font-semibold ml-2 ${entry.points > 0 ? "text-green-500" : "text-red-400"}`}>
+ {entry.points > 0 ? "+" : ""}{entry.points}
+ </span>
+ </div>
+ ))}
+ </div>
+ )}
  </div>
 
  {/* Tabs */}

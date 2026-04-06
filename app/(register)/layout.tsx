@@ -20,7 +20,7 @@ export default function RegisterLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isLocked, lock } = useIdleLock();
+  const { isLocked, lock, unlock } = useIdleLock();
   const token = useMemo(() => getCookie("session_token"), []);
 
   useEffect(() => {
@@ -29,11 +29,18 @@ export default function RegisterLayout({
     }
   }, [token, router]);
 
+  // Check for PIN unlock signal — runs every time isLocked or pathname changes
   useEffect(() => {
+    const unlockSignal = sessionStorage.getItem("pin-unlock");
+    if (unlockSignal) {
+      sessionStorage.removeItem("pin-unlock");
+      unlock();
+      return; // Don't redirect — we just unlocked
+    }
     if (isLocked && pathname !== "/pin-lock") {
       router.push("/pin-lock");
     }
-  }, [isLocked, pathname, router]);
+  }, [isLocked, pathname, router, unlock]);
 
   return (
     <AuthProvider token={token}>

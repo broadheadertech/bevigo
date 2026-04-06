@@ -76,6 +76,29 @@ export const insertUserLocation = mutation({
   },
 });
 
+export const insertReward = mutation({
+  args: {
+    tenantId: v.id("tenants"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    pointsCost: v.number(),
+    category: v.union(
+      v.literal("drink"),
+      v.literal("food"),
+      v.literal("merch"),
+      v.literal("discount")
+    ),
+    discountAmount: v.optional(v.number()),
+    maxValue: v.optional(v.number()),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    sortOrder: v.number(),
+    updatedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("rewards", args);
+  },
+});
+
 export const insertCategory = mutation({
   args: {
     tenantId: v.id("tenants"),
@@ -86,5 +109,22 @@ export const insertCategory = mutation({
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("categories", args);
+  },
+});
+
+export const insertDiscountPreset = mutation({
+  args: {
+    tenantId: v.id("tenants"),
+    name: v.string(),
+    type: v.union(v.literal("percentage"), v.literal("fixed")),
+    value: v.number(),
+    reason: v.string(),
+    requiresAuth: v.boolean(),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    sortOrder: v.number(),
+    updatedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("discountPresets", args);
   },
 });

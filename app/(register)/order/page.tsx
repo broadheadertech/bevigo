@@ -22,6 +22,9 @@ import { useBarcodeScanner } from "@/hooks/use-barcode-scanner";
 import { CustomerLookup } from "@/components/register/customer-lookup";
 import { LoyaltyCard } from "@/components/customers/loyalty-card";
 import { TableSelector } from "@/components/register/table-selector";
+import { RedeemPointsDialog } from "@/components/register/redeem-points-dialog";
+import { TodayOrders } from "@/components/register/today-orders";
+import { DiscountDialog } from "@/components/register/discount-dialog";
 
 // Module-level variable to track last auto-printed order (avoids ref assignment during render)
 let lastPrintedOrderId: string | null = null;
@@ -71,6 +74,7 @@ export default function RegisterPage() {
   const addItemWithModifiers = useMutation(api.orders.mutations.addItemWithModifiers);
   const removeItem = useMutation(api.orders.mutations.removeItemFromOrder);
   const abandonOrder = useMutation(api.orders.mutations.abandonOrder);
+  const removeDiscountMutation = useMutation(api.orders.mutations.removeDiscount);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState<Id<"orders"> | null>(null);
@@ -84,6 +88,10 @@ export default function RegisterPage() {
   const scanToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showCustomerLookup, setShowCustomerLookup] = useState(false);
   const [selectedTableId, setSelectedTableId] = useState<Id<"tables"> | null>(null);
+  const [showTodayOrders, setShowTodayOrders] = useState(false);
+  const [showRedeemPoints, setShowRedeemPoints] = useState(false);
+  const [redeemToast, setRedeemToast] = useState<string | null>(null);
+  const [showDiscountDialog, setShowDiscountDialog] = useState(false);
 
   // Printer state
   const autoPrint = useAutoPrint();
@@ -165,8 +173,15 @@ export default function RegisterPage() {
   const ensureDraftOrder = useCallback(async (): Promise<Id<"orders"> | null> => {
     if (!token || !locationId) return null;
 
-    // If we have an active order selected, use it
-    if (activeOrderId) return activeOrderId;
+    // If we have an active order selected, check it's still a draft
+    if (activeOrderId) {
+      const activeOrder = displayOrder as { status?: string } | null | undefined;
+      if (activeOrder?.status === "draft") {
+        return activeOrderId;
+      }
+      // Order is no longer a draft — clear it
+      setActiveOrderId(null);
+    }
 
     // If we already have a draft, use it
     if (currentDraft?._id) return currentDraft._id;
@@ -228,6 +243,11 @@ export default function RegisterPage() {
     api.customers.queries.getLoyaltyCard,
     token && linkedCustomerId ? { token, customerId: linkedCustomerId } : "skip"
   ) as { _id: Id<"loyaltyCards">; stampsEarned: number; stampsRequired: number; status: string } | null | undefined;
+
+  const linkedCustomerPoints = useQuery(
+    api.points.queries.getCustomerPoints,
+    token && linkedCustomerId ? { token, customerId: linkedCustomerId } : "skip"
+  ) as { balance: number } | null | undefined;
 
   const handleLinkCustomer = useCallback(
     async (customerId: Id<"customers">) => {
@@ -411,6 +431,19 @@ export default function RegisterPage() {
     }
   }, [token, abandonOrder, activeOrderId]);
 
+  const handleAddDiscount = useCallback(() => {
+    setShowDiscountDialog(true);
+  }, []);
+
+  const handleRemoveDiscount = useCallback(async () => {
+    if (!token || !displayOrder?._id) return;
+    try {
+      await removeDiscountMutation({ token, orderId: displayOrder._id });
+    } catch (err) {
+      console.error("Failed to remove discount:", err);
+    }
+  }, [token, displayOrder, removeDiscountMutation]);
+
   const handleComplete = useCallback(() => {
     setShowPaymentDialog(true);
   }, []);
@@ -505,8 +538,22 @@ export default function RegisterPage() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Top bar: shift indicator */}
-      <ShiftIndicator locationId={locationId} />
+      {/* Top bar: shift indicator + today's orders button */}
+      <div className="flex items-center">
+        <div className="flex-1">
+          <ShiftIndicator locationId={locationId} />
+        </div>
+        <button
+          onClick={() => setShowTodayOrders(true)}
+          className="px-3 py-1 mr-3 text-xs font-medium rounded-xl transition-colors flex items-center gap-1.5"
+          style={{ backgroundColor: "var(--muted)", color: "var(--muted-fg)", border: "1px solid var(--border-color)" }}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          History
+        </button>
+      </div>
 
       <div className="flex flex-1 min-h-0">
       {/* Left: Menu grid (~65%) */}
@@ -554,25 +601,41 @@ export default function RegisterPage() {
                     x
                   </button>
                 </div>
-                {linkedLoyaltyCard && (
-                  <div className="mt-1">
+                <div className="flex items-center gap-3 mt-1">
+                  {linkedLoyaltyCard && (
                     <LoyaltyCard
                       stampsEarned={linkedLoyaltyCard.stampsEarned}
                       stampsRequired={linkedLoyaltyCard.stampsRequired}
                       compact
                     />
-                  </div>
-                )}
+                  )}
+                  {(linkedCustomerPoints?.balance ?? 0) > 0 && (
+                    <span className="text-xs font-semibold" style={{ color: 'var(--accent-color)' }}>
+                      {linkedCustomerPoints?.balance} pts
+                    </span>
+                  )}
+                </div>
               </div>
-              {linkedLoyaltyCard &&
-                linkedLoyaltyCard.stampsEarned >= linkedLoyaltyCard.stampsRequired && (
+              <div className="flex flex-col gap-1">
+                {linkedLoyaltyCard &&
+                  linkedLoyaltyCard.stampsEarned >= linkedLoyaltyCard.stampsRequired && (
+                    <button
+                      onClick={handleRedeemReward}
+                      className="px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded-xl hover:bg-amber-700 transition-colors whitespace-nowrap"
+                    >
+                      Redeem Card
+                    </button>
+                  )}
+                {(linkedCustomerPoints?.balance ?? 0) > 0 && linkedCustomerId && (
                   <button
-                    onClick={handleRedeemReward}
-                    className="px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded-xl hover:bg-amber-700 transition-colors whitespace-nowrap"
+                    onClick={() => setShowRedeemPoints(true)}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-xl whitespace-nowrap transition-colors"
+                    style={{ backgroundColor: 'var(--accent-color)', color: 'white' }}
                   >
-                    Redeem
+                    Use Points
                   </button>
                 )}
+              </div>
             </div>
           ) : (
             <button
@@ -592,6 +655,8 @@ export default function RegisterPage() {
           onRemoveItem={handleRemoveItem}
           onEditItem={handleEditItem}
           onComplete={handleComplete}
+          onAddDiscount={handleAddDiscount}
+          onRemoveDiscount={handleRemoveDiscount}
           isLoading={isProcessing}
         />
       </div>
@@ -623,6 +688,16 @@ export default function RegisterPage() {
         />
       )}
 
+      {/* Discount dialog */}
+      {showDiscountDialog && displayOrder && (
+        <DiscountDialog
+          orderId={displayOrder._id}
+          orderSubtotal={displayOrder.subtotal}
+          onClose={() => setShowDiscountDialog(false)}
+          onApplied={() => setShowDiscountDialog(false)}
+        />
+      )}
+
       {/* Order complete toast */}
       {completedOrderNumber && (
         <OrderCompleteToast
@@ -649,11 +724,41 @@ export default function RegisterPage() {
         />
       )}
 
+      {/* Redeem points dialog */}
+      {showRedeemPoints && linkedCustomerId && linkedCustomer && (
+        <RedeemPointsDialog
+          customerId={linkedCustomerId}
+          customerName={linkedCustomer.name}
+          pointsBalance={linkedCustomerPoints?.balance ?? 0}
+          onClose={() => setShowRedeemPoints(false)}
+          onRedeemed={(rewardName) => {
+            setShowRedeemPoints(false);
+            setRedeemToast(`Redeemed: ${rewardName}`);
+            setTimeout(() => setRedeemToast(null), 3000);
+          }}
+        />
+      )}
+
       {/* Barcode scan toast */}
       {scanToast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-stone-900 text-white text-sm rounded-xl shadow-lg">
           {scanToast}
         </div>
+      )}
+
+      {/* Redeem toast */}
+      {redeemToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-green-600 text-white text-sm rounded-xl shadow-lg">
+          {redeemToast}
+        </div>
+      )}
+
+      {/* Today's orders panel */}
+      {showTodayOrders && (
+        <TodayOrders
+          locationId={locationId}
+          onClose={() => setShowTodayOrders(false)}
+        />
       )}
     </div>
   );

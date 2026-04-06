@@ -1,9 +1,10 @@
 import { mutation, MutationCtx } from "../_generated/server";
 import { v } from "convex/values";
 import { Id, Doc } from "../_generated/dataModel";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, requireRole } from "../lib/auth";
 import { logAuditEntry } from "../audit/helpers";
 import { addStampInternal } from "../customers/mutations";
+import { earnPointsInternal } from "../points/mutations";
 
 export const createDraftOrder = mutation({
   args: {
@@ -368,7 +369,16 @@ export const completeOrder = mutation({
     // Recalculate totals from items
     const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
     const taxAmount = Math.round(subtotal * (location.taxRate / 10000));
-    const total = subtotal + taxAmount;
+
+    // Account for discount
+    let finalDiscountAmount = order.discountAmount ?? 0;
+    if (order.discountType === "percentage" && order.discountValue) {
+      finalDiscountAmount = Math.round(subtotal * order.discountValue / 100);
+    }
+    if (finalDiscountAmount > subtotal) {
+      finalDiscountAmount = subtotal;
+    }
+    const total = subtotal - finalDiscountAmount + taxAmount;
 
     // Generate order number: ORD-{locationSlug}-{timestamp}
     const orderNumber = `ORD-${location.slug.toUpperCase()}-${Date.now()}`;
@@ -392,6 +402,7 @@ export const completeOrder = mutation({
       taxRate: location.taxRate,
       taxLabel: location.taxLabel,
       total,
+      ...(finalDiscountAmount > 0 ? { discountAmount: finalDiscountAmount } : {}),
       completedAt: now,
       updatedAt: now,
     });
@@ -410,6 +421,16 @@ export const completeOrder = mutation({
           updatedAt: now,
         });
         await addStampInternal(ctx, order.customerId, session.tenantId);
+
+        // Earn points
+        await earnPointsInternal(
+          ctx,
+          session.tenantId,
+          order.customerId,
+          args.orderId,
+          total,
+          orderNumber,
+        );
       }
     }
 
@@ -532,6 +553,222 @@ export const unlinkCustomerFromOrder = mutation({
   },
 });
 
+export const applyDiscount = mutation({
+  args: {
+    token: v.string(),
+    orderId: v.id("orders"),
+    discountType: v.union(v.literal("percentage"), v.literal("fixed")),
+    discountValue: v.number(),
+    discountReason: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+
+    const order = await ctx.db.get(args.orderId);
+    if (!order || order.tenantId !== session.tenantId) {
+      throw new Error("Order not found");
+    }
+    if (order.status !== "draft") {
+      throw new Error("Can only apply discounts to draft orders");
+    }
+
+    if (args.discountValue <= 0) {
+      throw new Error("Discount value must be positive");
+    }
+
+    // Calculate discount amount
+    let discountAmount: number;
+    if (args.discountType === "percentage") {
+      if (args.discountValue > 100) {
+        throw new Error("Percentage discount cannot exceed 100%");
+      }
+      discountAmount = Math.round(order.subtotal * args.discountValue / 100);
+    } else {
+      discountAmount = args.discountValue; // already in cents
+    }
+
+    // Cap: discount cannot exceed subtotal
+    if (discountAmount > order.subtotal) {
+      discountAmount = order.subtotal;
+    }
+
+    // Authorization check: barista can only apply up to 20% or 20000 centavos (₱200)
+    const discountPercent = order.subtotal > 0
+      ? (discountAmount / order.subtotal) * 100
+      : 0;
+    if (session.role === "barista" && (discountPercent > 20 || discountAmount > 20000)) {
+      throw new Error("Discount exceeds barista limit. Manager authorization required.");
+    }
+
+    // Recalculate total
+    const total = order.subtotal - discountAmount + order.taxAmount;
+
+    await ctx.db.patch(args.orderId, {
+      discountType: args.discountType,
+      discountValue: args.discountValue,
+      discountAmount,
+      discountReason: args.discountReason,
+      discountApprovedBy: session.role !== "barista" ? session.userId : undefined,
+      total,
+      updatedAt: Date.now(),
+    });
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      "order.discount_applied",
+      "orders",
+      args.orderId,
+      {
+        discountType: args.discountType,
+        discountValue: args.discountValue,
+        discountAmount,
+        discountReason: args.discountReason,
+      },
+    );
+
+    return args.orderId;
+  },
+});
+
+export const removeDiscount = mutation({
+  args: {
+    token: v.string(),
+    orderId: v.id("orders"),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+
+    const order = await ctx.db.get(args.orderId);
+    if (!order || order.tenantId !== session.tenantId) {
+      throw new Error("Order not found");
+    }
+    if (order.status !== "draft") {
+      throw new Error("Can only remove discounts from draft orders");
+    }
+
+    // Recalculate total without discount
+    const total = order.subtotal + order.taxAmount;
+
+    await ctx.db.patch(args.orderId, {
+      discountType: undefined,
+      discountValue: undefined,
+      discountAmount: undefined,
+      discountReason: undefined,
+      discountApprovedBy: undefined,
+      total,
+      updatedAt: Date.now(),
+    });
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      "order.discount_removed",
+      "orders",
+      args.orderId,
+      {},
+    );
+
+    return args.orderId;
+  },
+});
+
+export const refundOrder = mutation({
+  args: {
+    token: v.string(),
+    orderId: v.id("orders"),
+    refundAmount: v.number(),
+    refundReason: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner", "manager"]);
+
+    const order = await ctx.db.get(args.orderId);
+    if (!order || order.tenantId !== session.tenantId) {
+      throw new Error("Order not found");
+    }
+    if (order.status !== "completed") {
+      throw new Error("Can only refund completed orders");
+    }
+    if (order.refundedAt) {
+      throw new Error("Order has already been refunded");
+    }
+    if (args.refundAmount <= 0) {
+      throw new Error("Refund amount must be greater than zero");
+    }
+    if (args.refundAmount > order.total) {
+      throw new Error("Refund amount cannot exceed order total");
+    }
+
+    const now = Date.now();
+
+    await ctx.db.patch(args.orderId, {
+      refundedAt: now,
+      refundedBy: session.userId,
+      refundReason: args.refundReason,
+      refundAmount: args.refundAmount,
+      updatedAt: now,
+    });
+
+    // If customer was linked, deduct points earned from this order
+    if (order.customerId) {
+      const customer = await ctx.db.get(order.customerId);
+      if (customer && customer.tenantId === session.tenantId) {
+        // Find the points ledger entry for this order
+        const ledgerEntries = await ctx.db
+          .query("pointsLedger")
+          .withIndex("by_customer", (q: any) => q.eq("customerId", order.customerId))
+          .collect();
+
+        const orderEntry = ledgerEntries.find(
+          (e) => e.orderId === args.orderId && e.type === "earned"
+        );
+
+        if (orderEntry && orderEntry.points > 0) {
+          const currentBalance = customer.pointsBalance ?? 0;
+          const deduction = Math.min(orderEntry.points, currentBalance);
+
+          if (deduction > 0) {
+            await ctx.db.patch(order.customerId!, {
+              pointsBalance: currentBalance - deduction,
+            });
+
+            await ctx.db.insert("pointsLedger", {
+              customerId: order.customerId!,
+              tenantId: session.tenantId,
+              type: "adjusted",
+              points: -deduction,
+              description: `Refund: Order #${order.orderNumber ?? args.orderId}`,
+              orderId: args.orderId,
+              createdAt: now,
+            });
+          }
+        }
+      }
+    }
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      "order.refunded",
+      "orders",
+      args.orderId,
+      {
+        orderNumber: order.orderNumber,
+        refundAmount: args.refundAmount,
+        refundReason: args.refundReason,
+        isFullRefund: args.refundAmount === order.total,
+      },
+    );
+
+    return { success: true, refundAmount: args.refundAmount };
+  },
+});
+
 // Internal helper — not exported as a Convex function
 async function recalculateOrderTotals(ctx: MutationCtx, orderId: Id<"orders">) {
   const items = await ctx.db
@@ -545,12 +782,23 @@ async function recalculateOrderTotals(ctx: MutationCtx, orderId: Id<"orders">) {
   if (!order) return;
 
   const taxAmount = Math.round(subtotal * (order.taxRate / 10000)); // taxRate in basis points
-  const total = subtotal + taxAmount;
+  const discountAmount = order.discountAmount ?? 0;
+  // Recalculate discount if percentage-based (subtotal may have changed)
+  let effectiveDiscount = discountAmount;
+  if (order.discountType === "percentage" && order.discountValue) {
+    effectiveDiscount = Math.round(subtotal * order.discountValue / 100);
+  }
+  // Cap discount at subtotal
+  if (effectiveDiscount > subtotal) {
+    effectiveDiscount = subtotal;
+  }
+  const total = subtotal - effectiveDiscount + taxAmount;
 
   await ctx.db.patch(order._id, {
     subtotal,
     taxAmount,
     total,
+    ...(order.discountType ? { discountAmount: effectiveDiscount } : {}),
     updatedAt: Date.now(),
   });
 }

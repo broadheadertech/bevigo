@@ -148,6 +148,52 @@ export const updateCustomDomain = mutation({
   },
 });
 
+export const updatePointsEarnRate = mutation({
+  args: {
+    token: v.string(),
+    pointsEarnRate: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner"]);
+
+    if (args.pointsEarnRate < 100) {
+      throw new ConvexError("Earn rate must be at least 100 (₱1)");
+    }
+
+    const existing = await ctx.db
+      .query("tenantSettings")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", session.tenantId))
+      .unique();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        pointsEarnRate: args.pointsEarnRate,
+        updatedAt: Date.now(),
+      });
+    } else {
+      await ctx.db.insert("tenantSettings", {
+        tenantId: session.tenantId,
+        idleLockTimeoutMs: 5 * 60 * 1000,
+        pointsEarnRate: args.pointsEarnRate,
+        updatedAt: Date.now(),
+      });
+    }
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      "points_earn_rate_updated",
+      "tenantSettings",
+      session.tenantId,
+      { pointsEarnRate: args.pointsEarnRate }
+    );
+
+    return { success: true };
+  },
+});
+
 export const updateReportSchedule = mutation({
   args: {
     token: v.string(),

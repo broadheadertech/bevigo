@@ -24,6 +24,7 @@ export const getSettings = query({
       idleLockTimeoutMs: settings.idleLockTimeoutMs,
       reportEmail: settings.reportEmail,
       reportFrequency: settings.reportFrequency,
+      pointsEarnRate: settings.pointsEarnRate ?? 1000,
     };
   },
 });

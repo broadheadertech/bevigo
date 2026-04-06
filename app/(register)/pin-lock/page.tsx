@@ -1,46 +1,30 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useAction } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { PinPad } from "@/components/register/pin-pad";
+import { useAuth } from "@/lib/auth-context";
 
-/**
- * PIN Lock Screen
- *
- * Displayed when a register session is locked (idle timeout or manual lock).
- * Uses the PinPad component for PIN entry. In a full integration, the
- * locationId, locationName, and sessionToken would come from session context
- * or URL search params.
- */
 export default function PinLockPage() {
   const router = useRouter();
+  const { session, token } = useAuth();
+  const pinSwitch = useAction(api.auth.pinSwitch.pinSwitch);
 
-  // In production, these values come from session/device context.
-  // For now, read from URL search params as a passthrough mechanism.
-  const locationId =
-    typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("locationId") ?? ""
-      : "";
-  const locationName =
-    typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("locationName") ??
-        "Register"
-      : "Register";
-  const sessionToken =
-    typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("token") ?? ""
-      : "";
+  // Get first assigned location
+  const locationId = useMemo(() => {
+    const ids = session?.locationIds as string[] | undefined;
+    return ids?.[0] ?? "";
+  }, [session]);
 
   const handleSuccess = useCallback(
     (result: { token: string; userName: string; role: string }) => {
-      // Store the new session token (in production, set as httpOnly cookie via API)
-      // For now, store in sessionStorage and redirect back to register
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("session_token", result.token);
-        sessionStorage.setItem("active_user", result.userName);
-        sessionStorage.setItem("active_role", result.role);
-      }
-      router.push("/");
+      // Update session cookie with new token
+      document.cookie = `session_token=${result.token}; path=/; max-age=${60 * 60 * 24}; samesite=lax`;
+      // Signal to the register layout to unlock
+      sessionStorage.setItem("pin-unlock", Date.now().toString());
+      router.push("/order");
     },
     [router]
   );
@@ -51,33 +35,29 @@ export default function PinLockPage() {
 
   const handlePinSubmit = useCallback(
     async (args: { token: string; locationId: string; pin: string }) => {
-      // In production, this calls the Convex action directly via useAction.
-      // This page acts as a thin wrapper; the actual Convex call is wired
-      // when the Convex provider is integrated at the layout level.
-      //
-      // For build compatibility without Convex _generated types, we use
-      // a fetch-style call pattern that will be replaced with useAction
-      // once the Convex provider is set up.
-      const response = await fetch("/api/pin-switch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(args),
-      });
-
-      if (!response.ok) {
-        throw new Error("PIN verification failed");
+      try {
+        const result = await pinSwitch({
+          token: token ?? args.token,
+          locationId: args.locationId || locationId,
+          pin: args.pin,
+        });
+        return result;
+      } catch (err) {
+        return {
+          success: false as const,
+          locked: false as const,
+          attemptsRemaining: 3,
+        };
       }
-
-      return response.json();
     },
-    []
+    [pinSwitch, token, locationId]
   );
 
   return (
     <PinPad
       locationId={locationId}
-      locationName={locationName}
-      sessionToken={sessionToken}
+      locationName={session?.userName ? `Welcome back` : "Register"}
+      sessionToken={token ?? ""}
       onSuccess={handleSuccess}
       onRequireFullLogin={handleRequireFullLogin}
       onPinSubmit={handlePinSubmit}

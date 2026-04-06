@@ -98,13 +98,9 @@ export function PinPad({
     ]
   );
 
-  // Auto-submit at each valid PIN length (4, 5, 6)
+  // Only auto-submit when max PIN length (6) is reached
   useEffect(() => {
-    if (
-      pin.length >= MIN_PIN_LENGTH &&
-      pin.length <= MAX_PIN_LENGTH &&
-      !isSubmitting
-    ) {
+    if (pin.length === MAX_PIN_LENGTH && !isSubmitting) {
       const timeout = setTimeout(() => {
         handleSubmit(pin);
       }, 150);
@@ -140,6 +136,8 @@ export function PinPad({
         handleBackspace();
       } else if (e.key === "Escape") {
         handleClear();
+      } else if (e.key === "Enter" && pin.length >= MIN_PIN_LENGTH) {
+        handleSubmit(pin);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -266,8 +264,19 @@ export function PinPad({
         </button>
       </div>
 
+      {/* Submit button — for 4 and 5 digit PINs */}
+      <button
+        type="button"
+        className="mt-4 w-full max-w-[232px] py-3 rounded-xl text-sm font-bold transition-all duration-150 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-30"
+        style={{ backgroundColor: pin.length >= MIN_PIN_LENGTH ? 'var(--accent-color, #b45309)' : 'rgba(255,255,255,0.1)', color: 'white' }}
+        onClick={() => { if (pin.length >= MIN_PIN_LENGTH) handleSubmit(pin); }}
+        disabled={pin.length < MIN_PIN_LENGTH || isSubmitting}
+      >
+        {isSubmitting ? "Verifying..." : "Enter"}
+      </button>
+
       {/* Loading indicator */}
-      {isSubmitting && (
+      {isSubmitting && !pin.length && (
         <p className="mt-4 text-neutral-400 text-sm">Verifying...</p>
       )}
 

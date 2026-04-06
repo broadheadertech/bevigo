@@ -8,7 +8,7 @@ export const listOrderHistory = query({
     token: v.string(),
     locationId: v.optional(v.id("locations")),
     status: v.optional(
-      v.union(v.literal("completed"), v.literal("voided"))
+      v.union(v.literal("completed"), v.literal("voided"), v.literal("refunded"))
     ),
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
@@ -16,6 +16,7 @@ export const listOrderHistory = query({
     paymentType: v.optional(
       v.union(v.literal("cash"), v.literal("card"), v.literal("ewallet"))
     ),
+    searchQuery: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -28,17 +29,35 @@ export const listOrderHistory = query({
       _id: Id<"orders">;
       orderNumber: string;
       completedAt: number;
+      subtotal: number;
       total: number;
       paymentType: string;
+      payments?: Array<{ type: string; amount: number }>;
       itemCount: number;
       status: string;
       baristaName: string;
       locationId: Id<"locations">;
+      customerName: string | null;
+      customerId: Id<"customers"> | null;
+      tableName: string | null;
+      discountAmount: number | null;
+      discountReason: string | null;
+      discountType: string | null;
+      discountValue: number | null;
+      refundedAt: number | null;
+      refundedBy: Id<"users"> | null;
+      refundedByName: string | null;
+      refundReason: string | null;
+      refundAmount: number | null;
     }> = [];
 
     for (const locId of locationIds) {
-      // Query completed orders
-      const completedOrders = args.status !== "voided"
+      // When filtering for "refunded", we still query "completed" orders (refunded orders keep completed status)
+      const wantRefunded = args.status === "refunded";
+      const wantCompleted = !args.status || args.status === "completed" || wantRefunded;
+      const wantVoided = !args.status || args.status === "voided";
+
+      const completedOrders = wantCompleted
         ? await ctx.db
             .query("orders")
             .withIndex("by_tenant_location_status", (q: any) =>
@@ -50,8 +69,7 @@ export const listOrderHistory = query({
             .collect()
         : [];
 
-      // Query voided orders
-      const voidedOrders = args.status !== "completed"
+      const voidedOrders = wantVoided
         ? await ctx.db
             .query("orders")
             .withIndex("by_tenant_location_status", (q: any) =>
@@ -75,6 +93,19 @@ export const listOrderHistory = query({
         // Payment type filter
         if (args.paymentType && order.paymentType !== args.paymentType) continue;
 
+        // Refunded filter: only show orders with refund data
+        if (wantRefunded && !order.refundedAt) continue;
+
+        // If status is "completed" (not refunded filter), exclude refunded orders
+        if (args.status === "completed" && order.refundedAt) continue;
+
+        // Search by order number
+        if (args.searchQuery) {
+          const q = args.searchQuery.toLowerCase();
+          const orderNum = (order.orderNumber ?? "").toLowerCase();
+          if (!orderNum.includes(q)) continue;
+        }
+
         // Count items
         const items = await ctx.db
           .query("orderItems")
@@ -85,16 +116,44 @@ export const listOrderHistory = query({
         const user = await ctx.db.get(order.userId);
         const baristaName = user?.name ?? "Unknown";
 
+        // Get customer name if linked
+        let customerName: string | null = null;
+        if (order.customerId) {
+          const customer = await ctx.db.get(order.customerId);
+          customerName = customer?.name ?? null;
+        }
+
+        // Get refunder name if refunded
+        let refundedByName: string | null = null;
+        if (order.refundedBy) {
+          const refunder = await ctx.db.get(order.refundedBy);
+          refundedByName = refunder?.name ?? null;
+        }
+
         allOrders.push({
           _id: order._id,
           orderNumber: order.orderNumber ?? "",
           completedAt: orderTime,
+          subtotal: order.subtotal,
           total: order.total,
           paymentType: order.paymentType ?? "cash",
+          payments: order.payments as Array<{ type: string; amount: number }> | undefined,
           itemCount: items.length,
           status: order.status,
           baristaName,
           locationId: order.locationId,
+          customerName,
+          customerId: order.customerId ?? null,
+          tableName: order.tableName ?? null,
+          discountAmount: order.discountAmount ?? null,
+          discountReason: order.discountReason ?? null,
+          discountType: order.discountType ?? null,
+          discountValue: order.discountValue ?? null,
+          refundedAt: order.refundedAt ?? null,
+          refundedBy: order.refundedBy ?? null,
+          refundedByName,
+          refundReason: order.refundReason ?? null,
+          refundAmount: order.refundAmount ?? null,
         });
       }
     }
