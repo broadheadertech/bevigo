@@ -5,6 +5,7 @@ import { useQuery, useMutation } from"convex/react";
 import { api } from"../../convex/_generated/api";
 import { useAuth } from"@/lib/auth-context";
 import { Id } from"../../convex/_generated/dataModel";
+import { Pagination, usePagination } from"@/components/ui/pagination";
 
 type LocationItem = {
  _id: Id<"menuItems">;
@@ -53,6 +54,8 @@ export function ManagerMenuView() {
  </div>
  );
  }
+
+ const { paginatedItems: paginatedMenuItems, currentPage: menuPage, totalPages: menuTotalPages, setCurrentPage: setMenuPage } = usePagination(items ?? []);
 
  const categoryMap = new Map<string, string>(
  (categories ?? []).map((c: { _id: Id<"categories">; name: string }) => [c._id as string, c.name])
@@ -142,7 +145,7 @@ export function ManagerMenuView() {
  </tr>
  </thead>
  <tbody>
- {items.map((item) => (
+ {paginatedMenuItems.map((item) => (
  <tr
  key={item._id}
  className="transition-colors"
@@ -228,6 +231,7 @@ export function ManagerMenuView() {
  ))}
  </tbody>
  </table>
+ <Pagination currentPage={menuPage} totalPages={menuTotalPages} onPageChange={setMenuPage} />
  </div>
  )}
  </div>

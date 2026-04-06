@@ -7,6 +7,7 @@ import { useState, useMemo } from"react";
 import { Id } from"../../../../convex/_generated/dataModel";
 import { exportToCSV } from"@/lib/export";
 import { formatCurrency } from"@/lib/currency";
+import { Pagination, usePagination } from"@/components/ui/pagination";
 
 type LocationOption = {
  _id: Id<"locations">;
@@ -54,6 +55,8 @@ export default function ValuationPage() {
  api.reports.queries.inventoryValuation,
  token ? { token, locationId } :"skip"
  ) as ValuationResult | undefined;
+
+ const { paginatedItems: paginatedValuation, currentPage: valPage, totalPages: valTotalPages, setCurrentPage: setValPage } = usePagination(valuationData?.items ?? []);
 
  if (!token || !session) {
  return (
@@ -163,7 +166,7 @@ export default function ValuationPage() {
  </tr>
  </thead>
  <tbody>
- {valuationData.items.map((row: ValuationItem) => (
+ {paginatedValuation.map((row: ValuationItem) => (
  <tr
  key={row.ingredientName}
  className="transition-colors"
@@ -197,6 +200,7 @@ export default function ValuationPage() {
  </tr>
  </tbody>
  </table>
+ <Pagination currentPage={valPage} totalPages={valTotalPages} onPageChange={setValPage} />
  </div>
  )}
  </div>

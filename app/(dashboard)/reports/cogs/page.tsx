@@ -8,6 +8,7 @@ import { Id } from"../../../../convex/_generated/dataModel";
 import { exportToCSV } from"@/lib/export";
 import { exportReportPDF } from"@/lib/export-pdf";
 import { formatCurrency } from"@/lib/currency";
+import { Pagination, usePagination } from"@/components/ui/pagination";
 
 type LocationOption = {
  _id: Id<"locations">;
@@ -118,6 +119,8 @@ export default function COGSPage() {
  totalRevenue > 0
  ? Math.round((totalGrossProfit / totalRevenue) * 1000) / 10
  : 0;
+
+ const { paginatedItems: paginatedCogs, currentPage: cogsPage, totalPages: cogsTotalPages, setCurrentPage: setCogsPage } = usePagination(cogsData ?? []);
 
  return (
  <div>
@@ -300,7 +303,7 @@ export default function COGSPage() {
  </tr>
  </thead>
  <tbody>
- {cogsData.map((row: COGSItem) => (
+ {paginatedCogs.map((row: COGSItem) => (
  <tr
  key={row.itemName}
  className="transition-colors"
@@ -330,6 +333,7 @@ export default function COGSPage() {
  ))}
  </tbody>
  </table>
+ <Pagination currentPage={cogsPage} totalPages={cogsTotalPages} onPageChange={setCogsPage} />
  </div>
  )}
  </div>

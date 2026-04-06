@@ -7,6 +7,7 @@ import { useAuth } from"@/lib/auth-context";
 import { Id } from"../../../convex/_generated/dataModel";
 import { StartShiftDialog } from"@/components/shifts/start-shift-dialog";
 import { EndShiftDialog } from"@/components/shifts/end-shift-dialog";
+import { Pagination, usePagination } from"@/components/ui/pagination";
 
 type ShiftRow = {
  _id: Id<"shifts">;
@@ -102,6 +103,8 @@ export default function ShiftsPage() {
  ? { token, locationId: defaultLocationId }
  :"skip"
  ) as ShiftRow | null | undefined;
+
+ const { paginatedItems: paginatedShifts, currentPage: shiftsPage, totalPages: shiftsTotalPages, setCurrentPage: setShiftsPage } = usePagination(shifts ?? []);
 
  if (!token || !session) {
  return (
@@ -222,7 +225,7 @@ export default function ShiftsPage() {
  </td>
  </tr>
  ) : (
- shifts.map((shift: ShiftRow) => (
+ paginatedShifts.map((shift: ShiftRow) => (
  <tr
  key={shift._id}
  className="transition-colors"
@@ -275,6 +278,7 @@ export default function ShiftsPage() {
  )}
  </tbody>
  </table>
+ <Pagination currentPage={shiftsPage} totalPages={shiftsTotalPages} onPageChange={setShiftsPage} />
  </div>
 
  {/* Start Shift Dialog */}

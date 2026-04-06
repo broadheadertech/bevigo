@@ -6,6 +6,7 @@ import { useAuth } from"@/lib/auth-context";
 import { useState } from"react";
 import { Id } from"../../../../convex/_generated/dataModel";
 import { AdjustmentForm } from"@/components/inventory/adjustment-form";
+import { Pagination, usePagination } from"@/components/ui/pagination";
 
 type Location = {
  _id: Id<"locations">;
@@ -99,6 +100,8 @@ export default function AdjustmentsPage() {
  const activeLocations = (locations ?? []).filter(
  (l: Location) => l.status ==="active"
  );
+
+ const { paginatedItems: paginatedAdj, currentPage: adjPage, totalPages: adjTotalPages, setCurrentPage: setAdjPage } = usePagination(adjustments ?? []);
 
  return (
  <div>
@@ -194,7 +197,7 @@ export default function AdjustmentsPage() {
  </tr>
  </thead>
  <tbody>
- {adjustments.map((adj: StockAdjustment) => (
+ {paginatedAdj.map((adj: StockAdjustment) => (
  <tr key={adj._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
  <td className="px-5 py-3.5 whitespace-nowrap" style={{ color: 'var(--muted-fg)' }}>
  {formatDate(adj.createdAt)}
@@ -236,6 +239,7 @@ export default function AdjustmentsPage() {
  ))}
  </tbody>
  </table>
+ <Pagination currentPage={adjPage} totalPages={adjTotalPages} onPageChange={setAdjPage} />
  </div>
  )}
 

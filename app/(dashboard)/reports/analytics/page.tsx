@@ -7,6 +7,7 @@ import { useState, useMemo } from"react";
 import { Id } from"../../../../convex/_generated/dataModel";
 import { exportToCSV } from"@/lib/export";
 import { formatCurrency } from"@/lib/currency";
+import { Pagination, usePagination } from"@/components/ui/pagination";
 
 type AnalyticsTab =
  |"payment"
@@ -450,6 +451,8 @@ export default function OrderAnalyticsPage() {
 // Payment Types Tab
 // ---------------------------------------------------------------------------
 function PaymentTypesTab({ data }: { data: PaymentTypeRow[] | undefined }) {
+ const { paginatedItems: paginatedPayment, currentPage: payPage, totalPages: payTotalPages, setCurrentPage: setPayPage } = usePagination(data ?? []);
+
  if (!data) {
  return (
  <div className="text-center py-12" style={{ color:"var(--muted-fg)" }}>
@@ -558,7 +561,7 @@ function PaymentTypesTab({ data }: { data: PaymentTypeRow[] | undefined }) {
  </tr>
  </thead>
  <tbody>
- {data.map((row: PaymentTypeRow) => (
+ {paginatedPayment.map((row: PaymentTypeRow) => (
  <tr
  key={row.paymentType}
  style={{ borderBottom:"1px solid var(--border-color)" }}
@@ -588,6 +591,7 @@ function PaymentTypesTab({ data }: { data: PaymentTypeRow[] | undefined }) {
  ))}
  </tbody>
  </table>
+ <Pagination currentPage={payPage} totalPages={payTotalPages} onPageChange={setPayPage} />
  </div>
  </div>
  );
@@ -597,6 +601,8 @@ function PaymentTypesTab({ data }: { data: PaymentTypeRow[] | undefined }) {
 // Time Periods Tab
 // ---------------------------------------------------------------------------
 function TimePeriodsTab({ data }: { data: TimePeriodRow[] | undefined }) {
+ const { paginatedItems: paginatedTime, currentPage: timePage, totalPages: timeTotalPages, setCurrentPage: setTimePage } = usePagination(data ?? []);
+
  if (!data) {
  return (
  <div className="text-center py-12" style={{ color:"var(--muted-fg)" }}>
@@ -686,7 +692,7 @@ function TimePeriodsTab({ data }: { data: TimePeriodRow[] | undefined }) {
  </tr>
  </thead>
  <tbody>
- {data.map((row: TimePeriodRow) => {
+ {paginatedTime.map((row: TimePeriodRow) => {
  const isPeak = row.period === peakPeriod.period && row.totalRevenue > 0;
  return (
  <tr
@@ -708,6 +714,7 @@ function TimePeriodsTab({ data }: { data: TimePeriodRow[] | undefined }) {
  })}
  </tbody>
  </table>
+ <Pagination currentPage={timePage} totalPages={timeTotalPages} onPageChange={setTimePage} />
  </div>
  </div>
  );
@@ -717,6 +724,8 @@ function TimePeriodsTab({ data }: { data: TimePeriodRow[] | undefined }) {
 // Staff Tab
 // ---------------------------------------------------------------------------
 function StaffTab({ data }: { data: StaffRow[] | undefined }) {
+ const { paginatedItems: paginatedStaff, currentPage: staffPage, totalPages: staffTotalPages, setCurrentPage: setStaffPage } = usePagination(data ?? []);
+
  if (!data) {
  return (
  <div className="text-center py-12" style={{ color:"var(--muted-fg)" }}>
@@ -755,7 +764,7 @@ function StaffTab({ data }: { data: StaffRow[] | undefined }) {
  </tr>
  </thead>
  <tbody>
- {data.map((row: StaffRow) => {
+ {paginatedStaff.map((row: StaffRow) => {
  const isTop = row.userName === topPerformer.userName && row.totalRevenue > 0;
  return (
  <tr
@@ -781,6 +790,7 @@ function StaffTab({ data }: { data: StaffRow[] | undefined }) {
  })}
  </tbody>
  </table>
+ <Pagination currentPage={staffPage} totalPages={staffTotalPages} onPageChange={setStaffPage} />
  </div>
  );
 }
@@ -789,6 +799,8 @@ function StaffTab({ data }: { data: StaffRow[] | undefined }) {
 // Tables Tab
 // ---------------------------------------------------------------------------
 function TablesTab({ data }: { data: TableRow[] | undefined }) {
+ const { paginatedItems: paginatedTables, currentPage: tablePage, totalPages: tableTotalPages, setCurrentPage: setTablePage } = usePagination(data ?? []);
+
  if (!data) {
  return (
  <div className="text-center py-12" style={{ color:"var(--muted-fg)" }}>
@@ -823,7 +835,7 @@ function TablesTab({ data }: { data: TableRow[] | undefined }) {
  </tr>
  </thead>
  <tbody>
- {data.map((row: TableRow) => (
+ {paginatedTables.map((row: TableRow) => (
  <tr
  key={row.tableName}
  style={{ borderBottom:"1px solid var(--border-color)" }}
@@ -836,6 +848,7 @@ function TablesTab({ data }: { data: TableRow[] | undefined }) {
  ))}
  </tbody>
  </table>
+ <Pagination currentPage={tablePage} totalPages={tableTotalPages} onPageChange={setTablePage} />
  </div>
  );
 }
@@ -844,6 +857,8 @@ function TablesTab({ data }: { data: TableRow[] | undefined }) {
 // Peak Days Tab
 // ---------------------------------------------------------------------------
 function PeakDaysTab({ data }: { data: PeakDayRow[] | undefined }) {
+ const { paginatedItems: paginatedPeak, currentPage: peakPage, totalPages: peakTotalPages, setCurrentPage: setPeakPage } = usePagination(data ?? []);
+
  if (!data) {
  return (
  <div className="text-center py-12" style={{ color:"var(--muted-fg)" }}>
@@ -941,7 +956,7 @@ function PeakDaysTab({ data }: { data: PeakDayRow[] | undefined }) {
  </tr>
  </thead>
  <tbody>
- {data.map((row: PeakDayRow) => {
+ {paginatedPeak.map((row: PeakDayRow) => {
  const isBusiest = row.dayOfWeek === busiestDay.dayOfWeek && row.orderCount > 0;
  return (
  <tr
@@ -963,6 +978,7 @@ function PeakDaysTab({ data }: { data: PeakDayRow[] | undefined }) {
  })}
  </tbody>
  </table>
+ <Pagination currentPage={peakPage} totalPages={peakTotalPages} onPageChange={setPeakPage} />
  </div>
  </div>
  );
@@ -972,6 +988,8 @@ function PeakDaysTab({ data }: { data: PeakDayRow[] | undefined }) {
 // Voids Tab
 // ---------------------------------------------------------------------------
 function VoidsTab({ data }: { data: VoidReportResult | undefined }) {
+ const { paginatedItems: paginatedVoids, currentPage: voidPage, totalPages: voidTotalPages, setCurrentPage: setVoidPage } = usePagination(data?.voids ?? []);
+
  if (!data) {
  return (
  <div className="text-center py-12" style={{ color:"var(--muted-fg)" }}>
@@ -1030,7 +1048,7 @@ function VoidsTab({ data }: { data: VoidReportResult | undefined }) {
  </tr>
  </thead>
  <tbody>
- {data.voids.map((v: VoidItem, idx: number) => (
+ {paginatedVoids.map((v: VoidItem, idx: number) => (
  <tr
  key={`${v.orderNumber}-${idx}`}
  style={{ borderBottom:"1px solid var(--border-color)" }}
@@ -1048,6 +1066,7 @@ function VoidsTab({ data }: { data: VoidReportResult | undefined }) {
  ))}
  </tbody>
  </table>
+ <Pagination currentPage={voidPage} totalPages={voidTotalPages} onPageChange={setVoidPage} />
  </div>
  ) : (
  <div className="text-center py-12" style={{ color:"var(--muted-fg)" }}>
@@ -1062,6 +1081,8 @@ function VoidsTab({ data }: { data: VoidReportResult | undefined }) {
 // Customer Repeat Tab
 // ---------------------------------------------------------------------------
 function CustomerRepeatTab({ data }: { data: RepeatRateResult | undefined }) {
+ const { paginatedItems: paginatedRepeat, currentPage: repeatPage, totalPages: repeatTotalPages, setCurrentPage: setRepeatPage } = usePagination(data?.topCustomers ?? []);
+
  if (!data) {
  return (
  <div className="text-center py-12" style={{ color:"var(--muted-fg)" }}>
@@ -1118,7 +1139,7 @@ function CustomerRepeatTab({ data }: { data: RepeatRateResult | undefined }) {
  </tr>
  </thead>
  <tbody>
- {data.topCustomers.map((c: TopCustomer) => (
+ {paginatedRepeat.map((c: TopCustomer) => (
  <tr
  key={c.customerName}
  style={{ borderBottom:"1px solid var(--border-color)" }}
@@ -1130,6 +1151,7 @@ function CustomerRepeatTab({ data }: { data: RepeatRateResult | undefined }) {
  ))}
  </tbody>
  </table>
+ <Pagination currentPage={repeatPage} totalPages={repeatTotalPages} onPageChange={setRepeatPage} />
  </div>
  ) : (
  <div className="text-center py-12" style={{ color:"var(--muted-fg)" }}>

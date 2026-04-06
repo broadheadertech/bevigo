@@ -4,6 +4,7 @@ import { api } from "../../../convex/_generated/api";
 import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import { Id } from "../../../convex/_generated/dataModel";
+import { Pagination, usePagination } from "@/components/ui/pagination";
 
 type StaffLocation = {
   locationId: Id<"locations">;
@@ -79,6 +80,8 @@ export default function StaffPage() {
     if (filterRole !== "all" && s.role !== filterRole) return false;
     return true;
   });
+
+  const { paginatedItems: paginatedStaff, currentPage: staffPage, totalPages: staffTotalPages, setCurrentPage: setStaffPage } = usePagination(filteredStaff ?? []);
 
   const openAddForm = () => {
     setForm(emptyForm);
@@ -195,8 +198,8 @@ export default function StaffPage() {
                   Loading staff...
                 </td>
               </tr>
-            ) : filteredStaff && filteredStaff.length > 0 ? (
-              filteredStaff.map((staff) => (
+            ) : paginatedStaff && paginatedStaff.length > 0 ? (
+              paginatedStaff.map((staff) => (
                 <tr key={staff._id} className="transition-colors" style={{ borderBottom: '1px solid var(--border-color)' }}>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
@@ -259,6 +262,7 @@ export default function StaffPage() {
             )}
           </tbody>
         </table>
+        <Pagination currentPage={staffPage} totalPages={staffTotalPages} onPageChange={setStaffPage} />
       </div>
 
       {/* Add/Edit Form Modal */}

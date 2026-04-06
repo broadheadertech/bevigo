@@ -7,6 +7,7 @@ import { useState, useCallback } from"react";
 import { Id } from"../../../convex/_generated/dataModel";
 import { formatCurrency } from"@/lib/currency";
 import { LoyaltyCard } from"@/components/customers/loyalty-card";
+import { Pagination, usePagination } from"@/components/ui/pagination";
 
 type CustomerRow = {
  _id: Id<"customers">;
@@ -135,6 +136,8 @@ export default function CustomersPage() {
  setSelectedCustomerId(customerId);
  setActiveTab("details");
  }, []);
+
+ const { paginatedItems: paginatedCustomers, currentPage: custPage, totalPages: custTotalPages, setCurrentPage: setCustPage } = usePagination(customers ?? []);
 
  const formatDate = (ts?: number) => {
  if (!ts) return"Never";
@@ -280,7 +283,7 @@ export default function CustomersPage() {
  </tr>
  </thead>
  <tbody>
- {(customers ?? []).map((c: CustomerRow) => (
+ {paginatedCustomers.map((c: CustomerRow) => (
  <tr
  key={c._id}
  className={`transition-colors cursor-pointer ${
@@ -339,7 +342,7 @@ export default function CustomersPage() {
  </td>
  </tr>
  ))}
- {customers && customers.length === 0 && (
+ {paginatedCustomers.length === 0 && (
  <tr>
  <td
  colSpan={selectedCustomerId ? 4 : 7}
@@ -354,6 +357,7 @@ export default function CustomersPage() {
  )}
  </tbody>
  </table>
+ <Pagination currentPage={custPage} totalPages={custTotalPages} onPageChange={setCustPage} />
  </div>
  </div>
 

@@ -6,6 +6,7 @@ import { useAuth } from"@/lib/auth-context";
 import { useState, useMemo } from"react";
 import { Id } from"../../../convex/_generated/dataModel";
 import { formatCurrency } from"@/lib/currency";
+import { Pagination, usePagination } from"@/components/ui/pagination";
 
 type LocationOption = {
  _id: Id<"locations">;
@@ -158,6 +159,8 @@ export default function OrderHistoryPage() {
  setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
  };
 
+ const { paginatedItems: paginatedOrders, currentPage: ordersPage, totalPages: ordersTotalPages, setCurrentPage: setOrdersPage } = usePagination(orders ?? []);
+
  return (
  <div>
  <div className="mb-8">
@@ -291,7 +294,7 @@ export default function OrderHistoryPage() {
  </tr>
  </thead>
  <tbody>
- {orders.map((order: OrderHistoryItem) => (
+ {paginatedOrders.map((order: OrderHistoryItem) => (
  <OrderRow
  key={order._id}
  order={order}
@@ -304,6 +307,7 @@ export default function OrderHistoryPage() {
  ))}
  </tbody>
  </table>
+ <Pagination currentPage={ordersPage} totalPages={ordersTotalPages} onPageChange={setOrdersPage} />
  </div>
  )}
  </div>

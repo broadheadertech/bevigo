@@ -7,6 +7,7 @@ import { useState } from"react";
 import { Id } from"../../../convex/_generated/dataModel";
 import { IngredientForm } from"@/components/inventory/ingredient-form";
 import { exportToCSV } from"@/lib/export";
+import { Pagination, usePagination } from"@/components/ui/pagination";
 
 type Location = {
  _id: Id<"locations">;
@@ -88,6 +89,9 @@ export default function InventoryPage() {
 
  const typedLocations = locations ?? [];
  const typedIngredients = ingredients ?? [];
+
+ const { paginatedItems: paginatedIngredients, currentPage: ingPage, totalPages: ingTotalPages, setCurrentPage: setIngPage } = usePagination(typedIngredients);
+ const { paginatedItems: paginatedLowStock, currentPage: lowPage, totalPages: lowTotalPages, setCurrentPage: setLowPage } = usePagination(lowStock ?? []);
 
  const handleSaveStock = async (ingredientId: Id<"ingredients">) => {
  if (!token || !locationId) return;
@@ -204,17 +208,19 @@ export default function InventoryPage() {
  {/* Ingredients Tab */}
  {activeTab ==="ingredients" && (
  <div className="rounded-3xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
- {ingredients === undefined ? (
+ {ingredients === undefined && (
  <div className="flex items-center justify-center h-48">
  <p style={{ color: 'var(--muted-fg)' }}>Loading ingredients...</p>
  </div>
- ) : typedIngredients.length === 0 ? (
+ )}
+ {ingredients !== undefined && typedIngredients.length === 0 && (
  <div className="flex items-center justify-center h-48">
  <p style={{ color: 'var(--muted-fg)' }}>
  No ingredients yet. Add one to get started.
  </p>
  </div>
- ) : (
+ )}
+ {typedIngredients.length > 0 && (
  <table className="w-full text-sm min-w-[700px]">
  <thead>
  <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
@@ -242,7 +248,7 @@ export default function InventoryPage() {
  </tr>
  </thead>
  <tbody>
- {typedIngredients.map((ingredient: IngredientRow) => {
+ {paginatedIngredients.map((ingredient: IngredientRow) => {
  const isLow =
  ingredient.stockQuantity !== null &&
  ingredient.stockQuantity < ingredient.reorderThreshold;
@@ -359,29 +365,33 @@ export default function InventoryPage() {
  </tbody>
  </table>
  )}
+ <Pagination currentPage={ingPage} totalPages={ingTotalPages} onPageChange={setIngPage} />
  </div>
  )}
 
  {/* Low Stock Tab */}
  {activeTab ==="lowstock" && (
  <div className="rounded-2xl border shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
- {!locationId ? (
+ {!locationId && (
  <div className="flex items-center justify-center h-48">
  <p style={{ color: 'var(--muted-fg)' }}>
  Select a location to view low stock
  </p>
  </div>
- ) : lowStock === undefined ? (
+ )}
+ {locationId && lowStock === undefined && (
  <div className="flex items-center justify-center h-48">
  <p style={{ color: 'var(--muted-fg)' }}>Loading...</p>
  </div>
- ) : lowStock.length === 0 ? (
+ )}
+ {locationId && lowStock !== undefined && lowStock.length === 0 && (
  <div className="flex items-center justify-center h-48">
  <p style={{ color: 'var(--muted-fg)' }}>
  All stock levels are above thresholds
  </p>
  </div>
- ) : (
+ )}
+ {locationId && lowStock !== undefined && lowStock.length > 0 && (
  <table className="w-full text-sm min-w-[500px]">
  <thead>
  <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
@@ -403,7 +413,7 @@ export default function InventoryPage() {
  </tr>
  </thead>
  <tbody>
- {lowStock.map((item: LowStockRow) => (
+ {paginatedLowStock.map((item: LowStockRow) => (
  <tr key={item._id} className="bg-red-500/5" style={{ borderBottom: '1px solid var(--border-color)' }}>
  <td className="px-5 py-3.5.5 font-medium" style={{ color: 'var(--fg)' }}>
  {item.name}
@@ -427,6 +437,7 @@ export default function InventoryPage() {
  </tbody>
  </table>
  )}
+ <Pagination currentPage={lowPage} totalPages={lowTotalPages} onPageChange={setLowPage} />
  </div>
  )}
 

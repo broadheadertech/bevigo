@@ -7,6 +7,7 @@ import { useState, useMemo, useCallback } from"react";
 import { Id } from"../../../../convex/_generated/dataModel";
 import { exportToCSV } from"@/lib/export";
 import { formatCurrency } from"@/lib/currency";
+import { Pagination, usePagination } from"@/components/ui/pagination";
 
 type LocationOption = {
  _id: Id<"locations">;
@@ -124,6 +125,8 @@ export default function StaffPerformancePage() {
  });
  return copy;
  }, [staffData, sortKey, sortDir]);
+
+ const { paginatedItems: paginatedStaffPerf, currentPage: staffPerfPage, totalPages: staffPerfTotalPages, setCurrentPage: setStaffPerfPage } = usePagination(sortedData ?? []);
 
  if (!token || !session) {
  return (
@@ -248,7 +251,7 @@ export default function StaffPerformancePage() {
  </tr>
  </thead>
  <tbody>
- {sortedData.map((row: StaffRow, idx: number) => (
+ {paginatedStaffPerf.map((row: StaffRow, idx: number) => (
  <tr
  key={`${row.userName}-${idx}`}
  className="transition-colors"
@@ -273,6 +276,7 @@ export default function StaffPerformancePage() {
  ))}
  </tbody>
  </table>
+ <Pagination currentPage={staffPerfPage} totalPages={staffPerfTotalPages} onPageChange={setStaffPerfPage} />
  </div>
  )}
  </div>

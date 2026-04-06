@@ -4,6 +4,7 @@ import { useQuery } from"convex/react";
 import { api } from"../../../convex/_generated/api";
 import { useAuth } from"@/lib/auth-context";
 import { useState, useCallback } from"react";
+import { Pagination, usePagination } from"@/components/ui/pagination";
 
 type AuditEntry = {
  _id: string;
@@ -89,6 +90,8 @@ export default function AuditLogPage() {
  }
 
  const typedEntries = auditEntries as AuditEntry[] | undefined;
+
+ const { paginatedItems: paginatedEntries, currentPage: auditPage, totalPages: auditTotalPages, setCurrentPage: setAuditPage } = usePagination(typedEntries ?? []);
 
  return (
  <div>
@@ -192,8 +195,8 @@ export default function AuditLogPage() {
  Loading audit log...
  </td>
  </tr>
- ) : typedEntries.length > 0 ? (
- typedEntries.map((entry: AuditEntry) => {
+ ) : paginatedEntries.length > 0 ? (
+ paginatedEntries.map((entry: AuditEntry) => {
  const isExpanded = expandedRows.has(entry._id);
  return (
  <tr
@@ -263,6 +266,7 @@ export default function AuditLogPage() {
  )}
  </tbody>
  </table>
+ <Pagination currentPage={auditPage} totalPages={auditTotalPages} onPageChange={setAuditPage} />
  </div>
  </div>
  );
