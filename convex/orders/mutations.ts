@@ -293,7 +293,11 @@ export const completeOrder = mutation({
   args: {
     token: v.string(),
     orderId: v.id("orders"),
-    paymentType: v.union(v.literal("cash"), v.literal("card"), v.literal("ewallet")),
+    paymentType: v.union(v.literal("cash"), v.literal("card"), v.literal("ewallet"), v.literal("split")),
+    payments: v.optional(v.array(v.object({
+      type: v.union(v.literal("cash"), v.literal("card"), v.literal("ewallet")),
+      amount: v.number(),
+    }))),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -330,9 +334,18 @@ export const completeOrder = mutation({
     const orderNumber = `ORD-${location.slug.toUpperCase()}-${Date.now()}`;
 
     const now = Date.now();
+    // Validate split payments add up to total
+    if (args.paymentType === "split" && args.payments) {
+      const splitTotal = args.payments.reduce((sum, p) => sum + p.amount, 0);
+      if (Math.abs(splitTotal - total) > 1) {
+        throw new Error("Split payment amounts must equal the total");
+      }
+    }
+
     await ctx.db.patch(args.orderId, {
       status: "completed",
       paymentType: args.paymentType,
+      payments: args.payments,
       orderNumber,
       subtotal,
       taxAmount,

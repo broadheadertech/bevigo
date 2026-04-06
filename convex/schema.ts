@@ -203,8 +203,12 @@ export default defineSchema({
     taxAmount: v.number(),
     total: v.number(),
     paymentType: v.optional(
-      v.union(v.literal("cash"), v.literal("card"), v.literal("ewallet"))
+      v.union(v.literal("cash"), v.literal("card"), v.literal("ewallet"), v.literal("split"))
     ),
+    payments: v.optional(v.array(v.object({
+      type: v.union(v.literal("cash"), v.literal("card"), v.literal("ewallet")),
+      amount: v.number(),
+    }))),
     taxRate: v.number(),
     taxLabel: v.string(),
     customerId: v.optional(v.id("customers")),
