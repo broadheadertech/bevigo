@@ -61,10 +61,13 @@ export function usePagination<T>(items: T[], pageSize: number = 10) {
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
 
+  // Clamp page without calling setState during render
   const safePage = Math.min(currentPage, totalPages);
-  if (safePage !== currentPage) setCurrentPage(safePage);
-
   const paginatedItems = items.slice((safePage - 1) * pageSize, safePage * pageSize);
 
-  return { paginatedItems, currentPage: safePage, totalPages, setCurrentPage };
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  return { paginatedItems, currentPage: safePage, totalPages, setCurrentPage: goToPage };
 }
