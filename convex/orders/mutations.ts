@@ -289,6 +289,46 @@ export const updateItemModifiers = mutation({
   },
 });
 
+export const abandonOrder = mutation({
+  args: {
+    token: v.string(),
+    orderId: v.id("orders"),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+
+    const order = await ctx.db.get(args.orderId);
+    if (!order || order.tenantId !== session.tenantId) {
+      throw new Error("Order not found");
+    }
+    if (order.status !== "draft") {
+      throw new Error("Can only cancel draft orders");
+    }
+
+    // Delete all order items and their modifiers
+    const items = await ctx.db
+      .query("orderItems")
+      .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
+      .collect();
+
+    for (const item of items) {
+      const modifiers = await ctx.db
+        .query("orderItemModifiers")
+        .withIndex("by_order_item", (q) => q.eq("orderItemId", item._id))
+        .collect();
+      for (const mod of modifiers) {
+        await ctx.db.delete(mod._id);
+      }
+      await ctx.db.delete(item._id);
+    }
+
+    await ctx.db.patch(args.orderId, {
+      status: "abandoned",
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 export const completeOrder = mutation({
   args: {
     token: v.string(),

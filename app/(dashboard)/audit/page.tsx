@@ -81,6 +81,10 @@ export default function AuditLogPage() {
  });
  }, []);
 
+ const typedEntries = auditEntries as AuditEntry[] | undefined;
+
+ const { paginatedItems: paginatedEntries, currentPage: auditPage, totalPages: auditTotalPages, setCurrentPage: setAuditPage } = usePagination(typedEntries ?? []);
+
  if (!token || !session) {
  return (
  <div className="flex items-center justify-center h-64">
@@ -88,10 +92,6 @@ export default function AuditLogPage() {
  </div>
  );
  }
-
- const typedEntries = auditEntries as AuditEntry[] | undefined;
-
- const { paginatedItems: paginatedEntries, currentPage: auditPage, totalPages: auditTotalPages, setCurrentPage: setAuditPage } = usePagination(typedEntries ?? []);
 
  return (
  <div>

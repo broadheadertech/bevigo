@@ -70,6 +70,7 @@ export default function RegisterPage() {
   const addItem = useMutation(api.orders.mutations.addItemToOrder);
   const addItemWithModifiers = useMutation(api.orders.mutations.addItemWithModifiers);
   const removeItem = useMutation(api.orders.mutations.removeItemFromOrder);
+  const abandonOrder = useMutation(api.orders.mutations.abandonOrder);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState<Id<"orders"> | null>(null);
@@ -371,6 +372,20 @@ export default function RegisterPage() {
 
   const handleNewOrder = useCallback(async () => {
     if (!token || !locationId) return;
+
+    // Don't park if current order has no items
+    const currentItems = displayOrder?.items ?? [];
+    if (currentItems.length === 0) return;
+
+    // Don't create duplicate — check if there's already an empty draft we can switch to
+    const emptyDraft = (pendingOrders ?? []).find(
+      (o: { _id: string; itemCount: number }) => o.itemCount === 0 && o._id !== displayOrder?._id
+    );
+    if (emptyDraft) {
+      setActiveOrderId(emptyDraft._id as Id<"orders">);
+      return;
+    }
+
     try {
       const orderId = await createDraft({
         token,
@@ -381,7 +396,20 @@ export default function RegisterPage() {
     } catch (err) {
       console.error("Failed to create new order:", err);
     }
-  }, [token, locationId, createDraft, selectedTableId]);
+  }, [token, locationId, createDraft, selectedTableId, displayOrder, pendingOrders]);
+
+  const handleDeleteParkedOrder = useCallback(async (orderId: Id<"orders">) => {
+    if (!token) return;
+    try {
+      await abandonOrder({ token, orderId });
+      // If we deleted the active order, clear it
+      if (activeOrderId === orderId) {
+        setActiveOrderId(null);
+      }
+    } catch (err) {
+      console.error("Failed to cancel order:", err);
+    }
+  }, [token, abandonOrder, activeOrderId]);
 
   const handleComplete = useCallback(() => {
     setShowPaymentDialog(true);
@@ -497,6 +525,7 @@ export default function RegisterPage() {
           activeOrderId={activeOrderId ?? (currentDraft?._id as Id<"orders"> | null) ?? null}
           onSelectOrder={handleSelectOrder}
           onNewOrder={handleNewOrder}
+          onDeleteOrder={handleDeleteParkedOrder}
         />
         {/* Table selector */}
         <div className="px-3 py-1 border-b" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--card)" }}>

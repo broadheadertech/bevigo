@@ -147,6 +147,8 @@ export default function OrderHistoryPage() {
  :"skip"
  ) as OrderWithItems | null | undefined;
 
+ const { paginatedItems: paginatedOrders, currentPage: ordersPage, totalPages: ordersTotalPages, setCurrentPage: setOrdersPage } = usePagination(orders ?? []);
+
  if (!token || !session) {
  return (
  <div className="flex items-center justify-center h-64">
@@ -158,8 +160,6 @@ export default function OrderHistoryPage() {
  const handleRowClick = (orderId: Id<"orders">) => {
  setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
  };
-
- const { paginatedItems: paginatedOrders, currentPage: ordersPage, totalPages: ordersTotalPages, setCurrentPage: setOrdersPage } = usePagination(orders ?? []);
 
  return (
  <div>

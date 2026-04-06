@@ -11,6 +11,7 @@ import { Pagination, usePagination } from"@/components/ui/pagination";
 
 type CustomerRow = {
  _id: Id<"customers">;
+ customerNumber?: string;
  name: string;
  phone?: string;
  email?: string;
@@ -256,6 +257,9 @@ export default function CustomersPage() {
  <thead>
  <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
+ ID
+ </th>
+ <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
  Name
  </th>
  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>
@@ -292,6 +296,11 @@ export default function CustomersPage() {
  onClick={() => selectCustomer(c._id)}
  style={{ borderBottom: '1px solid var(--border-color)' }}
  >
+ <td className="px-5 py-3.5">
+ <span className="text-xs font-mono font-semibold" style={{ color: 'var(--accent-color)' }}>
+ {c.customerNumber || "—"}
+ </span>
+ </td>
  <td className="px-5 py-3.5">
  <span className="font-medium" style={{ color: 'var(--fg)' }}>
  {c.name}

@@ -19,6 +19,7 @@ import type * as auth_pinSet from "../auth/pinSet.js";
 import type * as auth_pinSwitch from "../auth/pinSwitch.js";
 import type * as auth_session from "../auth/session.js";
 import type * as auth_sessionCleanup from "../auth/sessionCleanup.js";
+import type * as backfillCustomerNumbers from "../backfillCustomerNumbers.js";
 import type * as billing_mutations from "../billing/mutations.js";
 import type * as billing_queries from "../billing/queries.js";
 import type * as billing_seedPlans from "../billing/seedPlans.js";
@@ -93,6 +94,7 @@ declare const fullApi: ApiFromModules<{
   "auth/pinSwitch": typeof auth_pinSwitch;
   "auth/session": typeof auth_session;
   "auth/sessionCleanup": typeof auth_sessionCleanup;
+  backfillCustomerNumbers: typeof backfillCustomerNumbers;
   "billing/mutations": typeof billing_mutations;
   "billing/queries": typeof billing_queries;
   "billing/seedPlans": typeof billing_seedPlans;

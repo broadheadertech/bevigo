@@ -354,6 +354,7 @@ export default defineSchema({
 
   customers: defineTable({
     tenantId: v.id("tenants"),
+    customerNumber: v.optional(v.string()), // unique ID like "BG-0001"
     name: v.string(),
     phone: v.optional(v.string()),
     email: v.optional(v.string()),
@@ -365,7 +366,8 @@ export default defineSchema({
   })
     .index("by_tenant", ["tenantId"])
     .index("by_tenant_phone", ["tenantId", "phone"])
-    .index("by_tenant_email", ["tenantId", "email"]),
+    .index("by_tenant_email", ["tenantId", "email"])
+    .index("by_tenant_customer_number", ["tenantId", "customerNumber"]),
 
   loyaltyCards: defineTable({
     customerId: v.id("customers"),

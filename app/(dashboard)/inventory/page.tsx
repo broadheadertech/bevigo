@@ -79,6 +79,12 @@ export default function InventoryPage() {
  api.inventory.mutations.updateIngredient
  );
 
+ const typedLocations = locations ?? [];
+ const typedIngredients = ingredients ?? [];
+
+ const { paginatedItems: paginatedIngredients, currentPage: ingPage, totalPages: ingTotalPages, setCurrentPage: setIngPage } = usePagination(typedIngredients);
+ const { paginatedItems: paginatedLowStock, currentPage: lowPage, totalPages: lowTotalPages, setCurrentPage: setLowPage } = usePagination(lowStock ?? []);
+
  if (!token || !session) {
  return (
  <div className="flex items-center justify-center h-64">
@@ -86,12 +92,6 @@ export default function InventoryPage() {
  </div>
  );
  }
-
- const typedLocations = locations ?? [];
- const typedIngredients = ingredients ?? [];
-
- const { paginatedItems: paginatedIngredients, currentPage: ingPage, totalPages: ingTotalPages, setCurrentPage: setIngPage } = usePagination(typedIngredients);
- const { paginatedItems: paginatedLowStock, currentPage: lowPage, totalPages: lowTotalPages, setCurrentPage: setLowPage } = usePagination(lowStock ?? []);
 
  const handleSaveStock = async (ingredientId: Id<"ingredients">) => {
  if (!token || !locationId) return;

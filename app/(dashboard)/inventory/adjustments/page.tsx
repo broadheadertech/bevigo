@@ -89,6 +89,12 @@ export default function AdjustmentsPage() {
  :"skip"
  ) as StockAdjustment[] | undefined;
 
+ const activeLocations = (locations ?? []).filter(
+ (l: Location) => l.status ==="active"
+ );
+
+ const { paginatedItems: paginatedAdj, currentPage: adjPage, totalPages: adjTotalPages, setCurrentPage: setAdjPage } = usePagination(adjustments ?? []);
+
  if (!token || !session) {
  return (
  <div className="flex items-center justify-center h-64">
@@ -96,12 +102,6 @@ export default function AdjustmentsPage() {
  </div>
  );
  }
-
- const activeLocations = (locations ?? []).filter(
- (l: Location) => l.status ==="active"
- );
-
- const { paginatedItems: paginatedAdj, currentPage: adjPage, totalPages: adjTotalPages, setCurrentPage: setAdjPage } = usePagination(adjustments ?? []);
 
  return (
  <div>

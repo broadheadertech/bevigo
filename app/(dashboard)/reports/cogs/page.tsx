@@ -100,14 +100,6 @@ export default function COGSPage() {
  token ? { token, startDate, endDate, locationId } :"skip"
  ) as COGSItem[] | undefined;
 
- if (!token || !session) {
- return (
- <div className="flex items-center justify-center h-64">
- <p style={{ color: 'var(--muted-fg)' }}>Loading...</p>
- </div>
- );
- }
-
  const totalRevenue = cogsData
  ? cogsData.reduce((sum: number, r: COGSItem) => sum + r.revenue, 0)
  : 0;
@@ -121,6 +113,14 @@ export default function COGSPage() {
  : 0;
 
  const { paginatedItems: paginatedCogs, currentPage: cogsPage, totalPages: cogsTotalPages, setCurrentPage: setCogsPage } = usePagination(cogsData ?? []);
+
+ if (!token || !session) {
+ return (
+ <div className="flex items-center justify-center h-64">
+ <p style={{ color: 'var(--muted-fg)' }}>Loading...</p>
+ </div>
+ );
+ }
 
  return (
  <div>

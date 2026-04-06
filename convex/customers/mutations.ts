@@ -28,9 +28,18 @@ export const createCustomer = mutation({
       }
     }
 
+    // Generate unique customer number: BG-0001, BG-0002, etc.
+    const allCustomers = await ctx.db
+      .query("customers")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", session.tenantId))
+      .collect();
+    const nextNum = allCustomers.length + 1;
+    const customerNumber = `BG-${String(nextNum).padStart(4, "0")}`;
+
     const now = Date.now();
     const customerId = await ctx.db.insert("customers", {
       tenantId: session.tenantId,
+      customerNumber,
       name: args.name,
       phone: args.phone,
       email: args.email,
@@ -258,9 +267,18 @@ export const quickCreate = mutation({
       }
     }
 
+    // Generate unique customer number
+    const allCustomers = await ctx.db
+      .query("customers")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", session.tenantId))
+      .collect();
+    const nextNum = allCustomers.length + 1;
+    const customerNumber = `BG-${String(nextNum).padStart(4, "0")}`;
+
     const now = Date.now();
     const customerId = await ctx.db.insert("customers", {
       tenantId: session.tenantId,
+      customerNumber,
       name: args.name,
       phone: args.phone,
       visitCount: 0,

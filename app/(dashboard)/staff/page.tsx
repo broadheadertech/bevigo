@@ -67,14 +67,6 @@ export default function StaffPage() {
 
   const [filterRole, setFilterRole] = useState<string>("all");
 
-  if (!token || !session) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-stone-400">Loading...</p>
-      </div>
-    );
-  }
-
   const typedStaffList = staffList as StaffMember[] | undefined;
   const filteredStaff = typedStaffList?.filter((s: StaffMember) => {
     if (filterRole !== "all" && s.role !== filterRole) return false;
@@ -82,6 +74,14 @@ export default function StaffPage() {
   });
 
   const { paginatedItems: paginatedStaff, currentPage: staffPage, totalPages: staffTotalPages, setCurrentPage: setStaffPage } = usePagination(filteredStaff ?? []);
+
+  if (!token || !session) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-stone-400">Loading...</p>
+      </div>
+    );
+  }
 
   const openAddForm = () => {
     setForm(emptyForm);

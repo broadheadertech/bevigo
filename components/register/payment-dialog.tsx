@@ -45,6 +45,7 @@ export function PaymentDialog({
     { type: "cash", amount: 0 },
     { type: "ewallet", amount: 0 },
   ]);
+  const [splitInputs, setSplitInputs] = useState<string[]>(["", ""]);
 
   const splitTotal = splits.reduce((sum, s) => sum + s.amount, 0);
   const splitRemaining = orderTotal - splitTotal;
@@ -98,8 +99,10 @@ export function PaymentDialog({
   };
 
   const updateSplitAmount = (index: number, value: string) => {
-    const amount = Math.round(parseFloat(value || "0") * 100);
-    setSplits((prev) => prev.map((s, i) => (i === index ? { ...s, amount: isNaN(amount) ? 0 : amount } : s)));
+    setSplitInputs((prev) => prev.map((v, i) => (i === index ? value : v)));
+    const parsed = parseFloat(value || "0");
+    const amount = isNaN(parsed) ? 0 : Math.round(parsed * 100);
+    setSplits((prev) => prev.map((s, i) => (i === index ? { ...s, amount } : s)));
   };
 
   const updateSplitType = (index: number, type: PaymentType) => {
@@ -108,19 +111,22 @@ export function PaymentDialog({
 
   const addSplit = () => {
     setSplits((prev) => [...prev, { type: "card", amount: 0 }]);
+    setSplitInputs((prev) => [...prev, ""]);
   };
 
   const removeSplit = (index: number) => {
     if (splits.length <= 2) return;
     setSplits((prev) => prev.filter((_, i) => i !== index));
+    setSplitInputs((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Auto-fill remaining on last split
   const fillRemaining = (index: number) => {
     const othersTotal = splits.reduce((sum, s, i) => (i === index ? sum : sum + s.amount), 0);
     const remaining = orderTotal - othersTotal;
     if (remaining > 0) {
+      const displayVal = (remaining / 100).toFixed(2);
       setSplits((prev) => prev.map((s, i) => (i === index ? { ...s, amount: remaining } : s)));
+      setSplitInputs((prev) => prev.map((v, i) => (i === index ? displayVal : v)));
     }
   };
 
@@ -206,26 +212,23 @@ export function PaymentDialog({
                     ))}
                   </select>
 
-                  <div className="relative flex-1">
+                  <div className="flex-1 flex gap-2 items-center">
                     <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={split.amount > 0 ? (split.amount / 100).toFixed(2) : ""}
-                      onChange={(e) => updateSplitAmount(index, e.target.value)}
+                      type="text"
+                      inputMode="decimal"
+                      value={splitInputs[index] ?? ""}
+                      onChange={(e) => updateSplitAmount(index, e.target.value.replace(/[^0-9.]/g, ""))}
                       className="w-full rounded-2xl px-3 py-3 text-sm text-right"
                       style={{ backgroundColor: "var(--muted)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
                       placeholder="0.00"
                     />
-                    {split.amount === 0 && (
-                      <button
-                        onClick={() => fillRemaining(index)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium px-2 py-1 rounded-xl"
-                        style={{ backgroundColor: "var(--accent-color)", color: "white" }}
-                      >
-                        Fill
-                      </button>
-                    )}
+                    <button
+                      onClick={() => fillRemaining(index)}
+                      className="shrink-0 text-xs font-semibold px-3 py-2 rounded-xl transition-colors"
+                      style={{ backgroundColor: "var(--accent-color)", color: "white" }}
+                    >
+                      Fill
+                    </button>
                   </div>
 
                   {splits.length > 2 && (
