@@ -46,6 +46,7 @@ export const list = query({
         email: user.email,
         role: user.role,
         status: user.status,
+        hourlyRate: user.hourlyRate,
         locations: userLocs,
         updatedAt: user.updatedAt,
       };

@@ -17,6 +17,10 @@ export const getSettings = query({
     if (!settings) {
       return {
         idleLockTimeoutMs: DEFAULT_IDLE_TIMEOUT_MS,
+        overtimeDailyHours: 8,
+        overtimeMultiplier: 12500,
+        autoClockOutHours: 12,
+        pointsEarnRate: 1000,
       };
     }
 
@@ -25,6 +29,9 @@ export const getSettings = query({
       reportEmail: settings.reportEmail,
       reportFrequency: settings.reportFrequency,
       pointsEarnRate: settings.pointsEarnRate ?? 1000,
+      overtimeDailyHours: settings.overtimeDailyHours ?? 8,
+      overtimeMultiplier: settings.overtimeMultiplier ?? 12500,
+      autoClockOutHours: settings.autoClockOutHours ?? 12,
     };
   },
 });

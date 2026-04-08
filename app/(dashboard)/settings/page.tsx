@@ -23,7 +23,14 @@ export default function SettingsPage() {
  token ? { token } :"skip"
  );
  const updateTimeout = useMutation(api.settings.mutations.updateIdleLockTimeout);
+ const updatePayroll = useMutation(api.settings.mutations.updatePayrollSettings);
  const resetPinAction = useAction(api.staff.mutations.resetPin);
+
+ const [otHours, setOtHours] = useState<number>(8);
+ const [otMultiplier, setOtMultiplier] = useState<number>(1.25);
+ const [autoClockOutHours, setAutoClockOutHours] = useState<number>(12);
+ const [payrollSaving, setPayrollSaving] = useState(false);
+ const [payrollMessage, setPayrollMessage] = useState<string | null>(null);
 
  const [selectedTimeout, setSelectedTimeout] = useState<number>(5 * 60 * 1000);
  const [isSaving, setIsSaving] = useState(false);
@@ -40,6 +47,31 @@ export default function SettingsPage() {
  setSelectedTimeout(settings.idleLockTimeoutMs);
  }
  }, [settings?.idleLockTimeoutMs]);
+
+ useEffect(() => {
+ if (settings?.overtimeDailyHours !== undefined) setOtHours(settings.overtimeDailyHours);
+ if (settings?.overtimeMultiplier !== undefined) setOtMultiplier(settings.overtimeMultiplier / 10000);
+ if (settings?.autoClockOutHours !== undefined) setAutoClockOutHours(settings.autoClockOutHours);
+ }, [settings?.overtimeDailyHours, settings?.overtimeMultiplier, settings?.autoClockOutHours]);
+
+ const handleSavePayroll = async () => {
+ if (!token) return;
+ setPayrollSaving(true);
+ setPayrollMessage(null);
+ try {
+ await updatePayroll({
+ token,
+ overtimeDailyHours: otHours,
+ overtimeMultiplier: Math.round(otMultiplier * 10000),
+ autoClockOutHours,
+ });
+ setPayrollMessage("Payroll settings saved successfully.");
+ } catch (err) {
+ setPayrollMessage(err instanceof Error ? err.message : "Failed to save");
+ } finally {
+ setPayrollSaving(false);
+ }
+ };
 
  if (!token || !session) {
  return (
@@ -139,6 +171,77 @@ export default function SettingsPage() {
  className="px-4 py-2.5 text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
  >
  {isSaving ?"Saving..." :"Save"}
+ </button>
+ </div>
+
+ {/* Payroll Settings Section */}
+ <div className="rounded-2xl border shadow-lg p-6" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+ <h2 className="text-base font-semibold mb-1" style={{ color: 'var(--fg)' }}>Payroll Settings</h2>
+ <p className="text-sm mb-6" style={{ color: 'var(--muted-fg)' }}>
+ Configure overtime rules and auto clock-out for forgotten timesheets.
+ </p>
+
+ <div className="space-y-4">
+ <div>
+ <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-fg)' }}>
+ Daily OT threshold (hours)
+ </label>
+ <input
+ type="number"
+ min={0}
+ max={24}
+ step={0.5}
+ value={otHours}
+ onChange={(e) => setOtHours(Number(e.target.value))}
+ className="w-full rounded-2xl px-4 py-3 text-sm"
+ style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
+ />
+ </div>
+ <div>
+ <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-fg)' }}>
+ OT multiplier (e.g. 1.25 = time-and-a-quarter)
+ </label>
+ <input
+ type="number"
+ min={1}
+ max={5}
+ step={0.05}
+ value={otMultiplier}
+ onChange={(e) => setOtMultiplier(Number(e.target.value))}
+ className="w-full rounded-2xl px-4 py-3 text-sm"
+ style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
+ />
+ </div>
+ <div>
+ <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-fg)' }}>
+ Auto clock-out (hours)
+ </label>
+ <input
+ type="number"
+ min={1}
+ max={48}
+ step={1}
+ value={autoClockOutHours}
+ onChange={(e) => setAutoClockOutHours(Number(e.target.value))}
+ className="w-full rounded-2xl px-4 py-3 text-sm"
+ style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
+ />
+ </div>
+ </div>
+
+ {payrollMessage && (
+ <div className={`mt-4 p-3 rounded-xl text-sm ${payrollMessage.includes("success") ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border border-red-500/20 text-red-400"}`}>
+ {payrollMessage}
+ </div>
+ )}
+
+ <button
+ onClick={handleSavePayroll}
+ disabled={payrollSaving}
+ className="mt-4 px-4 py-2.5 text-white text-sm font-medium rounded-xl disabled:opacity-50 transition-colors"
+ style={{ backgroundColor: 'var(--accent-color)' }}
+ >
+ {payrollSaving ? "Saving..." : "Save Payroll Settings"}
  </button>
  </div>
 

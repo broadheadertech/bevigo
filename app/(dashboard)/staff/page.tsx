@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Pagination, usePagination } from "@/components/ui/pagination";
+import { ReferencePhotoUploader } from "@/components/staff/reference-photo-uploader";
 
 type StaffLocation = {
   locationId: Id<"locations">;
@@ -17,6 +18,7 @@ type StaffMember = {
   email?: string;
   role: "owner" | "manager" | "barista";
   status: string;
+  hourlyRate?: number;
   locations: StaffLocation[];
   updatedAt: number;
 };
@@ -27,6 +29,7 @@ type StaffFormData = {
   role: "owner" | "manager" | "barista";
   quickPin: string;
   locationIds: Id<"locations">[];
+  hourlyRate: string;
 };
 
 const emptyForm: StaffFormData = {
@@ -35,6 +38,7 @@ const emptyForm: StaffFormData = {
   role: "barista",
   quickPin: "",
   locationIds: [],
+  hourlyRate: "",
 };
 
 const ROLE_FILTERS = ["all", "owner", "manager", "barista"] as const;
@@ -58,6 +62,7 @@ export default function StaffPage() {
   const createStaff = useAction(api.staff.mutations.create);
   const updateStaff = useMutation(api.staff.mutations.update);
   const resetPin = useAction(api.staff.mutations.resetPin);
+  const setHourlyRate = useMutation(api.timesheets.mutations.setHourlyRate);
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<Id<"users"> | null>(null);
@@ -97,6 +102,10 @@ export default function StaffPage() {
       role: staff.role,
       quickPin: "",
       locationIds: staff.locations.map((l) => l.locationId),
+      hourlyRate:
+        staff.hourlyRate !== undefined && staff.hourlyRate !== null
+          ? (staff.hourlyRate / 100).toFixed(2)
+          : "",
     });
     setEditingId(staff._id);
     setShowForm(true);
@@ -125,6 +134,17 @@ export default function StaffPage() {
             userId: editingId,
             newPin: form.quickPin,
           });
+        }
+        // Update hourly rate if owner has changed it
+        if (session.role === "owner" && form.hourlyRate.trim() !== "") {
+          const parsed = parseFloat(form.hourlyRate);
+          if (!Number.isNaN(parsed) && parsed >= 0) {
+            await setHourlyRate({
+              token,
+              userId: editingId,
+              hourlyRate: Math.round(parsed * 100),
+            });
+          }
         }
       } else {
         await createStaff({
@@ -349,6 +369,28 @@ export default function StaffPage() {
                   placeholder={editingId ? "Leave blank to keep current PIN" : "e.g. 1234"}
                 />
               </div>
+
+              {editingId && (
+                <ReferencePhotoUploader token={token} userId={editingId} />
+              )}
+
+              {editingId && session.role === "owner" && (
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-fg)' }}>
+                    Hourly Rate (₱)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.hourlyRate}
+                    onChange={(e) => setForm({ ...form, hourlyRate: e.target.value })}
+                    className="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-colors"
+                    style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
+                    placeholder="e.g. 100.00"
+                  />
+                </div>
+              )}
 
               <div className="flex justify-end gap-3 mt-2">
                 <button

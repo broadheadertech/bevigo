@@ -194,6 +194,66 @@ export const updatePointsEarnRate = mutation({
   },
 });
 
+export const updatePayrollSettings = mutation({
+  args: {
+    token: v.string(),
+    overtimeDailyHours: v.number(),
+    overtimeMultiplier: v.number(), // basis points
+    autoClockOutHours: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner"]);
+
+    if (args.overtimeDailyHours < 0 || args.overtimeDailyHours > 24) {
+      throw new ConvexError("Daily OT hours must be between 0 and 24");
+    }
+    if (args.overtimeMultiplier < 10000) {
+      throw new ConvexError("OT multiplier must be at least 1.0x (10000)");
+    }
+    if (args.autoClockOutHours < 1 || args.autoClockOutHours > 48) {
+      throw new ConvexError("Auto clock-out hours must be between 1 and 48");
+    }
+
+    const existing = await ctx.db
+      .query("tenantSettings")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", session.tenantId))
+      .unique();
+
+    const fields = {
+      overtimeDailyHours: args.overtimeDailyHours,
+      overtimeMultiplier: args.overtimeMultiplier,
+      autoClockOutHours: args.autoClockOutHours,
+    };
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        ...fields,
+        updatedAt: Date.now(),
+      });
+    } else {
+      await ctx.db.insert("tenantSettings", {
+        tenantId: session.tenantId,
+        idleLockTimeoutMs: 5 * 60 * 1000,
+        ...fields,
+        updatedAt: Date.now(),
+      });
+    }
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      "payroll_settings_updated",
+      "tenantSettings",
+      session.tenantId,
+      fields
+    );
+
+    return { success: true };
+  },
+});
+
 export const updateReportSchedule = mutation({
   args: {
     token: v.string(),

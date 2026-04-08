@@ -54,6 +54,9 @@ export default defineSchema({
       v.literal("barista")
     ),
     quickPinHash: v.optional(v.string()),
+    hourlyRate: v.optional(v.number()), // hourly rate in cents (e.g. 10000 = ₱100/hr)
+    referencePhotoId: v.optional(v.id("_storage")), // reference face for face recognition
+    faceDescriptor: v.optional(v.array(v.number())), // 128-d face descriptor from face-api.js
     status: v.union(
       v.literal("active"),
       v.literal("inactive"),
@@ -65,6 +68,70 @@ export default defineSchema({
     .index("by_tenant_email", ["tenantId", "email"])
     .index("by_google_id", ["googleId"])
     .index("by_tenant_status", ["tenantId", "status"]),
+
+  // Timesheets — clock in/out for payroll
+  timesheets: defineTable({
+    tenantId: v.id("tenants"),
+    userId: v.id("users"),
+    locationId: v.id("locations"),
+    clockInAt: v.number(),
+    clockOutAt: v.optional(v.number()),
+    workMinutes: v.optional(v.number()), // calculated on clock-out (excludes breaks)
+    breakMinutes: v.optional(v.number()), // total break time in minutes
+    hourlyRate: v.optional(v.number()), // snapshot at clock-out
+    earnedAmount: v.optional(v.number()), // (workMinutes - overtimeMinutes)/60 * hourlyRate + overtimeMinutes/60 * hourlyRate * otMultiplier
+    overtimeMinutes: v.optional(v.number()), // calculated minutes over the daily threshold
+    overtimeAmount: v.optional(v.number()), // OT pay portion
+    clockInPhotoId: v.optional(v.id("_storage")), // photo captured at clock-in
+    clockOutPhotoId: v.optional(v.id("_storage")), // photo captured at clock-out
+    clockInFaceMatch: v.optional(v.number()), // 0-1 confidence score from face match
+    clockOutFaceMatch: v.optional(v.number()),
+    photoFlagged: v.optional(v.boolean()), // flagged for review by owner/manager
+    status: v.union(
+      v.literal("active"),
+      v.literal("on_break"),
+      v.literal("completed"),
+      v.literal("auto_closed")
+    ),
+    approvedBy: v.optional(v.id("users")),
+    approvedAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    editedBy: v.optional(v.id("users")),
+    editedAt: v.optional(v.number()),
+    editReason: v.optional(v.string()),
+    updatedAt: v.number(),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_user", ["userId"])
+    .index("by_user_status", ["userId", "status"])
+    .index("by_tenant_location", ["tenantId", "locationId"])
+    .index("by_tenant_status", ["tenantId", "status"]),
+
+  // Break entries — multiple breaks per timesheet
+  timesheetBreaks: defineTable({
+    timesheetId: v.id("timesheets"),
+    tenantId: v.id("tenants"),
+    startedAt: v.number(),
+    endedAt: v.optional(v.number()),
+    durationMinutes: v.optional(v.number()),
+    type: v.union(v.literal("paid"), v.literal("unpaid")), // paid breaks count toward work time
+  })
+    .index("by_timesheet", ["timesheetId"])
+    .index("by_tenant", ["tenantId"]),
+
+  // Edit history for timesheets — full audit trail
+  timesheetEdits: defineTable({
+    timesheetId: v.id("timesheets"),
+    tenantId: v.id("tenants"),
+    editedBy: v.id("users"),
+    field: v.string(), // "clockInAt", "clockOutAt", "notes", etc.
+    oldValue: v.optional(v.any()),
+    newValue: v.optional(v.any()),
+    reason: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_timesheet", ["timesheetId"])
+    .index("by_tenant", ["tenantId"]),
 
   userLocations: defineTable({
     userId: v.id("users"),
@@ -103,6 +170,10 @@ export default defineSchema({
     customDomain: v.optional(v.string()),
     // Points earn rate: 1 point per X cents spent (default: 1000 = 1pt per ₱10)
     pointsEarnRate: v.optional(v.number()),
+    // Overtime config
+    overtimeDailyHours: v.optional(v.number()), // hours per day before OT kicks in (default 8)
+    overtimeMultiplier: v.optional(v.number()), // OT pay multiplier in basis points (12500 = 1.25x)
+    autoClockOutHours: v.optional(v.number()), // hours after which active timesheet auto-closes (default 12)
     updatedAt: v.number(),
   }).index("by_tenant", ["tenantId"]),
 

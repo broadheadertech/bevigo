@@ -10,4 +10,11 @@ crons.interval(
   internal.auth.sessionCleanup.deleteExpiredSessions
 );
 
+// Auto clock-out inactive timesheets
+crons.interval(
+  "auto clock out",
+  { hours: 1 },
+  internal.timesheets.cron.autoClockOutInactive
+);
+
 export default crons;

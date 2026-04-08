@@ -79,10 +79,17 @@ import type * as staffLocations_mutations from "../staffLocations/mutations.js";
 import type * as staffLocations_queries from "../staffLocations/queries.js";
 import type * as staff_internals from "../staff/internals.js";
 import type * as staff_mutations from "../staff/mutations.js";
+import type * as staff_photoMutations from "../staff/photoMutations.js";
 import type * as staff_queries from "../staff/queries.js";
 import type * as tables_mutations from "../tables/mutations.js";
 import type * as tables_queries from "../tables/queries.js";
 import type * as tables_seed from "../tables/seed.js";
+import type * as timesheets_cron from "../timesheets/cron.js";
+import type * as timesheets_mutations from "../timesheets/mutations.js";
+import type * as timesheets_photoMutations from "../timesheets/photoMutations.js";
+import type * as timesheets_pinClockAction from "../timesheets/pinClockAction.js";
+import type * as timesheets_pinClockHelpers from "../timesheets/pinClockHelpers.js";
+import type * as timesheets_queries from "../timesheets/queries.js";
 
 import type {
   ApiFromModules,
@@ -162,10 +169,17 @@ declare const fullApi: ApiFromModules<{
   "staffLocations/queries": typeof staffLocations_queries;
   "staff/internals": typeof staff_internals;
   "staff/mutations": typeof staff_mutations;
+  "staff/photoMutations": typeof staff_photoMutations;
   "staff/queries": typeof staff_queries;
   "tables/mutations": typeof tables_mutations;
   "tables/queries": typeof tables_queries;
   "tables/seed": typeof tables_seed;
+  "timesheets/cron": typeof timesheets_cron;
+  "timesheets/mutations": typeof timesheets_mutations;
+  "timesheets/photoMutations": typeof timesheets_photoMutations;
+  "timesheets/pinClockAction": typeof timesheets_pinClockAction;
+  "timesheets/pinClockHelpers": typeof timesheets_pinClockHelpers;
+  "timesheets/queries": typeof timesheets_queries;
 }>;
 
 /**
