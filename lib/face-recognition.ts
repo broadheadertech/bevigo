@@ -1,6 +1,16 @@
 "use client";
 
-import * as faceapi from "@vladmandic/face-api";
+// Dynamically import face-api so it never loads server-side.
+// This avoids "TextEncoder is not a constructor" errors from TF.js bundling.
+type FaceApi = typeof import("@vladmandic/face-api");
+let faceapiPromise: Promise<FaceApi> | null = null;
+
+async function getFaceApi(): Promise<FaceApi> {
+  if (!faceapiPromise) {
+    faceapiPromise = import("@vladmandic/face-api");
+  }
+  return faceapiPromise;
+}
 
 let modelsLoaded = false;
 let modelLoadPromise: Promise<void> | null = null;
@@ -8,10 +18,12 @@ let modelLoadPromise: Promise<void> | null = null;
 const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
 
 export async function loadFaceApiModels(): Promise<void> {
+  if (typeof window === "undefined") return;
   if (modelsLoaded) return;
   if (modelLoadPromise) return modelLoadPromise;
 
   modelLoadPromise = (async () => {
+    const faceapi = await getFaceApi();
     await Promise.all([
       faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
       faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
@@ -26,7 +38,9 @@ export async function loadFaceApiModels(): Promise<void> {
 export async function detectFaceDescriptor(
   imageElement: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement
 ): Promise<Float32Array | null> {
+  if (typeof window === "undefined") return null;
   await loadFaceApiModels();
+  const faceapi = await getFaceApi();
   const detection = await faceapi
     .detectSingleFace(imageElement, new faceapi.TinyFaceDetectorOptions())
     .withFaceLandmarks()

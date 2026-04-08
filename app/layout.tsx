@@ -49,11 +49,8 @@ export default function RootLayout({
             __html: `@media(prefers-color-scheme:dark){html,body{background-color:#0c0a09!important;color:#fafaf9!important}}html.dark,html.dark body{background-color:#0c0a09!important;color:#fafaf9!important}`,
           }}
         />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('bevigo-theme');var d=t==='dark'||(t!=='light'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches);if(d){document.documentElement.classList.add('dark')}}catch(e){}})()`
-          }}
-        />
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="/theme-init.js" />
       </head>
       <body className="min-h-full flex flex-col font-sans antialiased">
         <ConvexClientProvider>{children}</ConvexClientProvider>

@@ -14,9 +14,126 @@ import { Id } from "../_generated/dataModel";
  * and location, but the actual clock action is keyed to the staff member
  * matching the PIN.
  */
+/**
+ * Identify a staff member by PIN and return their current clock state.
+ * Used by the staff clock kiosk to know which actions are available.
+ */
+export const pinIdentify = action({
+  args: {
+    token: v.string(),
+    locationId: v.id("locations"),
+    pin: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (args.pin.length < 4 || args.pin.length > 6) {
+      throw new Error("PIN must be 4-6 digits");
+    }
+
+    const staff = await ctx.runQuery(
+      internal.timesheets.pinClockHelpers.listStaffWithPinAtLocation,
+      { token: args.token, locationId: args.locationId }
+    );
+
+    let userId: Id<"users"> | null = null;
+    let userName = "";
+    for (const s of staff) {
+      if (!s.quickPinHash) continue;
+      const valid = await bcrypt.compare(args.pin, s.quickPinHash);
+      if (valid) {
+        userId = s._id;
+        userName = s.name;
+        break;
+      }
+    }
+
+    if (!userId) throw new Error("Invalid PIN");
+
+    const state = await ctx.runQuery(
+      internal.timesheets.pinClockHelpers.getUserClockState,
+      { userId, tenantToken: args.token }
+    );
+
+    return {
+      userId,
+      userName,
+      ...state,
+    };
+  },
+});
+
+/**
+ * Perform a clock action after PIN verification.
+ * action: "clock_in" | "clock_out" | "start_break" | "end_break"
+ */
+export const pinAction = action({
+  args: {
+    token: v.string(),
+    locationId: v.id("locations"),
+    pin: v.string(),
+    actionType: v.union(
+      v.literal("clock_in"),
+      v.literal("clock_out"),
+      v.literal("start_break"),
+      v.literal("end_break")
+    ),
+    photoId: v.optional(v.id("_storage")),
+    faceMatch: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    if (args.pin.length < 4 || args.pin.length > 6) {
+      throw new Error("PIN must be 4-6 digits");
+    }
+
+    const staff = await ctx.runQuery(
+      internal.timesheets.pinClockHelpers.listStaffWithPinAtLocation,
+      { token: args.token, locationId: args.locationId }
+    );
+
+    let userId: Id<"users"> | null = null;
+    let userName = "";
+    for (const s of staff) {
+      if (!s.quickPinHash) continue;
+      const valid = await bcrypt.compare(args.pin, s.quickPinHash);
+      if (valid) {
+        userId = s._id;
+        userName = s.name;
+        break;
+      }
+    }
+
+    if (!userId) throw new Error("Invalid PIN");
+
+    const result = await ctx.runMutation(
+      internal.timesheets.pinClockHelpers.performAction,
+      {
+        userId,
+        locationId: args.locationId,
+        tenantToken: args.token,
+        actionType: args.actionType,
+      }
+    );
+
+    // Attach photo on clock_in or clock_out
+    if (args.photoId && result.timesheetId && (args.actionType === "clock_in" || args.actionType === "clock_out")) {
+      await ctx.runMutation(api.timesheets.photoMutations.attachClockPhoto, {
+        timesheetId: result.timesheetId,
+        photoId: args.photoId,
+        type: args.actionType === "clock_in" ? "clock_in" : "clock_out",
+        faceMatch: args.faceMatch,
+      });
+    }
+
+    return {
+      ...result,
+      userName,
+    };
+  },
+});
+
+// Legacy toggle action — kept for backward compat
 export const pinClock = action({
   args: {
-    token: v.string(), // owner/manager session token (for tenant scope)
+    token: v.string(),
     locationId: v.id("locations"),
     pin: v.string(),
     photoId: v.optional(v.id("_storage")),
@@ -32,32 +149,29 @@ export const pinClock = action({
       { token: args.token, locationId: args.locationId }
     );
 
-    let matchedUserId: Id<"users"> | null = null;
-    let matchedUserName = "";
+    let userId: Id<"users"> | null = null;
+    let userName = "";
     for (const s of staff) {
       if (!s.quickPinHash) continue;
       const valid = await bcrypt.compare(args.pin, s.quickPinHash);
       if (valid) {
-        matchedUserId = s._id;
-        matchedUserName = s.name;
+        userId = s._id;
+        userName = s.name;
         break;
       }
     }
 
-    if (!matchedUserId) {
-      throw new Error("Invalid PIN");
-    }
+    if (!userId) throw new Error("Invalid PIN");
 
     const result = await ctx.runMutation(
       internal.timesheets.pinClockHelpers.toggleClock,
       {
-        userId: matchedUserId,
+        userId,
         locationId: args.locationId,
         tenantToken: args.token,
       }
     );
 
-    // Attach photo if provided
     if (args.photoId && result.timesheetId) {
       await ctx.runMutation(api.timesheets.photoMutations.attachClockPhoto, {
         timesheetId: result.timesheetId,
@@ -69,7 +183,7 @@ export const pinClock = action({
 
     return {
       ...result,
-      userName: matchedUserName,
+      userName,
     };
   },
 });

@@ -16,9 +16,29 @@ import {
 const MIN_PIN = 4;
 const MAX_PIN = 6;
 
+type ActionType = "clock_in" | "clock_out" | "start_break" | "end_break";
+
+type IdentifyResult = {
+  userId: Id<"users">;
+  userName: string;
+  status: "none" | "active" | "on_break";
+  timesheetId?: Id<"timesheets">;
+  clockInAt?: number;
+  breakStartedAt?: number;
+};
+
+type SuccessState = {
+  userName: string;
+  action: "clocked_in" | "clocked_out" | "break_started" | "break_ended";
+  workMinutes?: number;
+  earnedAmount?: number;
+  faceMatch?: number;
+};
+
 export default function StaffClockPage() {
   const { token, session } = useAuth();
-  const pinClock = useAction(api.timesheets.pinClockAction.pinClock);
+  const pinIdentify = useAction(api.timesheets.pinClockAction.pinIdentify);
+  const pinAction = useAction(api.timesheets.pinClockAction.pinAction);
   const generateUploadUrl = useMutation(
     api.timesheets.photoMutations.generatePhotoUploadUrl
   );
@@ -27,13 +47,8 @@ export default function StaffClockPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shaking, setShaking] = useState(false);
-  const [success, setSuccess] = useState<{
-    userName: string;
-    action: "clocked_in" | "clocked_out";
-    workMinutes?: number;
-    earnedAmount?: number;
-    faceMatch?: number;
-  } | null>(null);
+  const [identified, setIdentified] = useState<IdentifyResult | null>(null);
+  const [success, setSuccess] = useState<SuccessState | null>(null);
 
   const cameraRef = useRef<CameraCaptureHandle>(null);
   const locationId = session?.locationIds?.[0] as Id<"locations"> | undefined;
@@ -45,67 +60,22 @@ export default function StaffClockPage() {
 
   // Preload face-api models in background
   useEffect(() => {
-    void loadFaceApiModels().catch(() => {
-      // ignore — first capture will retry
-    });
+    void loadFaceApiModels().catch(() => {});
   }, []);
 
-  const handleSubmit = useCallback(
+  // Identify the staff member by PIN
+  const handleIdentify = useCallback(
     async (currentPin: string) => {
       if (!token || !locationId || isSubmitting) return;
       setIsSubmitting(true);
       setError(null);
       try {
-        // 1. Capture photo
-        let photoId: Id<"_storage"> | undefined;
-        let faceMatchConfidence: number | undefined;
-
-        const captured = await cameraRef.current?.capture();
-        if (captured) {
-          // 2. Try face detection + matching (best effort)
-          try {
-            const descriptor = await detectFaceDescriptor(captured.video);
-            if (descriptor && faceDescriptors && faceDescriptors.length > 0) {
-              const best = findBestMatch(descriptor, faceDescriptors);
-              if (best) faceMatchConfidence = best.confidence;
-            }
-          } catch {
-            // ignore face detection errors — still upload photo
-          }
-
-          // 3. Upload photo
-          try {
-            const uploadUrl = await generateUploadUrl({});
-            const res = await fetch(uploadUrl, {
-              method: "POST",
-              headers: { "Content-Type": captured.blob.type },
-              body: captured.blob,
-            });
-            if (res.ok) {
-              const json = (await res.json()) as { storageId: Id<"_storage"> };
-              photoId = json.storageId;
-            }
-          } catch {
-            // ignore upload errors — still try to clock in
-          }
-        }
-
-        const result = await pinClock({
+        const result = await pinIdentify({
           token,
           locationId,
           pin: currentPin,
-          photoId,
-          faceMatch: faceMatchConfidence,
         });
-        setSuccess({
-          userName: result.userName,
-          action: result.action,
-          workMinutes: "workMinutes" in result ? result.workMinutes : undefined,
-          earnedAmount: "earnedAmount" in result ? result.earnedAmount : undefined,
-          faceMatch: faceMatchConfidence,
-        });
-        setPin("");
-        setTimeout(() => setSuccess(null), 4000);
+        setIdentified(result);
       } catch (err) {
         setShaking(true);
         setError(err instanceof Error ? err.message : "Invalid PIN");
@@ -115,17 +85,82 @@ export default function StaffClockPage() {
         setIsSubmitting(false);
       }
     },
-    [token, locationId, isSubmitting, pinClock, generateUploadUrl, faceDescriptors]
+    [token, locationId, isSubmitting, pinIdentify]
+  );
+
+  // Perform a clock action (after identification)
+  const handleAction = useCallback(
+    async (actionType: ActionType) => {
+      if (!token || !locationId || !identified || isSubmitting) return;
+      setIsSubmitting(true);
+      setError(null);
+      try {
+        // Capture photo for clock in/out (not for breaks)
+        let photoId: Id<"_storage"> | undefined;
+        let faceMatchConfidence: number | undefined;
+
+        if (actionType === "clock_in" || actionType === "clock_out") {
+          const captured = await cameraRef.current?.capture();
+          if (captured) {
+            try {
+              const descriptor = await detectFaceDescriptor(captured.video);
+              if (descriptor && faceDescriptors && faceDescriptors.length > 0) {
+                const best = findBestMatch(descriptor, faceDescriptors);
+                if (best) faceMatchConfidence = best.confidence;
+              }
+            } catch {}
+
+            try {
+              const uploadUrl = await generateUploadUrl({});
+              const res = await fetch(uploadUrl, {
+                method: "POST",
+                headers: { "Content-Type": captured.blob.type },
+                body: captured.blob,
+              });
+              if (res.ok) {
+                const json = (await res.json()) as { storageId: Id<"_storage"> };
+                photoId = json.storageId;
+              }
+            } catch {}
+          }
+        }
+
+        const result = await pinAction({
+          token,
+          locationId,
+          pin,
+          actionType,
+          photoId,
+          faceMatch: faceMatchConfidence,
+        });
+
+        setSuccess({
+          userName: result.userName,
+          action: result.action,
+          workMinutes: "workMinutes" in result ? result.workMinutes : undefined,
+          earnedAmount: "earnedAmount" in result ? result.earnedAmount : undefined,
+          faceMatch: faceMatchConfidence,
+        });
+        setPin("");
+        setIdentified(null);
+        setTimeout(() => setSuccess(null), 4000);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Action failed");
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [token, locationId, identified, isSubmitting, pin, pinAction, generateUploadUrl, faceDescriptors]
   );
 
   const handleDigit = (digit: string) => {
-    if (pin.length >= MAX_PIN || isSubmitting) return;
+    if (pin.length >= MAX_PIN || isSubmitting || identified) return;
     setError(null);
     setPin((prev) => prev + digit);
   };
 
   const handleBackspace = () => {
-    if (isSubmitting) return;
+    if (isSubmitting || identified) return;
     setError(null);
     setPin((prev) => prev.slice(0, -1));
   };
@@ -133,29 +168,30 @@ export default function StaffClockPage() {
   const handleClear = () => {
     setPin("");
     setError(null);
+    setIdentified(null);
   };
 
-  // Auto-submit at 6 digits
+  // Auto-identify at 6 digits
   useEffect(() => {
-    if (pin.length === MAX_PIN && !isSubmitting) {
-      const t = setTimeout(() => handleSubmit(pin), 150);
+    if (pin.length === MAX_PIN && !isSubmitting && !identified) {
+      const t = setTimeout(() => handleIdentify(pin), 150);
       return () => clearTimeout(t);
     }
-  }, [pin, isSubmitting, handleSubmit]);
+  }, [pin, isSubmitting, identified, handleIdentify]);
 
   // Keyboard support
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (isSubmitting) return;
+      if (isSubmitting || identified) return;
       if (/^\d$/.test(e.key)) handleDigit(e.key);
       else if (e.key === "Backspace") handleBackspace();
       else if (e.key === "Escape") handleClear();
-      else if (e.key === "Enter" && pin.length >= MIN_PIN) handleSubmit(pin);
+      else if (e.key === "Enter" && pin.length >= MIN_PIN) handleIdentify(pin);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pin, isSubmitting]);
+  }, [pin, isSubmitting, identified]);
 
   if (!token || !session || !locationId) {
     return (
@@ -165,11 +201,11 @@ export default function StaffClockPage() {
     );
   }
 
+  // SUCCESS SCREEN
   if (success) {
     const hours = success.workMinutes ? Math.floor(success.workMinutes / 60) : 0;
     const mins = success.workMinutes ? success.workMinutes % 60 : 0;
-    const matchPct =
-      success.faceMatch !== undefined ? Math.round(success.faceMatch * 100) : null;
+    const matchPct = success.faceMatch !== undefined ? Math.round(success.faceMatch * 100) : null;
     const matchColor =
       success.faceMatch === undefined
         ? "var(--muted-fg)"
@@ -179,65 +215,44 @@ export default function StaffClockPage() {
             ? "#f59e0b"
             : "#ef4444";
 
+    const actionLabels: Record<typeof success.action, string> = {
+      clocked_in: "Clocked In",
+      clocked_out: "Clocked Out",
+      break_started: "Break Started",
+      break_ended: "Break Ended",
+    };
+
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh]">
         <div
           className="rounded-3xl shadow-2xl px-12 py-10 text-center max-w-md w-full"
-          style={{
-            backgroundColor: "var(--card)",
-            border: "1px solid var(--border-color)",
-          }}
+          style={{ backgroundColor: "var(--card)", border: "1px solid var(--border-color)" }}
         >
           <div
             className="w-20 h-20 rounded-full mx-auto flex items-center justify-center mb-6"
-            style={{
-              backgroundColor:
-                success.action === "clocked_in"
-                  ? "rgba(34,197,94,0.15)"
-                  : "rgba(217,119,6,0.15)",
-            }}
+            style={{ backgroundColor: "rgba(34,197,94,0.15)" }}
           >
-            <svg
-              className="w-10 h-10"
-              style={{
-                color:
-                  success.action === "clocked_in" ? "#22c55e" : "var(--accent-color)",
-              }}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={3}
-            >
+            <svg className="w-10 h-10" style={{ color: "#22c55e" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
           <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--fg)" }}>
-            {success.action === "clocked_in" ? "Clocked In" : "Clocked Out"}
+            {actionLabels[success.action]}
           </h2>
-          <p className="text-lg mb-1" style={{ color: "var(--muted-fg)" }}>
-            Welcome, {success.userName}
-          </p>
+          <p className="text-lg mb-1" style={{ color: "var(--muted-fg)" }}>{success.userName}</p>
           {matchPct !== null && (
             <p className="text-sm mt-1" style={{ color: matchColor }}>
               Face match: {matchPct}%
             </p>
           )}
           {success.action === "clocked_out" && success.workMinutes !== undefined && (
-            <div
-              className="mt-6 pt-6 space-y-2"
-              style={{ borderTop: "1px solid var(--border-color)" }}
-            >
-              <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
-                Worked
-              </p>
+            <div className="mt-6 pt-6 space-y-2" style={{ borderTop: "1px solid var(--border-color)" }}>
+              <p className="text-sm" style={{ color: "var(--muted-fg)" }}>Worked</p>
               <p className="text-3xl font-bold" style={{ color: "var(--fg)" }}>
                 {hours}h {mins}m
               </p>
               {(success.earnedAmount ?? 0) > 0 && (
-                <p
-                  className="text-lg font-semibold"
-                  style={{ color: "var(--accent-color)" }}
-                >
+                <p className="text-lg font-semibold" style={{ color: "var(--accent-color)" }}>
                   Earned {formatCurrency(success.earnedAmount ?? 0)}
                 </p>
               )}
@@ -246,10 +261,7 @@ export default function StaffClockPage() {
           <button
             onClick={() => setSuccess(null)}
             className="mt-6 px-6 py-2.5 rounded-2xl text-sm font-medium"
-            style={{
-              border: "1px solid var(--border-color)",
-              color: "var(--fg)",
-            }}
+            style={{ border: "1px solid var(--border-color)", color: "var(--fg)" }}
           >
             Done
           </button>
@@ -258,6 +270,104 @@ export default function StaffClockPage() {
     );
   }
 
+  // ACTION PICKER (after PIN verified)
+  if (identified) {
+    const stateLabels: Record<typeof identified.status, string> = {
+      none: "You are not clocked in",
+      active: "You are clocked in",
+      on_break: "You are on break",
+    };
+
+    return (
+      <div className="flex flex-col items-center min-h-[70vh] py-8">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold" style={{ color: "var(--fg)" }}>
+            Hi, {identified.userName}
+          </h1>
+          <p className="text-sm mt-1" style={{ color: "var(--muted-fg)" }}>
+            {stateLabels[identified.status]}
+            {identified.clockInAt && ` since ${new Date(identified.clockInAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`}
+          </p>
+        </div>
+
+        {/* Camera preview for clock in/out */}
+        {(identified.status === "none" || identified.status === "active" || identified.status === "on_break") && (
+          <div className="w-full max-w-sm mb-6">
+            <CameraCapture ref={cameraRef} active={true} />
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div className="flex flex-col gap-3 w-full max-w-sm">
+          {identified.status === "none" && (
+            <button
+              onClick={() => handleAction("clock_in")}
+              disabled={isSubmitting}
+              className="py-4 rounded-2xl text-base font-bold text-white transition-all disabled:opacity-50"
+              style={{ backgroundColor: "#22c55e" }}
+            >
+              {isSubmitting ? "Processing..." : "Clock In"}
+            </button>
+          )}
+
+          {identified.status === "active" && (
+            <>
+              <button
+                onClick={() => handleAction("start_break")}
+                disabled={isSubmitting}
+                className="py-4 rounded-2xl text-base font-bold text-white transition-all disabled:opacity-50"
+                style={{ backgroundColor: "#f59e0b" }}
+              >
+                {isSubmitting ? "Processing..." : "Start Break"}
+              </button>
+              <button
+                onClick={() => handleAction("clock_out")}
+                disabled={isSubmitting}
+                className="py-4 rounded-2xl text-base font-bold text-white transition-all disabled:opacity-50"
+                style={{ backgroundColor: "#ef4444" }}
+              >
+                {isSubmitting ? "Processing..." : "Clock Out"}
+              </button>
+            </>
+          )}
+
+          {identified.status === "on_break" && (
+            <>
+              <button
+                onClick={() => handleAction("end_break")}
+                disabled={isSubmitting}
+                className="py-4 rounded-2xl text-base font-bold text-white transition-all disabled:opacity-50"
+                style={{ backgroundColor: "#22c55e" }}
+              >
+                {isSubmitting ? "Processing..." : "End Break"}
+              </button>
+              <button
+                onClick={() => handleAction("clock_out")}
+                disabled={isSubmitting}
+                className="py-4 rounded-2xl text-base font-bold text-white transition-all disabled:opacity-50"
+                style={{ backgroundColor: "#ef4444" }}
+              >
+                {isSubmitting ? "Processing..." : "Clock Out"}
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={handleClear}
+            disabled={isSubmitting}
+            className="py-3 rounded-2xl text-sm font-medium transition-colors"
+            style={{ border: "1px solid var(--border-color)", color: "var(--fg)" }}
+          >
+            Cancel
+          </button>
+        </div>
+
+        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+      </div>
+    );
+  }
+
+  // PIN ENTRY SCREEN
   return (
     <div className="flex flex-col items-center min-h-[70vh] py-8">
       <div className="text-center mb-6">
@@ -265,20 +375,12 @@ export default function StaffClockPage() {
           Staff Clock In/Out
         </h1>
         <p className="text-sm mt-1" style={{ color: "var(--muted-fg)" }}>
-          Enter your Quick-PIN to clock in or out
+          Enter your Quick-PIN to continue
         </p>
       </div>
 
-      {/* Camera preview */}
-      <div className="w-full max-w-xs mb-4">
-        <CameraCapture ref={cameraRef} active={true} />
-      </div>
-
       {/* PIN dots */}
-      <div
-        className={`flex gap-3 mb-4 ${shaking ? "animate-shake" : ""}`}
-        aria-label={`${pin.length} of up to ${MAX_PIN} digits entered`}
-      >
+      <div className={`flex gap-3 mb-4 ${shaking ? "animate-shake" : ""}`}>
         {Array.from({ length: MAX_PIN }).map((_, i) => (
           <div
             key={i}
@@ -295,7 +397,8 @@ export default function StaffClockPage() {
         {error && <p className="text-red-400 text-sm">{error}</p>}
       </div>
 
-      <div className="grid grid-cols-3 gap-3" role="group" aria-label="PIN keypad">
+      {/* Numpad */}
+      <div className="grid grid-cols-3 gap-3">
         {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
           <button
             key={digit}
@@ -355,17 +458,17 @@ export default function StaffClockPage() {
 
       <button
         type="button"
-        className="mt-6 w-full max-w-[232px] py-3 rounded-2xl text-sm font-bold transition-all duration-150 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-30"
+        className="mt-6 w-full max-w-[232px] py-3 rounded-2xl text-sm font-bold transition-all disabled:opacity-30"
         style={{
           backgroundColor: pin.length >= MIN_PIN ? "var(--accent-color)" : "var(--muted)",
           color: "white",
         }}
         onClick={() => {
-          if (pin.length >= MIN_PIN) handleSubmit(pin);
+          if (pin.length >= MIN_PIN) handleIdentify(pin);
         }}
         disabled={pin.length < MIN_PIN || isSubmitting}
       >
-        {isSubmitting ? "Verifying..." : "Clock In / Out"}
+        {isSubmitting ? "Verifying..." : "Continue"}
       </button>
     </div>
   );

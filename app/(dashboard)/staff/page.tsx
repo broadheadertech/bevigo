@@ -353,10 +353,11 @@ export default function StaffPage() {
                   {editingId ? "Reset Quick-PIN (leave blank to keep current)" : "Quick-PIN (4-6 digits, optional)"}
                 </label>
                 <input
-                  type="text"
+                  type="password"
                   inputMode="numeric"
                   pattern="\d{4,6}"
                   maxLength={6}
+                  autoComplete="new-password"
                   value={form.quickPin}
                   onChange={(e) =>
                     setForm({
