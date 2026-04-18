@@ -9,7 +9,26 @@ import { exportToCSV } from"@/lib/export";
 import { exportReportPDF } from"@/lib/export-pdf";
 import { formatCurrency } from"@/lib/currency";
 
-type Tab ="daily" |"product" |"hourly";
+type Tab ="daily" |"product" |"hourly" |"ledger";
+
+type LedgerRow = {
+ _id: Id<"orders">;
+ orderNumber: string;
+ completedAt: number;
+ subtotal: number;
+ total: number;
+ paymentType: string;
+ itemCount: number;
+ status: string;
+ baristaName: string;
+ customerName: string | null;
+ tableName: string | null;
+ discountAmount: number | null;
+ discountType: string | null;
+ discountValue: number | null;
+ refundedAt: number | null;
+ refundAmount: number | null;
+};
 
 type LocationOption = {
  _id: Id<"locations">;
@@ -129,6 +148,19 @@ export default function ReportsPage() {
  :"skip"
  ) as HourlyVolumeItem[] | undefined;
 
+ const ledger = useQuery(
+ api.orders.historyQueries.listOrderHistory,
+ token && activeTab ==="ledger" && (session?.role ==="owner" || session?.role ==="manager")
+ ? {
+ token,
+ locationId,
+ startDate,
+ endDate,
+ limit: 1000,
+ }
+ :"skip"
+ ) as LedgerRow[] | undefined;
+
  if (!token || !session) {
  return (
  <div className="flex items-center justify-center h-64">
@@ -138,6 +170,7 @@ export default function ReportsPage() {
  }
 
  const tabs: Array<{ key: Tab; label: string }> = [
+ { key:"ledger", label:"Sales Ledger" },
  { key:"daily", label:"Daily Summary" },
  { key:"product", label:"Product Mix" },
  { key:"hourly", label:"Hourly Volume" },
@@ -175,6 +208,21 @@ export default function ReportsPage() {
  transactionCount: h.transactionCount,
  revenue: h.revenue,
  })),"hourly-volume.csv");
+ } else if (activeTab ==="ledger" && ledger) {
+ exportToCSV(ledger.map((o: LedgerRow) => ({
+"Date/Time": new Date(o.completedAt).toLocaleString(),
+"Order #": o.orderNumber,
+"Status": o.status === "voided"?"Voided" : o.refundedAt?"Refunded" :"Completed",
+"Cashier": o.baristaName,
+"Customer / Table": o.customerName ?? o.tableName ?? "",
+"Items": o.itemCount,
+"Gross": (o.subtotal / 100).toFixed(2),
+"Discount": ((o.discountAmount ?? 0) / 100).toFixed(2),
+"Tax": ((o.total - o.subtotal + (o.discountAmount ?? 0)) / 100).toFixed(2),
+"Refund": ((o.refundAmount ?? 0) / 100).toFixed(2),
+"Net": (((o.status === "voided" ? 0 : o.total) - (o.refundAmount ?? 0)) / 100).toFixed(2),
+"Payment": o.paymentType,
+ })),"sales-ledger.csv");
  }
  }}
  className="px-3 py-2 text-sm rounded-xl"
@@ -301,6 +349,9 @@ export default function ReportsPage() {
  </div>
 
  {/* Tab Content */}
+ {activeTab ==="ledger" && (
+ <LedgerTab data={ledger} />
+ )}
  {activeTab ==="daily" && (
  <DailySummaryTab data={dailySummary} />
  )}
@@ -309,6 +360,193 @@ export default function ReportsPage() {
  )}
  {activeTab ==="hourly" && (
  <HourlyVolumeTab data={hourlyVolume} />
+ )}
+ </div>
+ );
+}
+
+function LedgerTab({ data }: { data: LedgerRow[] | undefined }) {
+ if (!data) {
+ return (
+ <div className="text-center py-12" style={{ color: 'var(--muted-fg)' }}>
+ Loading sales ledger...
+ </div>
+ );
+ }
+
+ if (data.length === 0) {
+ return (
+ <div className="text-center py-12 rounded-2xl" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)', color: 'var(--muted-fg)' }}>
+ No orders in this date range.
+ </div>
+ );
+ }
+
+ const totals = data.reduce(
+ (acc, o) => {
+ const isVoided = o.status === "voided";
+ const isRefunded = !!o.refundedAt;
+ const discount = o.discountAmount ?? 0;
+ const refund = o.refundAmount ?? 0;
+ const tax = o.total - o.subtotal + discount;
+ const net = (isVoided ? 0 : o.total) - refund;
+ return {
+ gross: acc.gross + (isVoided ? 0 : o.subtotal),
+ discount: acc.discount + (isVoided ? 0 : discount),
+ tax: acc.tax + (isVoided ? 0 : tax),
+ refund: acc.refund + refund,
+ net: acc.net + net,
+ completed: acc.completed + (isVoided ? 0 : 1),
+ voided: acc.voided + (isVoided ? 1 : 0),
+ refunded: acc.refunded + (isRefunded && !isVoided ? 1 : 0),
+ };
+ },
+ { gross: 0, discount: 0, tax: 0, refund: 0, net: 0, completed: 0, voided: 0, refunded: 0 }
+ );
+
+ return (
+ <div className="space-y-4">
+ {/* Summary cards */}
+ <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+ <SummaryCard label="Orders" value={`${totals.completed}`} sub={`${totals.refunded} refunded · ${totals.voided} voided`} />
+ <SummaryCard label="Gross" value={formatCurrency(totals.gross)} />
+ <SummaryCard label="Discounts" value={`− ${formatCurrency(totals.discount)}`} />
+ <SummaryCard label="Tax" value={formatCurrency(totals.tax)} />
+ <SummaryCard label="Net Total" value={formatCurrency(totals.net)} highlight />
+ </div>
+
+ {/* Ledger table */}
+ <div className="rounded-2xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+ <table className="w-full text-xs min-w-[1000px]">
+ <thead>
+ <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
+ <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Date / Time</th>
+ <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Order #</th>
+ <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Cashier</th>
+ <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Customer / Table</th>
+ <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Items</th>
+ <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Gross</th>
+ <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Discount</th>
+ <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Tax</th>
+ <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Refund</th>
+ <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Net</th>
+ <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Payment</th>
+ <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Status</th>
+ </tr>
+ </thead>
+ <tbody>
+ {data.map((o: LedgerRow) => {
+ const isVoided = o.status === "voided";
+ const isRefunded = !!o.refundedAt;
+ const discount = o.discountAmount ?? 0;
+ const refund = o.refundAmount ?? 0;
+ const tax = o.total - o.subtotal + discount;
+ const net = (isVoided ? 0 : o.total) - refund;
+ return (
+ <tr
+ key={o._id}
+ style={{
+ borderBottom: '1px solid var(--border-color)',
+ opacity: isVoided ? 0.5 : 1,
+ }}
+ >
+ <td className="px-3 py-2 whitespace-nowrap" style={{ color: 'var(--muted-fg)' }}>
+ {new Date(o.completedAt).toLocaleString(undefined, {
+ month: 'short', day: 'numeric', year: 'numeric',
+ hour: 'numeric', minute: '2-digit', hour12: true,
+ })}
+ </td>
+ <td className="px-3 py-2 font-mono" style={{ color: 'var(--fg)' }}>{o.orderNumber}</td>
+ <td className="px-3 py-2" style={{ color: 'var(--fg)' }}>{o.baristaName}</td>
+ <td className="px-3 py-2" style={{ color: 'var(--muted-fg)' }}>{o.customerName ?? o.tableName ?? '—'}</td>
+ <td className="px-3 py-2 text-right font-mono">{o.itemCount}</td>
+ <td className="px-3 py-2 text-right font-mono">{formatCurrency(o.subtotal)}</td>
+ <td className="px-3 py-2 text-right font-mono" style={{ color: discount > 0 ? '#ef4444' : 'var(--muted-fg)' }}>
+ {discount > 0 ? `− ${formatCurrency(discount)}` : '—'}
+ </td>
+ <td className="px-3 py-2 text-right font-mono">{formatCurrency(tax)}</td>
+ <td className="px-3 py-2 text-right font-mono" style={{ color: refund > 0 ? '#ef4444' : 'var(--muted-fg)' }}>
+ {refund > 0 ? `− ${formatCurrency(refund)}` : '—'}
+ </td>
+ <td className="px-3 py-2 text-right font-mono font-semibold" style={{ color: 'var(--fg)' }}>
+ {formatCurrency(net)}
+ </td>
+ <td className="px-3 py-2 capitalize" style={{ color: 'var(--muted-fg)' }}>
+ {o.paymentType === 'ewallet' ? 'E-Wallet' : o.paymentType}
+ </td>
+ <td className="px-3 py-2">
+ <span
+ className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium"
+ style={
+ isVoided
+ ? { backgroundColor: 'rgba(239,68,68,0.15)', color: '#ef4444' }
+ : isRefunded
+ ? { backgroundColor: 'rgba(245,158,11,0.15)', color: '#d97706' }
+ : { backgroundColor: 'rgba(16,185,129,0.15)', color: '#059669' }
+ }
+ >
+ {isVoided ? 'Voided' : isRefunded ? 'Refunded' : 'Completed'}
+ </span>
+ </td>
+ </tr>
+ );
+ })}
+ </tbody>
+ <tfoot>
+ <tr style={{ backgroundColor: 'var(--muted)', borderTop: '1px solid var(--border-color)' }}>
+ <td colSpan={4} className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Totals</td>
+ <td className="px-3 py-2.5 text-right font-mono font-semibold" style={{ color: 'var(--fg)' }}>
+ {data.reduce((s, o) => s + o.itemCount, 0)}
+ </td>
+ <td className="px-3 py-2.5 text-right font-mono font-semibold" style={{ color: 'var(--fg)' }}>
+ {formatCurrency(totals.gross)}
+ </td>
+ <td className="px-3 py-2.5 text-right font-mono font-semibold" style={{ color: totals.discount > 0 ? '#ef4444' : 'var(--muted-fg)' }}>
+ − {formatCurrency(totals.discount)}
+ </td>
+ <td className="px-3 py-2.5 text-right font-mono font-semibold" style={{ color: 'var(--fg)' }}>
+ {formatCurrency(totals.tax)}
+ </td>
+ <td className="px-3 py-2.5 text-right font-mono font-semibold" style={{ color: totals.refund > 0 ? '#ef4444' : 'var(--muted-fg)' }}>
+ − {formatCurrency(totals.refund)}
+ </td>
+ <td className="px-3 py-2.5 text-right font-mono font-bold" style={{ color: 'var(--accent-color)' }}>
+ {formatCurrency(totals.net)}
+ </td>
+ <td colSpan={2}></td>
+ </tr>
+ </tfoot>
+ </table>
+ </div>
+
+ <p className="text-xs" style={{ color: 'var(--muted-fg)' }}>
+ Net = Gross − Discount + Tax − Refund. Voided orders do not contribute to Net.
+ </p>
+ </div>
+ );
+}
+
+function SummaryCard({
+ label,
+ value,
+ sub,
+ highlight,
+}: { label: string; value: string; sub?: string; highlight?: boolean }) {
+ return (
+ <div
+ className="rounded-2xl p-4"
+ style={{
+ backgroundColor: highlight ? 'var(--accent-color)' : 'var(--card)',
+ border: '1px solid var(--border-color)',
+ color: highlight ? 'white' : 'var(--fg)',
+ }}
+ >
+ <p className="text-[10px] font-semibold uppercase tracking-widest opacity-70">
+ {label}
+ </p>
+ <p className="text-xl font-bold mt-1 font-mono">{value}</p>
+ {sub && (
+ <p className="text-[10px] mt-0.5 opacity-70">{sub}</p>
  )}
  </div>
  );
