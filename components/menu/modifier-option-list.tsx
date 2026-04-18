@@ -12,11 +12,13 @@ type Modifier = {
  priceAdjustment: number;
  sortOrder: number;
  status:"active" |"inactive";
+ isDefault?: boolean;
 };
 
 type ModifierOptionListProps = {
  groupId: Id<"modifierGroups">;
  modifiers: Modifier[];
+ maxSelect?: number; // single-select groups use exclusive default
 };
 
 function formatPrice(cents: number): string {
@@ -28,12 +30,15 @@ function formatPrice(cents: number): string {
 export function ModifierOptionList({
  groupId,
  modifiers,
+ maxSelect = 1,
 }: ModifierOptionListProps) {
  const { token } = useAuth();
  const addModifier = useMutation(api.menu.modifierMutations.addModifier);
  const updateModifier = useMutation(
  api.menu.modifierMutations.updateModifier
  );
+ const setAsDefault = useMutation(api.menu.modifierMutations.setAsDefault);
+ const clearDefault = useMutation(api.menu.modifierMutations.clearDefault);
 
  const [showAddForm, setShowAddForm] = useState(false);
  const [editingId, setEditingId] = useState<Id<"modifiers"> | null>(null);
@@ -127,6 +132,15 @@ export function ModifierOptionList({
  });
  };
 
+ const handleToggleDefault = async (mod: Modifier) => {
+ if (!token) return;
+ if (mod.isDefault) {
+ await clearDefault({ token, modifierId: mod._id });
+ } else {
+ await setAsDefault({ token, modifierId: mod._id, exclusive: maxSelect === 1 });
+ }
+ };
+
  return (
  <div className="mt-3">
  {error && (
@@ -189,6 +203,11 @@ export function ModifierOptionList({
  <span className="text-xs">
  {formatPrice(mod.priceAdjustment)}
  </span>
+ {mod.isDefault && (
+ <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 font-medium">
+ Default
+ </span>
+ )}
  {mod.status ==="inactive" && (
  <span className="text-xs px-1.5 py-0.5 rounded-full">
  inactive
@@ -196,6 +215,13 @@ export function ModifierOptionList({
  )}
  </div>
  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+ <button
+ onClick={() => handleToggleDefault(mod)}
+ className="text-xs"
+ style={{ color: mod.isDefault ? 'var(--muted-fg)' : 'var(--accent-color)' }}
+ >
+ {mod.isDefault ?"Unset default" :"Set as default"}
+ </button>
  <button
  onClick={() => startEdit(mod)}
  className="text-xs"

@@ -107,6 +107,7 @@ export const getReceipt = query({
           name: item.itemName,
           quantity: item.quantity,
           subtotal: item.subtotal,
+          customerLabel: item.customerLabel,
           modifiers: modifiers.map((mod: (typeof modifiers)[number]) => ({
             name: mod.modifierName,
             priceAdj: mod.priceAdjustment,
@@ -124,6 +125,15 @@ export const getReceipt = query({
     const user = await ctx.db.get(order.userId);
     const baristaName = user?.name ?? "Unknown";
 
+    // Customer name (optional)
+    let customerName: string | undefined;
+    if (order.customerId) {
+      const customer = await ctx.db.get(order.customerId);
+      if (customer && customer.tenantId === session.tenantId) {
+        customerName = customer.name;
+      }
+    }
+
     return {
       orderNumber: order.orderNumber ?? "",
       completedAt: order.completedAt ?? order._creationTime,
@@ -131,6 +141,10 @@ export const getReceipt = query({
       locationAddress,
       baristaName,
       paymentType: order.paymentType ?? "cash",
+      payments: order.payments ?? [],
+      tableName: order.tableName,
+      customerName,
+      customerLabel: order.customerLabel,
       items: itemsWithModifiers,
       subtotal: order.subtotal,
       taxAmount: order.taxAmount,

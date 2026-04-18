@@ -2,6 +2,7 @@ import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 import { requireAuth, requireRole } from "../lib/auth";
 import { logAuditEntry } from "../audit/helpers";
+import { Id } from "../_generated/dataModel";
 
 export const getBulkPricingData = query({
   args: {
@@ -208,5 +209,136 @@ export const bulkUpdatePricing = mutation({
     );
 
     return { updated: changeLog.length, changes: changeLog };
+  },
+});
+
+export const bulkImportItems = mutation({
+  args: {
+    token: v.string(),
+    rows: v.array(
+      v.object({
+        name: v.string(),
+        category: v.string(),
+        basePrice: v.number(),
+        sku: v.optional(v.string()),
+        description: v.optional(v.string()),
+        isFeatured: v.optional(v.boolean()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner"]);
+
+    const now = Date.now();
+
+    const existingCategories = await ctx.db
+      .query("categories")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", session.tenantId))
+      .collect();
+
+    const categoryByName = new Map<string, Id<"categories">>();
+    for (const c of existingCategories) {
+      categoryByName.set(c.name.trim().toLowerCase(), c._id);
+    }
+    let nextCategorySort =
+      existingCategories.reduce((max, c) => Math.max(max, c.sortOrder), 0) + 1;
+
+    const sortByCategory = new Map<string, number>();
+    const initSort = async (categoryId: Id<"categories">) => {
+      const key = String(categoryId);
+      if (sortByCategory.has(key)) return;
+      const items = await ctx.db
+        .query("menuItems")
+        .withIndex("by_tenant_category", (q) =>
+          q.eq("tenantId", session.tenantId).eq("categoryId", categoryId)
+        )
+        .collect();
+      const max = items.reduce((m, it) => Math.max(m, it.sortOrder), 0);
+      sortByCategory.set(key, max);
+    };
+
+    let created = 0;
+    let createdCategories = 0;
+    const skipped: Array<{ row: number; reason: string }> = [];
+
+    for (let i = 0; i < args.rows.length; i++) {
+      const row = args.rows[i];
+      const rowNum = i + 1;
+
+      const name = row.name.trim();
+      const categoryName = row.category.trim();
+      if (!name) {
+        skipped.push({ row: rowNum, reason: "Missing name" });
+        continue;
+      }
+      if (!categoryName) {
+        skipped.push({ row: rowNum, reason: "Missing category" });
+        continue;
+      }
+      if (!Number.isFinite(row.basePrice) || row.basePrice <= 0) {
+        skipped.push({ row: rowNum, reason: "Invalid basePrice" });
+        continue;
+      }
+
+      const sku = row.sku?.trim() || undefined;
+      if (sku) {
+        const existing = await ctx.db
+          .query("menuItems")
+          .withIndex("by_tenant_sku", (q) =>
+            q.eq("tenantId", session.tenantId).eq("sku", sku)
+          )
+          .first();
+        if (existing) {
+          skipped.push({ row: rowNum, reason: `SKU already exists: ${sku}` });
+          continue;
+        }
+      }
+
+      const catKey = categoryName.toLowerCase();
+      let categoryId = categoryByName.get(catKey);
+      if (!categoryId) {
+        categoryId = await ctx.db.insert("categories", {
+          tenantId: session.tenantId,
+          name: categoryName,
+          sortOrder: nextCategorySort++,
+          status: "active",
+          updatedAt: now,
+        });
+        categoryByName.set(catKey, categoryId);
+        createdCategories++;
+      }
+
+      await initSort(categoryId);
+      const key = String(categoryId);
+      const nextSort = (sortByCategory.get(key) ?? 0) + 1;
+      sortByCategory.set(key, nextSort);
+
+      await ctx.db.insert("menuItems", {
+        tenantId: session.tenantId,
+        categoryId,
+        name,
+        description: row.description?.trim() || undefined,
+        basePrice: Math.round(row.basePrice),
+        sku,
+        isFeatured: row.isFeatured ?? false,
+        sortOrder: nextSort,
+        status: "active",
+        updatedAt: now,
+      });
+      created++;
+    }
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      "menu_items_bulk_imported",
+      "menuItems",
+      "bulk",
+      { created, createdCategories, skipped: skipped.length },
+    );
+
+    return { created, createdCategories, skipped };
   },
 });

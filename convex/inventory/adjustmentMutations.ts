@@ -2,6 +2,7 @@ import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { requireAuth, requireRole } from "../lib/auth";
 import { logAuditEntry } from "../audit/helpers";
+import { Id } from "../_generated/dataModel";
 
 export const logAdjustment = mutation({
   args: {
@@ -91,5 +92,122 @@ export const logAdjustment = mutation({
     );
 
     return adjustmentId;
+  },
+});
+
+export const bulkStocktake = mutation({
+  args: {
+    token: v.string(),
+    locationId: v.id("locations"),
+    rows: v.array(
+      v.object({
+        ingredientName: v.string(),
+        countedQuantity: v.number(),
+        notes: v.optional(v.string()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner", "manager"]);
+
+    const location = await ctx.db.get(args.locationId);
+    if (!location || location.tenantId !== session.tenantId) {
+      throw new Error("Location not found");
+    }
+
+    const allIngredients = await ctx.db
+      .query("ingredients")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", session.tenantId))
+      .collect();
+    const ingByName = new Map<string, Id<"ingredients">>();
+    for (const ing of allIngredients) {
+      ingByName.set(ing.name.trim().toLowerCase(), ing._id);
+    }
+
+    let recorded = 0;
+    let unchanged = 0;
+    const skipped: Array<{ row: number; reason: string }> = [];
+    const now = Date.now();
+
+    for (let i = 0; i < args.rows.length; i++) {
+      const row = args.rows[i];
+      const rowNum = i + 1;
+
+      const name = row.ingredientName.trim();
+      if (!name) {
+        skipped.push({ row: rowNum, reason: "Missing ingredientName" });
+        continue;
+      }
+      if (!Number.isFinite(row.countedQuantity) || row.countedQuantity < 0) {
+        skipped.push({ row: rowNum, reason: "Invalid countedQuantity" });
+        continue;
+      }
+      const ingredientId = ingByName.get(name.toLowerCase());
+      if (!ingredientId) {
+        skipped.push({ row: rowNum, reason: `Unknown ingredient: ${name}` });
+        continue;
+      }
+
+      const existing = await ctx.db
+        .query("ingredientStock")
+        .withIndex("by_ingredient_location", (q) =>
+          q.eq("ingredientId", ingredientId).eq("locationId", args.locationId)
+        )
+        .unique();
+
+      const before = existing?.quantity ?? 0;
+      const delta = row.countedQuantity - before;
+
+      if (delta === 0) {
+        unchanged++;
+        continue;
+      }
+
+      await ctx.db.insert("stockAdjustments", {
+        ingredientId,
+        locationId: args.locationId,
+        tenantId: session.tenantId,
+        userId: session.userId,
+        type: "stocktake",
+        quantity: delta,
+        reason: row.notes?.trim() || `Stocktake: ${before} → ${row.countedQuantity}`,
+        createdAt: now,
+      });
+
+      if (existing) {
+        await ctx.db.patch(existing._id, {
+          quantity: row.countedQuantity,
+          updatedAt: now,
+        });
+      } else {
+        await ctx.db.insert("ingredientStock", {
+          ingredientId,
+          locationId: args.locationId,
+          tenantId: session.tenantId,
+          quantity: row.countedQuantity,
+          updatedAt: now,
+        });
+      }
+
+      recorded++;
+    }
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      "stocktake_bulk_imported",
+      "stockAdjustments",
+      "bulk",
+      {
+        locationId: args.locationId,
+        recorded,
+        unchanged,
+        skipped: skipped.length,
+      }
+    );
+
+    return { recorded, unchanged, skipped };
   },
 });

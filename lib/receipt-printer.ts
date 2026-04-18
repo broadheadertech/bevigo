@@ -21,6 +21,8 @@ export type ReceiptData = {
   taxAmount: number;
   total: number;
   paymentType: string;
+  cashTendered?: number;
+  cashChange?: number;
 };
 
 // ESC/POS command constants
@@ -166,6 +168,10 @@ class ReceiptPrinter {
       receipt += CMD.BOLD_OFF;
 
       receipt += `Payment: ${data.paymentType}` + CMD.LF;
+      if (data.cashTendered !== undefined) {
+        receipt += padLine("Cash tendered", formatPrice(data.cashTendered)) + CMD.LF;
+        receipt += padLine("Change", formatPrice(data.cashChange ?? 0)) + CMD.LF;
+      }
       receipt += divider() + CMD.LF;
 
       // Footer
@@ -199,6 +205,52 @@ class ReceiptPrinter {
       await this.write(CMD.OPEN_DRAWER);
     } catch (err) {
       console.error("Failed to open cash drawer:", err);
+      this.connected = false;
+      throw err;
+    }
+  }
+
+  async printStickers(
+    stickers: Array<{
+      orderNumber: string;
+      name: string;
+      indexLabel: string;
+      time: string;
+      modifiers: Array<{ name: string }>;
+      customerName?: string;
+      tableName?: string;
+    }>
+  ): Promise<void> {
+    if (!this.connected || !this.writer) {
+      throw new Error("Printer not connected");
+    }
+    try {
+      let payload = "";
+      for (const s of stickers) {
+        payload += CMD.INIT;
+        payload += CMD.ALIGN_LEFT;
+        const tag = (s.customerName ?? s.tableName ?? "").trim();
+        if (tag.length > 0) {
+          // Name dominant: BIG NAME on top
+          payload += CMD.DOUBLE_HEIGHT;
+          payload += tag.toUpperCase() + CMD.LF;
+          payload += CMD.NORMAL;
+          payload += s.name + CMD.LF;
+        } else {
+          payload += CMD.DOUBLE_HEIGHT;
+          payload += s.name + CMD.LF;
+          payload += CMD.NORMAL;
+        }
+        for (const m of s.modifiers) {
+          payload += `+ ${m.name}` + CMD.LF;
+        }
+        payload += padLine(`${s.orderNumber} ${s.indexLabel}`, s.time) + CMD.LF;
+        payload += CMD.LF + CMD.LF;
+        payload += CMD.CUT;
+      }
+      await this.write(payload);
+    } catch (err) {
+      console.error("Failed to print stickers:", err);
       this.connected = false;
       throw err;
     }

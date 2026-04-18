@@ -9,6 +9,7 @@ import { CategoryForm } from"@/components/menu/category-form";
 import { ItemForm } from"@/components/menu/item-form";
 import { ItemCard } from"@/components/menu/item-card";
 import { ManagerMenuView } from"@/components/menu/manager-menu-view";
+import { ImportItemsModal } from"@/components/menu/import-items-modal";
 
 type Category = {
  _id: Id<"categories">;
@@ -56,6 +57,7 @@ export default function MenuPage() {
  const [showItemForm, setShowItemForm] = useState(false);
  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
  const [showFeaturedOnly, setShowFeaturedOnly] = useState(false);
+ const [showImportModal, setShowImportModal] = useState(false);
 
  if (!token || !session) {
  return (
@@ -126,6 +128,13 @@ export default function MenuPage() {
  className="px-4 py-2.5 text-sm font-medium rounded-xl transition-colors"
  >
  + Add Category
+ </button>
+ <button
+ onClick={() => setShowImportModal(true)}
+ className="px-4 py-2.5 text-sm font-medium rounded-xl transition-colors"
+ style={{ border: '1px solid var(--border-color)', color: 'var(--fg)' }}
+ >
+ Import CSV
  </button>
  <button
  onClick={() => {
@@ -282,6 +291,11 @@ export default function MenuPage() {
  setEditingItem(null);
  }}
  />
+ )}
+
+ {/* Import CSV Modal */}
+ {showImportModal && (
+ <ImportItemsModal onClose={() => setShowImportModal(false)} />
  )}
  </div>
  );

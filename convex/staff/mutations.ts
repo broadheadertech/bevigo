@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { requireAuth, requireRole, requireLocationAccess } from "../lib/auth";
 import { logAuditEntry } from "../audit/helpers";
+import { computeTimesheetTotals } from "../timesheets/mutations";
 import bcrypt from "bcryptjs";
 
 // Action because bcrypt is async and CPU-intensive
@@ -159,6 +160,148 @@ export const update = mutation({
     );
 
     return args.userId;
+  },
+});
+
+/**
+ * Soft-deactivate a staff member (or reactivate them).
+ *
+ * On deactivate, optional cascading side-effects:
+ *   - clearPin: removes their quick-PIN so they can't punch in at the kiosk
+ *   - closeActiveTimesheet: auto-closes any active/on-break timesheet
+ *   - cancelActiveLoans: marks all active staffLoans as "cancelled"
+ *   - invalidateSessions: deletes all sessions so they're logged out
+ *
+ * On reactivate, none of the cascades apply — owner re-issues PIN/loan as needed.
+ */
+export const setStatus = mutation({
+  args: {
+    token: v.string(),
+    userId: v.id("users"),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    clearPin: v.optional(v.boolean()),
+    closeActiveTimesheet: v.optional(v.boolean()),
+    cancelActiveLoans: v.optional(v.boolean()),
+    invalidateSessions: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner"]);
+
+    const target = await ctx.db.get(args.userId);
+    if (!target || target.tenantId !== session.tenantId) {
+      throw new Error("Staff not found");
+    }
+
+    if (target._id === session.userId && args.status === "inactive") {
+      throw new Error("You cannot deactivate yourself");
+    }
+
+    const now = Date.now();
+    const cascadeReport = {
+      pinCleared: false,
+      timesheetClosed: false,
+      loansCancelled: 0,
+      sessionsInvalidated: 0,
+    };
+
+    // Update the user status
+    const userPatch: Record<string, unknown> = {
+      status: args.status,
+      updatedAt: now,
+    };
+    if (args.status === "inactive" && args.clearPin && target.quickPinHash) {
+      userPatch.quickPinHash = undefined;
+      cascadeReport.pinCleared = true;
+    }
+    await ctx.db.patch(args.userId, userPatch);
+
+    if (args.status === "inactive") {
+      // Auto-close any open timesheet
+      if (args.closeActiveTimesheet) {
+        const openSheets = await ctx.db
+          .query("timesheets")
+          .withIndex("by_user", (q) => q.eq("userId", args.userId))
+          .collect();
+        for (const ts of openSheets) {
+          if (ts.status !== "active" && ts.status !== "on_break") continue;
+          // End any active break first
+          const breaks = await ctx.db
+            .query("timesheetBreaks")
+            .withIndex("by_timesheet", (q) => q.eq("timesheetId", ts._id))
+            .collect();
+          for (const b of breaks) {
+            if (!b.endedAt) {
+              const dur = Math.max(0, Math.round((now - b.startedAt) / 60000));
+              await ctx.db.patch(b._id, { endedAt: now, durationMinutes: dur });
+            }
+          }
+          const fresh = await ctx.db.get(ts._id);
+          if (!fresh) continue;
+          const totals = await computeTimesheetTotals(ctx, fresh, now);
+          await ctx.db.patch(ts._id, {
+            clockOutAt: now,
+            workMinutes: totals.workMinutes,
+            breakMinutes: totals.breakMinutes,
+            overtimeMinutes: totals.overtimeMinutes,
+            overtimeAmount: totals.overtimeAmount,
+            hourlyRate: totals.hourlyRate,
+            earnedAmount: totals.earnedAmount,
+            status: "auto_closed",
+            notes: ts.notes
+              ? `${ts.notes}\nAuto-closed on staff deactivation`
+              : "Auto-closed on staff deactivation",
+            updatedAt: now,
+          });
+          cascadeReport.timesheetClosed = true;
+        }
+      }
+
+      // Cancel active loans
+      if (args.cancelActiveLoans) {
+        const activeLoans = await ctx.db
+          .query("staffLoans")
+          .withIndex("by_user_status", (q) =>
+            q.eq("userId", args.userId).eq("status", "active")
+          )
+          .collect();
+        for (const loan of activeLoans) {
+          await ctx.db.patch(loan._id, {
+            status: "cancelled",
+            completedAt: now,
+            updatedAt: now,
+            notes: loan.notes
+              ? `${loan.notes}\nCancelled on staff deactivation`
+              : "Cancelled on staff deactivation",
+          });
+          cascadeReport.loansCancelled++;
+        }
+      }
+
+      // Invalidate sessions (forces logout)
+      if (args.invalidateSessions) {
+        const sessions = await ctx.db
+          .query("sessions")
+          .withIndex("by_user", (q) => q.eq("userId", args.userId))
+          .collect();
+        for (const s of sessions) {
+          await ctx.db.delete(s._id);
+          cascadeReport.sessionsInvalidated++;
+        }
+      }
+    }
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      args.status === "inactive" ? "staff_deactivated" : "staff_reactivated",
+      "users",
+      args.userId,
+      { ...cascadeReport, name: target.name },
+    );
+
+    return cascadeReport;
   },
 });
 

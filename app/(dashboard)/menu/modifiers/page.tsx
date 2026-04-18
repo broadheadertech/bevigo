@@ -1,12 +1,13 @@
 "use client";
 
-import { useQuery } from"convex/react";
+import { useQuery, useMutation } from"convex/react";
 import { api } from"../../../../convex/_generated/api";
 import { useAuth } from"@/lib/auth-context";
 import { useState } from"react";
 import { Id } from"../../../../convex/_generated/dataModel";
 import { ModifierGroupForm } from"@/components/menu/modifier-group-form";
 import { ModifierOptionList } from"@/components/menu/modifier-option-list";
+import { ConfirmModal } from"@/components/ui/confirm-modal";
 
 type Modifier = {
  _id: Id<"modifiers">;
@@ -39,6 +40,9 @@ export default function ModifiersPage() {
  const [showGroupForm, setShowGroupForm] = useState(false);
  const [editingGroup, setEditingGroup] = useState<ModifierGroup | null>(null);
  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+ const [confirmSeed, setConfirmSeed] = useState(false);
+ const [seedResult, setSeedResult] = useState<string | null>(null);
+ const seedSamples = useMutation(api.menu.modifierMutations.seedSampleModifiers);
 
  if (!token || !session) {
  return (
@@ -76,6 +80,16 @@ export default function ModifiersPage() {
  Manage modifier options like sizes, milk types, and add-ons.
  </p>
  </div>
+ <div className="flex gap-2">
+ {typedGroups.length === 0 && groups !== undefined && (
+ <button
+ onClick={() => setConfirmSeed(true)}
+ className="px-3 py-2 text-sm rounded-xl"
+ style={{ border: '1px solid var(--border-color)', color: 'var(--fg)' }}
+ >
+ Seed Sample Groups
+ </button>
+ )}
  <button
  onClick={() => {
  setEditingGroup(null);
@@ -86,6 +100,13 @@ export default function ModifiersPage() {
  + Add Group
  </button>
  </div>
+ </div>
+
+ {seedResult && (
+ <div className="mb-4 p-3 rounded-2xl bg-emerald-500/10 text-emerald-400 text-sm">
+ {seedResult}
+ </div>
+ )}
 
  {groups === undefined ? (
  <div className="flex items-center justify-center h-48">
@@ -147,6 +168,7 @@ export default function ModifiersPage() {
  <ModifierOptionList
  groupId={group._id}
  modifiers={group.modifiers}
+ maxSelect={group.maxSelect}
  />
  </div>
  )}
@@ -171,6 +193,26 @@ export default function ModifiersPage() {
  }}
  />
  )}
+
+ <ConfirmModal
+ open={confirmSeed}
+ title="Seed sample modifier groups?"
+ message="This adds 5 starter groups (Espresso Shots, Milk Amount, Sugar Level, Milk Type, Add-ons) with sensible defaults. Existing groups with the same names are skipped."
+ confirmLabel="Seed"
+ cancelLabel="Cancel"
+ onConfirm={async () => {
+ if (!token) return;
+ try {
+ const res = await seedSamples({ token });
+ setSeedResult(`Created ${res.groupsCreated} group${res.groupsCreated === 1 ? '' : 's'} (${res.optionsCreated} options).`);
+ } catch (err) {
+ setSeedResult(err instanceof Error ? err.message : 'Failed to seed');
+ } finally {
+ setConfirmSeed(false);
+ }
+ }}
+ onCancel={() => setConfirmSeed(false)}
+ />
  </div>
  );
 }

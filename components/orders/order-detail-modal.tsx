@@ -1,10 +1,13 @@
 "use client";
 
 import { useQuery } from "convex/react";
+import { useState } from "react";
 import { api } from "../../convex/_generated/api";
 import { useAuth } from "@/lib/auth-context";
 import { Id } from "../../convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/currency";
+import { ReceiptView } from "@/components/register/receipt-view";
+import { StickerView } from "@/components/register/sticker-view";
 
 type OrderDetailModalProps = {
   orderId: Id<"orders">;
@@ -42,6 +45,8 @@ type OrderData = {
 
 export function OrderDetailModal({ orderId, onClose, onRefund, canRefund }: OrderDetailModalProps) {
   const { token } = useAuth();
+  const [showReprintReceipt, setShowReprintReceipt] = useState(false);
+  const [showReprintStickers, setShowReprintStickers] = useState(false);
 
   const order = useQuery(
     api.orders.queries.getOrderWithItems,
@@ -214,14 +219,32 @@ export function OrderDetailModal({ orderId, onClose, onRefund, canRefund }: Orde
         )}
 
         {/* Actions */}
-        <div className="px-6 py-4 flex gap-3 shrink-0" style={{ borderTop: "1px solid var(--border-color)" }}>
+        <div className="px-6 py-4 flex flex-wrap gap-2 shrink-0" style={{ borderTop: "1px solid var(--border-color)" }}>
           <button
             onClick={onClose}
-            className="flex-1 py-3 rounded-2xl text-sm font-medium transition-colors"
+            className="px-4 py-3 rounded-2xl text-sm font-medium transition-colors"
             style={{ border: "1px solid var(--border-color)", color: "var(--fg)" }}
           >
             Close
           </button>
+          {order?.status === "completed" && (
+            <>
+              <button
+                onClick={() => setShowReprintReceipt(true)}
+                className="px-4 py-3 rounded-2xl text-sm font-medium"
+                style={{ border: "1px solid var(--border-color)", color: "var(--fg)" }}
+              >
+                Reprint Receipt
+              </button>
+              <button
+                onClick={() => setShowReprintStickers(true)}
+                className="px-4 py-3 rounded-2xl text-sm font-medium"
+                style={{ border: "1px solid var(--border-color)", color: "var(--fg)" }}
+              >
+                Reprint Stickers
+              </button>
+            </>
+          )}
           {showRefundBtn && onRefund && (
             <button
               onClick={onRefund}
@@ -232,6 +255,22 @@ export function OrderDetailModal({ orderId, onClose, onRefund, canRefund }: Orde
           )}
         </div>
       </div>
+
+      {showReprintReceipt && token && (
+        <ReceiptView
+          orderId={orderId}
+          token={token}
+          onClose={() => setShowReprintReceipt(false)}
+        />
+      )}
+
+      {showReprintStickers && token && (
+        <StickerView
+          orderId={orderId}
+          token={token}
+          onClose={() => setShowReprintStickers(false)}
+        />
+      )}
     </div>
   );
 }

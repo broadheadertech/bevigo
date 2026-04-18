@@ -6,6 +6,8 @@ import { useState } from "react";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Pagination, usePagination } from "@/components/ui/pagination";
 import { ReferencePhotoUploader } from "@/components/staff/reference-photo-uploader";
+import { StaffFinancePanel } from "@/components/staff/staff-finance-panel";
+import { DeactivateStaffDialog } from "@/components/staff/deactivate-staff-dialog";
 
 type StaffLocation = {
   locationId: Id<"locations">;
@@ -71,10 +73,14 @@ export default function StaffPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [filterRole, setFilterRole] = useState<string>("all");
+  const [showInactive, setShowInactive] = useState(false);
+  const [deactivateTarget, setDeactivateTarget] = useState<StaffMember | null>(null);
+  const setStaffStatus = useMutation(api.staff.mutations.setStatus);
 
   const typedStaffList = staffList as StaffMember[] | undefined;
   const filteredStaff = typedStaffList?.filter((s: StaffMember) => {
     if (filterRole !== "all" && s.role !== filterRole) return false;
+    if (!showInactive && s.status !== "active") return false;
     return true;
   });
 
@@ -183,7 +189,7 @@ export default function StaffPage() {
       </div>
 
       {/* Filter pills */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap items-center gap-2 mb-6">
         {ROLE_FILTERS.map((role) => (
           <button
             key={role}
@@ -197,6 +203,15 @@ export default function StaffPage() {
             {role === "all" ? "All Roles" : role}
           </button>
         ))}
+        <label className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium cursor-pointer ml-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)', color: 'var(--muted-fg)' }}>
+          <input
+            type="checkbox"
+            checked={showInactive}
+            onChange={(e) => setShowInactive(e.target.checked)}
+            className="w-3.5 h-3.5 accent-amber-500"
+          />
+          Show inactive
+        </label>
       </div>
 
       {/* Staff Table */}
@@ -264,12 +279,38 @@ export default function StaffPage() {
                     </span>
                   </td>
                   <td className="px-5 py-3.5">
-                    <button
-                      onClick={() => openEditForm(staff)}
-                      className="text-sm font-medium text-amber-400 hover:text-amber-300 transition-colors"
-                    >
-                      Edit
-                    </button>
+                    <span className="flex items-center gap-3">
+                      <button
+                        onClick={() => openEditForm(staff)}
+                        className="text-sm font-medium text-amber-400 hover:text-amber-300 transition-colors"
+                      >
+                        Edit
+                      </button>
+                      {staff.status === "active" ? (
+                        staff._id !== session.userId && (
+                          <button
+                            onClick={() => setDeactivateTarget(staff)}
+                            className="text-sm font-medium text-red-400 hover:text-red-300 transition-colors"
+                          >
+                            Deactivate
+                          </button>
+                        )
+                      ) : (
+                        <button
+                          onClick={async () => {
+                            if (!token) return;
+                            await setStaffStatus({
+                              token,
+                              userId: staff._id,
+                              status: "active",
+                            });
+                          }}
+                          className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
+                        >
+                          Reactivate
+                        </button>
+                      )}
+                    </span>
                   </td>
                 </tr>
               ))
@@ -393,6 +434,10 @@ export default function StaffPage() {
                 </div>
               )}
 
+              {editingId && session.role === "owner" && (
+                <StaffFinancePanel userId={editingId} />
+              )}
+
               <div className="flex justify-end gap-3 mt-2">
                 <button
                   type="button"
@@ -422,6 +467,13 @@ export default function StaffPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {deactivateTarget && (
+        <DeactivateStaffDialog
+          staff={{ _id: deactivateTarget._id, name: deactivateTarget.name }}
+          onClose={() => setDeactivateTarget(null)}
+        />
       )}
     </div>
   );

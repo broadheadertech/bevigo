@@ -254,6 +254,10 @@ export const updatePayrollSettings = mutation({
   },
 });
 
+function isValidHHMM(value: string): boolean {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
 export const updateReportSchedule = mutation({
   args: {
     token: v.string(),
@@ -264,10 +268,20 @@ export const updateReportSchedule = mutation({
       v.literal("monthly"),
       v.literal("none")
     ),
+    sendPartialReport: v.optional(v.boolean()),
+    partialReportTime: v.optional(v.string()),
+    dailyReportTime: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
     requireRole(session, ["owner"]);
+
+    if (args.partialReportTime && !isValidHHMM(args.partialReportTime)) {
+      throw new ConvexError("Partial report time must be HH:MM (24-hour)");
+    }
+    if (args.dailyReportTime && !isValidHHMM(args.dailyReportTime)) {
+      throw new ConvexError("Daily report time must be HH:MM (24-hour)");
+    }
 
     const existing = await ctx.db
       .query("tenantSettings")
@@ -277,6 +291,9 @@ export const updateReportSchedule = mutation({
     const scheduleFields = {
       reportEmail: args.reportEmail,
       reportFrequency: args.reportFrequency,
+      sendPartialReport: args.sendPartialReport ?? false,
+      partialReportTime: args.partialReportTime ?? "14:00",
+      dailyReportTime: args.dailyReportTime ?? "22:00",
     };
 
     if (existing) {

@@ -90,12 +90,18 @@ function todayStr(): string {
 }
 
 function dateToTimestamp(dateStr: string): number {
+  // Use local-time midnight so "today" matches the user's timezone (e.g. Manila),
+  // not UTC. Otherwise early-morning orders fall outside the visible window.
   const parts = dateStr.split("-");
-  return Date.UTC(
+  return new Date(
     parseInt(parts[0], 10),
     parseInt(parts[1], 10) - 1,
-    parseInt(parts[2], 10)
-  );
+    parseInt(parts[2], 10),
+    0,
+    0,
+    0,
+    0
+  ).getTime();
 }
 
 function formatDateTime(ts: number): string {

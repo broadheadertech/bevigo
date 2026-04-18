@@ -16,6 +16,13 @@ type ReceiptItem = {
  modifiers: ReceiptModifier[];
 };
 
+type ReceiptPayment = {
+ type: string;
+ amount: number;
+ tendered?: number;
+ change?: number;
+};
+
 type ReceiptData = {
  orderNumber: string;
  completedAt: number;
@@ -23,6 +30,7 @@ type ReceiptData = {
  locationAddress: string;
  baristaName: string;
  paymentType: string;
+ payments: ReceiptPayment[];
  items: ReceiptItem[];
  subtotal: number;
  taxAmount: number;
@@ -99,7 +107,7 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
 
  return (
  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:print:static">
- <div className="rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden print:shadow-none print:rounded-none print:max-w-none print:mx-0" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+ <div className="print-receipt rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  {/* Close button - hidden in print */}
  <div className="flex justify-end px-4 pt-3 print:hidden">
  <button
@@ -194,6 +202,26 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  <div className="mt-3 text-center text-xs">
  <p>Paid by: {formatPaymentType(receipt.paymentType)}</p>
  </div>
+
+ {/* Cash tender + change */}
+ {receipt.payments.some((p) => p.type === "cash" && p.tendered !== undefined) && (
+ <div className="mt-2 space-y-0.5">
+ {receipt.payments
+ .filter((p) => p.type === "cash" && p.tendered !== undefined)
+ .map((p, idx) => (
+ <div key={idx}>
+ <div className="flex justify-between text-xs">
+ <span>Cash tendered</span>
+ <span>{formatPrice(p.tendered ?? 0)}</span>
+ </div>
+ <div className="flex justify-between text-xs">
+ <span>Change</span>
+ <span>{formatPrice(p.change ?? 0)}</span>
+ </div>
+ </div>
+ ))}
+ </div>
+ )}
 
  {/* Divider */}
  <div className="border-t border-dashed border-stone-300 my-3" />

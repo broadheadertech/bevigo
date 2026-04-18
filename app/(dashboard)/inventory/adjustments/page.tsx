@@ -6,6 +6,7 @@ import { useAuth } from"@/lib/auth-context";
 import { useState } from"react";
 import { Id } from"../../../../convex/_generated/dataModel";
 import { AdjustmentForm } from"@/components/inventory/adjustment-form";
+import { ImportStocktakeModal } from"@/components/inventory/import-stocktake-modal";
 import { Pagination, usePagination } from"@/components/ui/pagination";
 
 type Location = {
@@ -62,6 +63,7 @@ export default function AdjustmentsPage() {
  const [typeFilter, setTypeFilter] = useState<string>("");
  const [locationFilter, setLocationFilter] = useState<string>("");
  const [showForm, setShowForm] = useState(false);
+ const [showStocktakeImport, setShowStocktakeImport] = useState(false);
 
  const locations = useQuery(
  api.settings.queries.listLocations,
@@ -114,12 +116,21 @@ export default function AdjustmentsPage() {
  Track wastage, corrections, stocktakes, and transfers
  </p>
  </div>
+ <div className="flex gap-2">
+ <button
+ onClick={() => setShowStocktakeImport(true)}
+ className="px-3 py-2 text-sm rounded-xl"
+ style={{ border: '1px solid var(--border-color)', color: 'var(--fg)' }}
+ >
+ Import Stocktake
+ </button>
  <button
  onClick={() => setShowForm(true)}
  className="px-4 py-2.5 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg" style={{ backgroundColor: 'var(--accent-color)', color: 'white' }}
  >
  + Log Adjustment
  </button>
+ </div>
  </div>
 
  {/* Filters */}
@@ -249,6 +260,11 @@ export default function AdjustmentsPage() {
  locations={activeLocations}
  onClose={() => setShowForm(false)}
  />
+ )}
+
+ {/* Import Stocktake Modal */}
+ {showStocktakeImport && (
+ <ImportStocktakeModal onClose={() => setShowStocktakeImport(false)} />
  )}
  </div>
  );

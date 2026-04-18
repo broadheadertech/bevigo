@@ -7,12 +7,14 @@ import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { useAuth } from "@/lib/auth-context";
 import { Id } from "../../convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/currency";
+import { CashTenderModal } from "./cash-tender-modal";
 
 type PaymentType = "cash" | "card" | "ewallet";
 
 type SplitPayment = {
   type: PaymentType;
   amount: number;
+  tendered?: number;
 };
 
 type PaymentDialogProps = {
@@ -42,6 +44,7 @@ export function PaymentDialog({
   const [error, setError] = useState<string | null>(null);
   const [pendingPayment, setPendingPayment] = useState<PaymentType | null>(null);
   const [pendingSplit, setPendingSplit] = useState(false);
+  const [showTender, setShowTender] = useState(false);
 
   // Split payment state
   const [splits, setSplits] = useState<SplitPayment[]>([
@@ -49,16 +52,21 @@ export function PaymentDialog({
     { type: "ewallet", amount: 0 },
   ]);
   const [splitInputs, setSplitInputs] = useState<string[]>(["", ""]);
+  const [splitTenderInputs, setSplitTenderInputs] = useState<string[]>(["", ""]);
 
   const splitTotal = splits.reduce((sum, s) => sum + s.amount, 0);
   const splitRemaining = orderTotal - splitTotal;
 
-  // Step 1: Select payment type → show confirm
+  // Step 1: Select payment type → cash opens tender modal, others show confirm
   const handleSelectPayment = (paymentType: PaymentType) => {
+    if (paymentType === "cash") {
+      setShowTender(true);
+      return;
+    }
     setPendingPayment(paymentType);
   };
 
-  // Step 2: Confirmed → process payment
+  // Step 2: Confirmed → process payment (card / ewallet)
   const handleConfirmedPayment = async () => {
     if (!token || isProcessing || !pendingPayment) return;
     setIsProcessing(true);
@@ -74,6 +82,26 @@ export function PaymentDialog({
       setError(err instanceof Error ? err.message : "Payment failed");
       setIsProcessing(false);
       setPendingPayment(null);
+    }
+  };
+
+  // Cash tender confirmed → process payment with tendered amount
+  const handleCashTendered = async (tenderedCents: number) => {
+    if (!token || isProcessing) return;
+    setIsProcessing(true);
+    setError(null);
+    try {
+      const result = await completeOrder({
+        token,
+        orderId,
+        paymentType: "cash",
+        cashTendered: tenderedCents,
+      });
+      onCompleted(result.orderNumber);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Payment failed");
+      setIsProcessing(false);
+      setShowTender(false);
     }
   };
 
@@ -95,6 +123,13 @@ export function PaymentDialog({
     if (!token || isProcessing) return;
 
     const activeSplits = splits.filter((s) => s.amount > 0);
+    // Validate cash rows have sufficient tender (if a tender was entered)
+    for (const s of activeSplits) {
+      if (s.type === "cash" && s.tendered !== undefined && s.tendered < s.amount) {
+        setError("Cash tendered is less than the cash portion");
+        return;
+      }
+    }
     setIsProcessing(true);
     setError(null);
     try {
@@ -120,18 +155,38 @@ export function PaymentDialog({
   };
 
   const updateSplitType = (index: number, type: PaymentType) => {
-    setSplits((prev) => prev.map((s, i) => (i === index ? { ...s, type } : s)));
+    setSplits((prev) =>
+      prev.map((s, i) =>
+        i === index ? { ...s, type, tendered: type === "cash" ? s.tendered : undefined } : s
+      )
+    );
+    if (type !== "cash") {
+      setSplitTenderInputs((prev) => prev.map((v, i) => (i === index ? "" : v)));
+    }
+  };
+
+  const updateSplitTender = (index: number, value: string) => {
+    setSplitTenderInputs((prev) => prev.map((v, i) => (i === index ? value : v)));
+    const parsed = parseFloat(value || "0");
+    const tendered = isNaN(parsed) ? 0 : Math.round(parsed * 100);
+    setSplits((prev) =>
+      prev.map((s, i) =>
+        i === index ? { ...s, tendered: tendered > 0 ? tendered : undefined } : s
+      )
+    );
   };
 
   const addSplit = () => {
     setSplits((prev) => [...prev, { type: "card", amount: 0 }]);
     setSplitInputs((prev) => [...prev, ""]);
+    setSplitTenderInputs((prev) => [...prev, ""]);
   };
 
   const removeSplit = (index: number) => {
     if (splits.length <= 2) return;
     setSplits((prev) => prev.filter((_, i) => i !== index));
     setSplitInputs((prev) => prev.filter((_, i) => i !== index));
+    setSplitTenderInputs((prev) => prev.filter((_, i) => i !== index));
   };
 
   const fillRemaining = (index: number) => {
@@ -211,50 +266,86 @@ export function PaymentDialog({
           <>
             {/* Split payment form */}
             <div className="p-6 space-y-4">
-              {splits.map((split, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <select
-                    value={split.type}
-                    onChange={(e) => updateSplitType(index, e.target.value as PaymentType)}
-                    className="rounded-2xl px-3 py-3 text-sm flex-1"
-                    style={{ backgroundColor: "var(--muted)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
-                  >
-                    {paymentOptions.map((opt) => (
-                      <option key={opt.type} value={opt.type}>
-                        {opt.icon} {opt.label}
-                      </option>
-                    ))}
-                  </select>
+              {splits.map((split, index) => {
+                const tendered = split.tendered ?? 0;
+                const change = split.type === "cash" && tendered > 0 ? tendered - split.amount : null;
+                return (
+                  <div key={index} className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <select
+                        value={split.type}
+                        onChange={(e) => updateSplitType(index, e.target.value as PaymentType)}
+                        className="rounded-2xl px-3 py-3 text-sm flex-1"
+                        style={{ backgroundColor: "var(--muted)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
+                      >
+                        {paymentOptions.map((opt) => (
+                          <option key={opt.type} value={opt.type}>
+                            {opt.icon} {opt.label}
+                          </option>
+                        ))}
+                      </select>
 
-                  <div className="flex-1 flex gap-2 items-center">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={splitInputs[index] ?? ""}
-                      onChange={(e) => updateSplitAmount(index, e.target.value.replace(/[^0-9.]/g, ""))}
-                      className="w-full rounded-2xl px-3 py-3 text-sm text-right"
-                      style={{ backgroundColor: "var(--muted)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
-                      placeholder="0.00"
-                    />
-                    <button
-                      onClick={() => fillRemaining(index)}
-                      className="shrink-0 text-xs font-semibold px-3 py-2 rounded-xl transition-colors"
-                      style={{ backgroundColor: "var(--accent-color)", color: "white" }}
-                    >
-                      Fill
-                    </button>
+                      <div className="flex-1 flex gap-2 items-center">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={splitInputs[index] ?? ""}
+                          onChange={(e) => updateSplitAmount(index, e.target.value.replace(/[^0-9.]/g, ""))}
+                          className="w-full rounded-2xl px-3 py-3 text-sm text-right"
+                          style={{ backgroundColor: "var(--muted)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
+                          placeholder="0.00"
+                        />
+                        <button
+                          onClick={() => fillRemaining(index)}
+                          className="shrink-0 text-xs font-semibold px-3 py-2 rounded-xl transition-colors"
+                          style={{ backgroundColor: "var(--accent-color)", color: "white" }}
+                        >
+                          Fill
+                        </button>
+                      </div>
+
+                      {splits.length > 2 && (
+                        <button
+                          onClick={() => removeSplit(index)}
+                          className="w-8 h-8 flex items-center justify-center rounded-xl text-red-400 hover:bg-red-500/10 transition-colors text-sm"
+                        >
+                          &#10005;
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Tender input only for cash rows with an amount */}
+                    {split.type === "cash" && split.amount > 0 && (
+                      <div className="ml-2 flex items-center gap-3 pl-3" style={{ borderLeft: "2px solid var(--border-color)" }}>
+                        <span className="text-xs uppercase tracking-widest font-semibold" style={{ color: "var(--muted-fg)" }}>
+                          Tendered
+                        </span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={splitTenderInputs[index] ?? ""}
+                          onChange={(e) => updateSplitTender(index, e.target.value.replace(/[^0-9.]/g, ""))}
+                          className="flex-1 rounded-xl px-3 py-2 text-sm text-right font-mono"
+                          style={{ backgroundColor: "var(--muted)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
+                          placeholder="0.00"
+                        />
+                        {change !== null && tendered > 0 && (
+                          <span
+                            className="text-xs font-mono font-semibold whitespace-nowrap"
+                            style={{
+                              color: change < 0 ? "#ef4444" : "var(--accent-color)",
+                            }}
+                          >
+                            {change < 0
+                              ? `Short ${formatCurrency(-change)}`
+                              : `Change ${formatCurrency(change)}`}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
-
-                  {splits.length > 2 && (
-                    <button
-                      onClick={() => removeSplit(index)}
-                      className="w-8 h-8 flex items-center justify-center rounded-xl text-red-400 hover:bg-red-500/10 transition-colors text-sm"
-                    >
-                      &#10005;
-                    </button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
 
               {splits.length < 4 && (
                 <button
@@ -335,6 +426,16 @@ export function PaymentDialog({
         onConfirm={handleConfirmedSplitPayment}
         onCancel={() => setPendingSplit(false)}
       />
+
+      {/* Cash tender modal */}
+      {showTender && (
+        <CashTenderModal
+          totalDue={orderTotal}
+          onConfirm={handleCashTendered}
+          onCancel={() => setShowTender(false)}
+          isProcessing={isProcessing}
+        />
+      )}
     </div>
   );
 }

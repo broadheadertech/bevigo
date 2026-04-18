@@ -12,6 +12,7 @@ import { ModifierPanel } from "@/components/register/modifier-panel";
 import { PaymentDialog } from "@/components/register/payment-dialog";
 import { OrderCompleteToast } from "@/components/register/order-complete-toast";
 import { ReceiptView } from "@/components/register/receipt-view";
+import { StickerView } from "@/components/register/sticker-view";
 import { ShortcutHelp } from "@/components/register/shortcut-help";
 import { useRegisterShortcuts } from "@/hooks/use-register-shortcuts";
 import { ShiftIndicator } from "@/components/shifts/shift-indicator";
@@ -72,9 +73,12 @@ export default function RegisterPage() {
   const createDraft = useMutation(api.orders.mutations.createDraftOrder);
   const addItem = useMutation(api.orders.mutations.addItemToOrder);
   const addItemWithModifiers = useMutation(api.orders.mutations.addItemWithModifiers);
+  const addItemWithDefaults = useMutation(api.orders.mutations.addItemWithDefaults);
   const removeItem = useMutation(api.orders.mutations.removeItemFromOrder);
   const abandonOrder = useMutation(api.orders.mutations.abandonOrder);
   const removeDiscountMutation = useMutation(api.orders.mutations.removeDiscount);
+  const setItemLabelMutation = useMutation(api.orders.mutations.setItemLabel);
+  const setOrderLabelMutation = useMutation(api.orders.mutations.setOrderLabel);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState<Id<"orders"> | null>(null);
@@ -92,6 +96,7 @@ export default function RegisterPage() {
   const [showRedeemPoints, setShowRedeemPoints] = useState(false);
   const [redeemToast, setRedeemToast] = useState<string | null>(null);
   const [showDiscountDialog, setShowDiscountDialog] = useState(false);
+  const [showDraftStickers, setShowDraftStickers] = useState(false);
 
   // Printer state
   const autoPrint = useAutoPrint();
@@ -108,6 +113,7 @@ export default function RegisterPage() {
     locationAddress: string;
     baristaName: string;
     paymentType: string;
+    payments: Array<{ type: string; amount: number; tendered?: number; change?: number }>;
     items: Array<{ name: string; quantity: number; subtotal: number; modifiers: Array<{ name: string; priceAdj: number }> }>;
     subtotal: number;
     taxAmount: number;
@@ -125,6 +131,9 @@ export default function RegisterPage() {
     lastPrintedOrderId !== completedOrderId
   ) {
     lastPrintedOrderId = completedOrderId;
+    const cashWithTender = receiptForPrint.payments.find(
+      (p) => p.type === "cash" && p.tendered !== undefined
+    );
     const printData: ReceiptData = {
       shopName: receiptForPrint.locationName,
       address: receiptForPrint.locationAddress,
@@ -143,6 +152,8 @@ export default function RegisterPage() {
       taxAmount: receiptForPrint.taxAmount,
       total: receiptForPrint.total,
       paymentType: receiptForPrint.paymentType,
+      cashTendered: cashWithTender?.tendered,
+      cashChange: cashWithTender?.change,
     };
     const openDrawer = receiptForPrint.paymentType === "Cash" || receiptForPrint.paymentType === "cash";
     receiptPrinter.printReceipt(printData, openDrawer).catch((err: unknown) => {
@@ -313,12 +324,31 @@ export default function RegisterPage() {
   useBarcodeScanner({ onScan: handleBarcodeScan });
 
   const handleItemTap = useCallback(
+    async (item: LocationItem) => {
+      if (!token) return;
+      setIsProcessing(true);
+      try {
+        const orderId = await ensureDraftOrder();
+        if (!orderId) return;
+        await addItemWithDefaults({ token, orderId, menuItemId: item._id });
+      } catch (err: unknown) {
+        // If customization is required (no defaults), open the modifier panel
+        const data = (err as { data?: { code?: string } } | undefined)?.data;
+        if (data?.code === "needs_customization") {
+          setSelectedItemForModifiers(item);
+        } else {
+          console.error("Failed to add item:", err);
+        }
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [token, ensureDraftOrder, addItemWithDefaults]
+  );
+
+  const handleCustomizeItemTap = useCallback(
     (item: LocationItem) => {
       if (!token) return;
-      // Open the modifier panel for every item tap.
-      // The panel queries modifier groups for this item:
-      // - If groups exist, user selects modifiers then confirms.
-      // - If no groups exist, user sees "no modifiers" and taps "Add to Order" to add directly.
       setSelectedItemForModifiers(item);
     },
     [token]
@@ -454,6 +484,7 @@ export default function RegisterPage() {
     setCompletedOrderId(displayOrder?._id ?? null);
     setActiveOrderId(null);
     setSelectedTableId(null);
+    setShowReceipt(true);
   }, [displayOrder]);
 
   const handleDismissToast = useCallback(() => {
@@ -562,6 +593,7 @@ export default function RegisterPage() {
           categories={typedCategories}
           items={items ?? []}
           onItemTap={handleItemTap}
+          onCustomizeTap={handleCustomizeItemTap}
         />
       </div>
 
@@ -652,11 +684,21 @@ export default function RegisterPage() {
 
         <OrderPanel
           order={displayOrder as Parameters<typeof OrderPanel>[0]["order"]}
+          inheritedName={linkedCustomer?.name}
           onRemoveItem={handleRemoveItem}
           onEditItem={handleEditItem}
           onComplete={handleComplete}
           onAddDiscount={handleAddDiscount}
           onRemoveDiscount={handleRemoveDiscount}
+          onSetItemLabel={async (orderItemId, label) => {
+            if (!token) return;
+            await setItemLabelMutation({ token, orderItemId, customerLabel: label });
+          }}
+          onSetOrderLabel={async (label) => {
+            if (!token || !displayOrder) return;
+            await setOrderLabelMutation({ token, orderId: displayOrder._id, customerLabel: label });
+          }}
+          onPrintLabels={() => setShowDraftStickers(true)}
           isLoading={isProcessing}
         />
       </div>
@@ -713,6 +755,15 @@ export default function RegisterPage() {
           orderId={completedOrderId}
           token={token}
           onClose={handleCloseReceipt}
+        />
+      )}
+
+      {/* Print Labels for the current draft */}
+      {showDraftStickers && displayOrder && token && (
+        <StickerView
+          orderId={displayOrder._id}
+          token={token}
+          onClose={() => setShowDraftStickers(false)}
         />
       )}
 

@@ -1,5 +1,5 @@
 import { mutation, MutationCtx } from "../_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { Id, Doc } from "../_generated/dataModel";
 import { requireAuth, requireRole } from "../lib/auth";
 import { logAuditEntry } from "../audit/helpers";
@@ -178,6 +178,142 @@ export const addItemWithModifiers = mutation({
   },
 });
 
+export const addItemWithDefaults = mutation({
+  args: {
+    token: v.string(),
+    orderId: v.id("orders"),
+    menuItemId: v.id("menuItems"),
+    quantity: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+
+    const order = await ctx.db.get(args.orderId);
+    if (!order || order.tenantId !== session.tenantId) {
+      throw new Error("Order not found");
+    }
+    if (order.status !== "draft") {
+      throw new Error("Can only add items to draft orders");
+    }
+
+    const menuItem = await ctx.db.get(args.menuItemId);
+    if (!menuItem || menuItem.tenantId !== session.tenantId) {
+      throw new Error("Menu item not found");
+    }
+
+    const assignments = await ctx.db
+      .query("menuItemModifierGroups")
+      .withIndex("by_menu_item", (q) => q.eq("menuItemId", args.menuItemId))
+      .collect();
+
+    const chosen: Array<{ modifierName: string; priceAdjustment: number }> = [];
+    const missingRequired: string[] = [];
+
+    for (const a of assignments) {
+      const group = await ctx.db.get(a.modifierGroupId);
+      if (!group) continue;
+      const options = await ctx.db
+        .query("modifiers")
+        .withIndex("by_group", (q) => q.eq("groupId", group._id))
+        .collect();
+      const activeOptions = options.filter((o) => o.status === "active");
+      const defaults = activeOptions.filter((o) => o.isDefault);
+
+      if (defaults.length > 0) {
+        for (const d of defaults) {
+          chosen.push({
+            modifierName: d.name,
+            priceAdjustment: d.priceAdjustment,
+          });
+        }
+      } else if (group.required && group.minSelect > 0) {
+        missingRequired.push(group.name);
+      }
+    }
+
+    if (missingRequired.length > 0) {
+      throw new ConvexError({
+        code: "needs_customization",
+        message: `Customization required for: ${missingRequired.join(", ")}`,
+        groups: missingRequired,
+      });
+    }
+
+    const override = await ctx.db
+      .query("locationPriceOverrides")
+      .withIndex("by_menu_item_location", (q) =>
+        q.eq("menuItemId", args.menuItemId).eq("locationId", order.locationId)
+      )
+      .unique();
+    const effectivePrice = override?.price ?? menuItem.basePrice;
+    const qty = args.quantity ?? 1;
+
+    const modifierTotal = chosen.reduce((s, m) => s + m.priceAdjustment, 0);
+    const itemTotal = (effectivePrice + modifierTotal) * qty;
+
+    const orderItemId = await ctx.db.insert("orderItems", {
+      orderId: args.orderId,
+      menuItemId: args.menuItemId,
+      tenantId: session.tenantId,
+      itemName: menuItem.name,
+      basePrice: effectivePrice,
+      quantity: qty,
+      subtotal: itemTotal,
+    });
+
+    for (const mod of chosen) {
+      await ctx.db.insert("orderItemModifiers", {
+        orderItemId,
+        tenantId: session.tenantId,
+        modifierName: mod.modifierName,
+        priceAdjustment: mod.priceAdjustment,
+      });
+    }
+
+    await recalculateOrderTotals(ctx, args.orderId);
+    return orderItemId;
+  },
+});
+
+export const setOrderLabel = mutation({
+  args: {
+    token: v.string(),
+    orderId: v.id("orders"),
+    customerLabel: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    const order = await ctx.db.get(args.orderId);
+    if (!order || order.tenantId !== session.tenantId) {
+      throw new Error("Order not found");
+    }
+    const trimmed = args.customerLabel.trim().slice(0, 40);
+    await ctx.db.patch(args.orderId, {
+      customerLabel: trimmed.length > 0 ? trimmed : undefined,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const setItemLabel = mutation({
+  args: {
+    token: v.string(),
+    orderItemId: v.id("orderItems"),
+    customerLabel: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    const item = await ctx.db.get(args.orderItemId);
+    if (!item || item.tenantId !== session.tenantId) {
+      throw new Error("Order item not found");
+    }
+    const trimmed = args.customerLabel.trim().slice(0, 40); // sticker has limited width
+    await ctx.db.patch(args.orderItemId, {
+      customerLabel: trimmed.length > 0 ? trimmed : undefined,
+    });
+  },
+});
+
 export const removeItemFromOrder = mutation({
   args: {
     token: v.string(),
@@ -338,7 +474,10 @@ export const completeOrder = mutation({
     payments: v.optional(v.array(v.object({
       type: v.union(v.literal("cash"), v.literal("card"), v.literal("ewallet")),
       amount: v.number(),
+      tendered: v.optional(v.number()),
+      change: v.optional(v.number()),
     }))),
+    cashTendered: v.optional(v.number()), // for single-cash payments
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -392,10 +531,37 @@ export const completeOrder = mutation({
       }
     }
 
+    // Build payments array, applying tender info
+    let finalPayments = args.payments;
+    if (args.paymentType === "cash") {
+      const tendered = args.cashTendered ?? total;
+      if (tendered < total) {
+        throw new Error("Tendered amount is less than total due");
+      }
+      finalPayments = [
+        {
+          type: "cash" as const,
+          amount: total,
+          tendered,
+          change: tendered - total,
+        },
+      ];
+    } else if (args.paymentType === "split" && args.payments) {
+      finalPayments = args.payments.map((p) => {
+        if (p.type === "cash" && p.tendered !== undefined) {
+          if (p.tendered < p.amount) {
+            throw new Error("Cash tendered is less than the cash portion");
+          }
+          return { ...p, change: p.tendered - p.amount };
+        }
+        return p;
+      });
+    }
+
     await ctx.db.patch(args.orderId, {
       status: "completed",
       paymentType: args.paymentType,
-      payments: args.payments,
+      payments: finalPayments,
       orderNumber,
       subtotal,
       taxAmount,

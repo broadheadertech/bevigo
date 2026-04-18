@@ -10,6 +10,9 @@ import {
  TableFormData,
  TableData,
 } from"@/components/tables/table-form";
+import { FloorPlanCanvas } from"@/components/tables/floor-plan-canvas";
+import { FloorTabs } from"@/components/tables/floor-tabs";
+import { UnpositionedTray } from"@/components/tables/unpositioned-tray";
 
 type TableRow = {
  _id: Id<"tables">;
@@ -22,21 +25,61 @@ type TableRow = {
  orderId: Id<"orders"> | null;
 };
 
+type FloorRow = {
+ _id: Id<"floors">;
+ name: string;
+ width: number;
+ height: number;
+ sortOrder: number;
+ status: string;
+ backgroundUrl: string | null;
+};
+
+type Location = { _id: Id<"locations">; name: string; status: string };
+
 export default function TablesPage() {
  const { token, session } = useAuth();
 
+ const allLocations = useQuery(
+ api.settings.queries.listLocations,
+ token ? { token } :"skip"
+ ) as Location[] | undefined;
+
+ const activeLocations = (allLocations ?? []).filter((l) => l.status ==="active");
+
+ const [selectedLocationId, setSelectedLocationId] = useState<Id<"locations"> |"">("");
  const locationIds = session?.locationIds as Id<"locations">[] | undefined;
- const locationId = locationIds?.[0];
+ const locationId = (selectedLocationId || (locationIds?.[0] ??"")) as Id<"locations"> |"";
+
+ const floors = useQuery(
+ api.floors.queries.listFloors,
+ token && locationId ? { token, locationId: locationId as Id<"locations"> } :"skip"
+ ) as FloorRow[] | undefined;
+
+ const [activeFloorId, setActiveFloorId] = useState<Id<"floors"> | null>(null);
+ const [editMode, setEditMode] = useState(false);
+
+ // Auto-select first floor when floors load / change
+ if (floors && floors.length > 0 && !activeFloorId) {
+ setActiveFloorId(floors[0]._id);
+ }
+ if (activeFloorId && floors && !floors.find((f) => f._id === activeFloorId)) {
+ setActiveFloorId(floors[0]?._id ?? null);
+ }
+
+ const canEditFloorPlan =
+ session?.role ==="owner" || session?.role ==="manager";
 
  const tables = useQuery(
  api.tables.queries.listTables,
- token && locationId ? { token, locationId } :"skip"
+ token && locationId ? { token, locationId: locationId as Id<"locations"> } :"skip"
  ) as TableRow[] | undefined;
 
  const createTable = useMutation(api.tables.mutations.createTable);
  const updateTable = useMutation(api.tables.mutations.updateTable);
  const deleteTable = useMutation(api.tables.mutations.deleteTable);
  const seedTables = useMutation(api.tables.seed.seedTables);
+ const createFloor = useMutation(api.floors.mutations.createFloor);
 
  const [showForm, setShowForm] = useState(false);
  const [editingTable, setEditingTable] = useState<TableData | null>(null);
@@ -176,16 +219,33 @@ export default function TablesPage() {
  const zones = Object.keys(grouped).sort();
 
  return (
- <div className="max-w-5xl mx-auto px-4 py-8">
- <div className="flex items-center justify-between mb-6">
+ <div className="max-w-6xl mx-auto px-4 py-8">
+ <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
  <div>
  <h1 className="text-2xl font-bold" style={{ color:"var(--fg)" }}>
  Tables
  </h1>
  <p className="text-sm mt-1" style={{ color:"var(--muted-fg)" }}>
- Manage dine-in tables for your location
+ Manage dine-in tables and the floor plan layout
  </p>
  </div>
+ {activeLocations.length > 1 && (
+ <select
+ value={locationId as string}
+ onChange={(e) => {
+ setSelectedLocationId(e.target.value as Id<"locations"> |"");
+ setActiveFloorId(null);
+ }}
+ className="rounded-xl px-3 py-2 text-sm"
+ style={{ backgroundColor:"var(--muted)", color:"var(--fg)", border:"1px solid var(--border-color)" }}
+ >
+ {activeLocations.map((loc) => (
+ <option key={loc._id} value={loc._id}>
+ {loc.name}
+ </option>
+ ))}
+ </select>
+ )}
  <div className="flex gap-2">
  {(!tables || tables.length === 0) && (
  <button
@@ -228,6 +288,74 @@ export default function TablesPage() {
  <div className="mb-4 p-3 rounded-xl bg-red-500/10 text-red-400 text-sm">
  {error}
  </div>
+ )}
+
+ {/* Floor plan editor */}
+ {locationId && (
+ <section className="mb-8 space-y-3">
+ <div className="flex items-center justify-between gap-3 flex-wrap">
+ <h2 className="text-lg font-semibold" style={{ color:"var(--fg)" }}>
+ Floor Plan
+ </h2>
+ {canEditFloorPlan && floors && floors.length > 0 && (
+ <button
+ onClick={() => setEditMode((v) => !v)}
+ className="px-4 py-2 rounded-xl text-sm font-semibold"
+ style={editMode
+ ? { backgroundColor:"var(--accent-color)", color:"white" }
+ : { border:"1px solid var(--border-color)", color:"var(--fg)" }
+ }
+ >
+ {editMode ?"Done Editing" :"Edit Layout"}
+ </button>
+ )}
+ </div>
+
+ {floors && floors.length === 0 ? (
+ <div
+ className="rounded-2xl p-8 text-center"
+ style={{ border:"1px dashed var(--border-color)", color:"var(--muted-fg)" }}
+ >
+ <p className="text-sm mb-3">No floor plan yet for this location.</p>
+ {canEditFloorPlan && (
+ <button
+ onClick={async () => {
+ if (!token || !locationId) return;
+ const id = await createFloor({
+ token,
+ locationId: locationId as Id<"locations">,
+ name:"Main Floor",
+ });
+ setActiveFloorId(id as Id<"floors">);
+ setEditMode(true);
+ }}
+ className="px-4 py-2 text-white rounded-xl text-sm font-semibold"
+ style={{ backgroundColor:"var(--accent-color)" }}
+ >
+ Create first floor
+ </button>
+ )}
+ </div>
+ ) : (
+ <>
+ {floors && (
+ <FloorTabs
+ floors={floors}
+ activeFloorId={activeFloorId}
+ onSelect={setActiveFloorId}
+ locationId={locationId as Id<"locations">}
+ editMode={editMode}
+ />
+ )}
+ {editMode && (
+ <UnpositionedTray locationId={locationId as Id<"locations">} />
+ )}
+ {activeFloorId && (
+ <FloorPlanCanvas floorId={activeFloorId} editMode={editMode} />
+ )}
+ </>
+ )}
+ </section>
  )}
 
  {!tables ? (

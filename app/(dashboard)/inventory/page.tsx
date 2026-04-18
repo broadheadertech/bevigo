@@ -6,6 +6,7 @@ import { useAuth } from"@/lib/auth-context";
 import { useState } from"react";
 import { Id } from"../../../convex/_generated/dataModel";
 import { IngredientForm } from"@/components/inventory/ingredient-form";
+import { ImportIngredientsModal } from"@/components/inventory/import-ingredients-modal";
 import { exportToCSV } from"@/lib/export";
 import { Pagination, usePagination } from"@/components/ui/pagination";
 
@@ -46,6 +47,7 @@ export default function InventoryPage() {
  const [editingStockId, setEditingStockId] =
  useState<Id<"ingredients"> | null>(null);
  const [editingStockValue, setEditingStockValue] = useState(0);
+ const [showImportModal, setShowImportModal] = useState(false);
 
  const locations = useQuery(
  api.settings.queries.listLocations,
@@ -147,6 +149,14 @@ export default function InventoryPage() {
  Export CSV
  </button>
  {session.role ==="owner" && (
+ <>
+ <button
+ onClick={() => setShowImportModal(true)}
+ className="px-3 py-2 text-sm rounded-xl"
+ style={{ border: '1px solid var(--border-color)', color: 'var(--fg)' }}
+ >
+ Import CSV
+ </button>
  <button
  onClick={() => {
  setEditingIngredient(null);
@@ -156,6 +166,7 @@ export default function InventoryPage() {
  >
  + Add Ingredient
  </button>
+ </>
  )}
  </div>
  </div>
@@ -450,6 +461,11 @@ export default function InventoryPage() {
  setEditingIngredient(null);
  }}
  />
+ )}
+
+ {/* Import CSV Modal */}
+ {showImportModal && (
+ <ImportIngredientsModal onClose={() => setShowImportModal(false)} />
  )}
  </div>
  );

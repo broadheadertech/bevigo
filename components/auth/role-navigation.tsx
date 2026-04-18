@@ -51,6 +51,12 @@ const NAV_ITEMS: NavItem[] = [
         icon: "",
         roles: ["owner"],
       },
+      {
+        label: "Payroll",
+        href: "/payroll",
+        icon: "",
+        roles: ["owner"],
+      },
     ],
   },
   {
@@ -209,6 +215,18 @@ const NAV_ITEMS: NavItem[] = [
       {
         label: "Branding",
         href: "/settings/branding",
+        icon: "",
+        roles: ["owner"],
+      },
+      {
+        label: "Bluetooth Printers",
+        href: "/settings/bluetooth-printers",
+        icon: "",
+        roles: ["owner"],
+      },
+      {
+        label: "Email Reports",
+        href: "/settings/report-schedule",
         icon: "",
         roles: ["owner"],
       },

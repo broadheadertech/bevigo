@@ -3,7 +3,7 @@
 import { useQuery } from"convex/react";
 import { api } from"../../convex/_generated/api";
 import { Id } from"../../convex/_generated/dataModel";
-import { useState, useCallback, useMemo } from"react";
+import { useEffect, useState, useCallback, useMemo } from"react";
 
 type Modifier = {
  _id: string;
@@ -11,6 +11,7 @@ type Modifier = {
  priceAdjustment: number;
  status: string;
  sortOrder: number;
+ isDefault?: boolean;
 };
 
 type ModifierGroup = {
@@ -54,9 +55,26 @@ export function ModifierPanel({
 
  // Map of groupId -> Set of selected modifier ids
  const [selections, setSelections] = useState<Record<string, Set<string>>>({});
+ const [defaultsHydrated, setDefaultsHydrated] = useState(false);
  const [validationErrors, setValidationErrors] = useState<Set<string>>(
  new Set()
  );
+
+ // Pre-select defaults once groups arrive
+ useEffect(() => {
+ if (defaultsHydrated || !groups) return;
+ const initial: Record<string, Set<string>> = {};
+ for (const group of groups) {
+ const defaults = group.modifiers.filter(
+ (m) => m.status ==="active" && m.isDefault
+ );
+ if (defaults.length > 0) {
+ initial[group._id] = new Set(defaults.map((d) => d._id));
+ }
+ }
+ setSelections(initial);
+ setDefaultsHydrated(true);
+ }, [groups, defaultsHydrated]);
 
  const toggleModifier = useCallback(
  (group: ModifierGroup, modifierId: string) => {

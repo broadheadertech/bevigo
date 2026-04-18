@@ -6,6 +6,7 @@ import { useAuth } from"@/lib/auth-context";
 import { useState } from"react";
 import { Id } from"../../../../convex/_generated/dataModel";
 import { RecipeEditor } from"@/components/inventory/recipe-editor";
+import { ImportRecipesModal } from"@/components/inventory/import-recipes-modal";
 
 type MenuItem = {
  _id: Id<"menuItems">;
@@ -26,6 +27,7 @@ export default function RecipesPage() {
 
  const [selectedItemId, setSelectedItemId] =
  useState<Id<"menuItems"> |"">("");
+ const [showImportModal, setShowImportModal] = useState(false);
 
  const menuItems = useQuery(
  api.menu.queries.listItems,
@@ -70,11 +72,22 @@ export default function RecipesPage() {
 
  return (
  <div>
- <div className="mb-8">
+ <div className="mb-8 flex items-start justify-between gap-3">
+ <div>
  <h1 className="text-xl font-bold" style={{ color: 'var(--fg)' }}>Recipes</h1>
  <p className="text-sm mt-0.5" style={{ color: 'var(--muted-fg)' }}>
  Define ingredient recipes for menu items
  </p>
+ </div>
+ {session.role === "owner" && (
+ <button
+ onClick={() => setShowImportModal(true)}
+ className="px-3 py-2 text-sm rounded-xl"
+ style={{ border: '1px solid var(--border-color)', color: 'var(--fg)' }}
+ >
+ Import CSV
+ </button>
+ )}
  </div>
 
  <div className="flex gap-6">
@@ -140,6 +153,10 @@ export default function RecipesPage() {
  ) : null}
  </div>
  </div>
+
+ {showImportModal && (
+ <ImportRecipesModal onClose={() => setShowImportModal(false)} />
+ )}
  </div>
  );
 }

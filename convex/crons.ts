@@ -17,4 +17,11 @@ crons.interval(
   internal.timesheets.cron.autoClockOutInactive
 );
 
+// Hourly: dispatch scheduled email reports (mid-day + end-of-day) per tenant timezone
+crons.cron(
+  "dispatch scheduled reports",
+  "0 * * * *",
+  internal.reports.cron.dispatchScheduledReports
+);
+
 export default crons;

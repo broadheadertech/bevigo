@@ -142,6 +142,7 @@ export const updateModifier = mutation({
     priceAdjustment: v.optional(v.number()),
     sortOrder: v.optional(v.number()),
     status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
+    isDefault: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -158,6 +159,7 @@ export const updateModifier = mutation({
       updates.priceAdjustment = args.priceAdjustment;
     if (args.sortOrder !== undefined) updates.sortOrder = args.sortOrder;
     if (args.status !== undefined) updates.status = args.status;
+    if (args.isDefault !== undefined) updates.isDefault = args.isDefault;
 
     await ctx.db.patch(args.modifierId, updates);
 
@@ -228,6 +230,195 @@ export const assignToItem = mutation({
     );
 
     return linkId;
+  },
+});
+
+export const setAsDefault = mutation({
+  args: {
+    token: v.string(),
+    modifierId: v.id("modifiers"),
+    exclusive: v.optional(v.boolean()), // if true, clears defaults on siblings (single-select groups)
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner"]);
+
+    const modifier = await ctx.db.get(args.modifierId);
+    if (!modifier || modifier.tenantId !== session.tenantId) {
+      throw new Error("Modifier not found");
+    }
+
+    if (args.exclusive) {
+      const siblings = await ctx.db
+        .query("modifiers")
+        .withIndex("by_group", (q) => q.eq("groupId", modifier.groupId))
+        .collect();
+      for (const s of siblings) {
+        if (s._id !== args.modifierId && s.isDefault) {
+          await ctx.db.patch(s._id, {
+            isDefault: false,
+            updatedAt: Date.now(),
+          });
+        }
+      }
+    }
+
+    await ctx.db.patch(args.modifierId, {
+      isDefault: true,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const clearDefault = mutation({
+  args: { token: v.string(), modifierId: v.id("modifiers") },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner"]);
+
+    const modifier = await ctx.db.get(args.modifierId);
+    if (!modifier || modifier.tenantId !== session.tenantId) {
+      throw new Error("Modifier not found");
+    }
+    await ctx.db.patch(args.modifierId, {
+      isDefault: false,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const seedSampleModifiers = mutation({
+  args: { token: v.string() },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner"]);
+
+    const now = Date.now();
+    const existing = await ctx.db
+      .query("modifierGroups")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", session.tenantId))
+      .collect();
+    const existingNames = new Set(
+      existing.map((g) => g.name.trim().toLowerCase())
+    );
+    let nextSort = existing.reduce((m, g) => Math.max(m, g.sortOrder), 0) + 1;
+
+    const groupsToCreate: Array<{
+      name: string;
+      required: boolean;
+      minSelect: number;
+      maxSelect: number;
+      options: Array<{
+        name: string;
+        priceAdjustment: number;
+        isDefault?: boolean;
+      }>;
+    }> = [
+      {
+        name: "Espresso Shots",
+        required: true,
+        minSelect: 1,
+        maxSelect: 1,
+        options: [
+          { name: "No espresso (decaf)", priceAdjustment: -3000 },
+          { name: "Single shot", priceAdjustment: 0, isDefault: true },
+          { name: "Extra shot", priceAdjustment: 3000 },
+          { name: "Double extra", priceAdjustment: 6000 },
+        ],
+      },
+      {
+        name: "Milk Amount",
+        required: true,
+        minSelect: 1,
+        maxSelect: 1,
+        options: [
+          { name: "Less milk", priceAdjustment: 0 },
+          { name: "Normal", priceAdjustment: 0, isDefault: true },
+          { name: "More milk", priceAdjustment: 1000 },
+        ],
+      },
+      {
+        name: "Sugar Level",
+        required: true,
+        minSelect: 1,
+        maxSelect: 1,
+        options: [
+          { name: "0% (no sugar)", priceAdjustment: 0 },
+          { name: "25%", priceAdjustment: 0 },
+          { name: "50%", priceAdjustment: 0, isDefault: true },
+          { name: "75%", priceAdjustment: 0 },
+          { name: "100%", priceAdjustment: 0 },
+        ],
+      },
+      {
+        name: "Milk Type",
+        required: true,
+        minSelect: 1,
+        maxSelect: 1,
+        options: [
+          { name: "Whole", priceAdjustment: 0, isDefault: true },
+          { name: "Skim", priceAdjustment: 0 },
+          { name: "Oat", priceAdjustment: 2000 },
+          { name: "Almond", priceAdjustment: 2000 },
+        ],
+      },
+      {
+        name: "Add-ons",
+        required: false,
+        minSelect: 0,
+        maxSelect: 3,
+        options: [
+          { name: "Whipped cream", priceAdjustment: 1500 },
+          { name: "Caramel drizzle", priceAdjustment: 1500 },
+          { name: "Chocolate syrup", priceAdjustment: 1500 },
+        ],
+      },
+    ];
+
+    let groupsCreated = 0;
+    let optionsCreated = 0;
+
+    for (const g of groupsToCreate) {
+      if (existingNames.has(g.name.toLowerCase())) continue;
+
+      const groupId = await ctx.db.insert("modifierGroups", {
+        tenantId: session.tenantId,
+        name: g.name,
+        required: g.required,
+        minSelect: g.minSelect,
+        maxSelect: g.maxSelect,
+        sortOrder: nextSort++,
+        updatedAt: now,
+      });
+      groupsCreated++;
+
+      let optSort = 0;
+      for (const opt of g.options) {
+        await ctx.db.insert("modifiers", {
+          tenantId: session.tenantId,
+          groupId,
+          name: opt.name,
+          priceAdjustment: opt.priceAdjustment,
+          sortOrder: optSort++,
+          status: "active",
+          isDefault: opt.isDefault ?? false,
+          updatedAt: now,
+        });
+        optionsCreated++;
+      }
+    }
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      "modifiers_seeded",
+      "modifierGroups",
+      "bulk",
+      { groupsCreated, optionsCreated }
+    );
+
+    return { groupsCreated, optionsCreated };
   },
 });
 

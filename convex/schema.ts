@@ -161,6 +161,11 @@ export default defineSchema({
     idleLockTimeoutMs: v.number(),
     reportEmail: v.optional(v.string()),
     reportFrequency: v.optional(v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly"), v.literal("none"))),
+    sendPartialReport: v.optional(v.boolean()), // mid-day snapshot
+    partialReportTime: v.optional(v.string()), // "HH:MM" in tenant timezone, default "14:00"
+    dailyReportTime: v.optional(v.string()), // "HH:MM" for end-of-day, default "22:00"
+    lastPartialReportAt: v.optional(v.number()),
+    lastDailyReportAt: v.optional(v.number()),
     // Branding fields (Epic 15)
     brandName: v.optional(v.string()),
     brandLogoUrl: v.optional(v.string()),
@@ -234,6 +239,7 @@ export default defineSchema({
     priceAdjustment: v.number(),
     sortOrder: v.number(),
     status: v.union(v.literal("active"), v.literal("inactive")),
+    isDefault: v.optional(v.boolean()),
     updatedAt: v.number(),
   })
     .index("by_group", ["groupId"])
@@ -281,6 +287,8 @@ export default defineSchema({
     payments: v.optional(v.array(v.object({
       type: v.union(v.literal("cash"), v.literal("card"), v.literal("ewallet")),
       amount: v.number(),
+      tendered: v.optional(v.number()), // cash only: amount handed over
+      change: v.optional(v.number()), // cash only: change returned
     }))),
     taxRate: v.number(),
     taxLabel: v.string(),
@@ -296,6 +304,7 @@ export default defineSchema({
     discountReason: v.optional(v.string()), // "Senior/PWD", "Employee", "Manager", "Custom"
     discountApprovedBy: v.optional(v.id("users")), // manager/owner who approved
     customerId: v.optional(v.id("customers")),
+    customerLabel: v.optional(v.string()), // universal name for walk-in stickers
     tableId: v.optional(v.id("tables")),
     tableName: v.optional(v.string()),
     voidedBy: v.optional(v.id("users")),
@@ -317,6 +326,7 @@ export default defineSchema({
     basePrice: v.number(),
     quantity: v.number(),
     subtotal: v.number(),
+    customerLabel: v.optional(v.string()), // per-item customer name for stickers (e.g. "John")
   })
     .index("by_order", ["orderId"])
     .index("by_tenant", ["tenantId"]),
@@ -541,15 +551,57 @@ export default defineSchema({
     tenantId: v.id("tenants"),
     locationId: v.id("locations"),
     name: v.string(), // "Table 1", "Bar 2", "Outdoor A"
-    zone: v.optional(v.string()), // "Indoor", "Outdoor", "Bar", "VIP"
+    zone: v.optional(v.string()), // legacy free-text label, superseded by floorId/zoneId
     capacity: v.number(), // seats
     sortOrder: v.number(),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    // Floor-plan positioning (Option C)
+    floorId: v.optional(v.id("floors")),
+    xPos: v.optional(v.number()), // pixel coords inside the floor canvas
+    yPos: v.optional(v.number()),
+    width: v.optional(v.number()),
+    height: v.optional(v.number()),
+    shape: v.optional(v.union(v.literal("rectangle"), v.literal("circle"))),
+    rotation: v.optional(v.number()), // degrees
+    updatedAt: v.number(),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_location", ["locationId"])
+    .index("by_tenant_location", ["tenantId", "locationId"])
+    .index("by_floor", ["floorId"]),
+
+  // Floor-plan canvas — multiple per location (e.g. "1F", "2F", "Patio")
+  floors: defineTable({
+    tenantId: v.id("tenants"),
+    locationId: v.id("locations"),
+    name: v.string(),
+    sortOrder: v.number(),
+    width: v.number(), // canvas width in px (e.g. 1200)
+    height: v.number(), // canvas height in px (e.g. 800)
+    backgroundImageId: v.optional(v.id("_storage")),
     status: v.union(v.literal("active"), v.literal("inactive")),
     updatedAt: v.number(),
   })
     .index("by_tenant", ["tenantId"])
     .index("by_location", ["locationId"])
     .index("by_tenant_location", ["tenantId", "locationId"]),
+
+  // Zone shapes drawn on a floor (e.g. "Outdoor", "Bar")
+  tableZones: defineTable({
+    tenantId: v.id("tenants"),
+    locationId: v.id("locations"),
+    floorId: v.id("floors"),
+    name: v.string(),
+    color: v.string(), // hex, e.g. "#fde68a"
+    xPos: v.number(),
+    yPos: v.number(),
+    width: v.number(),
+    height: v.number(),
+    rotation: v.optional(v.number()),
+    updatedAt: v.number(),
+  })
+    .index("by_floor", ["floorId"])
+    .index("by_tenant", ["tenantId"]),
 
   auditLog: defineTable({
     tenantId: v.id("tenants"),
@@ -562,4 +614,113 @@ export default defineSchema({
   })
     .index("by_tenant_entity", ["tenantId", "entityType", "entityId"])
     .index("by_tenant_date", ["tenantId"]),
+
+  // ── Payroll ──
+
+  payPeriods: defineTable({
+    tenantId: v.id("tenants"),
+    label: v.string(), // "May 1-15, 2026"
+    startDate: v.number(), // ms timestamp at start of day
+    endDate: v.number(), // ms timestamp at END of day (inclusive)
+    status: v.union(v.literal("draft"), v.literal("finalized")),
+    finalizedAt: v.optional(v.number()),
+    finalizedBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_tenant_status", ["tenantId", "status"])
+    .index("by_tenant_start", ["tenantId", "startDate"]),
+
+  payslips: defineTable({
+    tenantId: v.id("tenants"),
+    payPeriodId: v.id("payPeriods"),
+    userId: v.id("users"),
+    userName: v.string(), // snapshot
+    regularMinutes: v.number(),
+    overtimeMinutes: v.number(),
+    hourlyRateSnapshot: v.number(), // cents per hour at time of generation
+    overtimeMultiplier: v.number(), // basis points (12500 = 1.25x)
+    grossPay: v.number(), // cents
+    allowances: v.array(
+      v.object({ label: v.string(), amount: v.number() })
+    ),
+    deductions: v.array(
+      v.object({
+        label: v.string(),
+        amount: v.number(),
+        loanId: v.optional(v.id("staffLoans")), // tag deductions tied to a loan
+      })
+    ),
+    netPay: v.number(), // cents
+    status: v.union(
+      v.literal("draft"),
+      v.literal("finalized"),
+      v.literal("paid")
+    ),
+    paidAt: v.optional(v.number()),
+    paidVia: v.optional(
+      v.union(
+        v.literal("cash"),
+        v.literal("bank"),
+        v.literal("gcash"),
+        v.literal("maya"),
+        v.literal("other")
+      )
+    ),
+    paidNote: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    updatedAt: v.number(),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_period", ["payPeriodId"])
+    .index("by_user", ["userId"])
+    .index("by_period_user", ["payPeriodId", "userId"]),
+
+  // Recurring per-staff deductions (e.g. SSS, PhilHealth, Pag-IBIG, BIR)
+  staffRecurringDeductions: defineTable({
+    tenantId: v.id("tenants"),
+    userId: v.id("users"),
+    label: v.string(),
+    amount: v.number(), // cents per period
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_user", ["userId"])
+    .index("by_user_active", ["userId", "active"]),
+
+  // In-house loans extended to staff, repaid via payroll deductions
+  staffLoans: defineTable({
+    tenantId: v.id("tenants"),
+    userId: v.id("users"),
+    principal: v.number(), // total loaned, cents
+    balanceRemaining: v.number(), // cents
+    perPeriodDeduction: v.number(), // cents auto-deducted each pay period
+    status: v.union(
+      v.literal("active"),
+      v.literal("paid_off"),
+      v.literal("cancelled")
+    ),
+    notes: v.optional(v.string()),
+    issuedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    updatedAt: v.number(),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_user", ["userId"])
+    .index("by_user_status", ["userId", "status"]),
+
+  // Repayment history per loan
+  staffLoanPayments: defineTable({
+    tenantId: v.id("tenants"),
+    loanId: v.id("staffLoans"),
+    payslipId: v.id("payslips"),
+    amount: v.number(), // cents
+    paidAt: v.number(),
+  })
+    .index("by_loan", ["loanId"])
+    .index("by_payslip", ["payslipId"])
+    .index("by_tenant", ["tenantId"]),
 });

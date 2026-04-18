@@ -3,6 +3,73 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@media print {
+  body * { visibility: hidden !important; }
+  .print-receipt, .print-receipt *,
+  .print-payslip, .print-payslip *,
+  .print-sticker, .print-sticker * { visibility: visible !important; }
+  .print-sticker {
+    position: relative !important;
+    display: block !important;
+    page-break-after: always;
+    break-after: page;
+    width: 72mm !important;
+    margin: 0 !important;
+    padding: 4mm !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+  }
+  .print-sticker:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+  .print-sticker * { color: black !important; }
+  .print-receipt {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    margin: 0 !important;
+    padding: 2mm !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    width: 72mm !important;
+    max-width: 72mm !important;
+    font-size: 10px !important;
+    line-height: 1.3 !important;
+  }
+  .print-receipt * { color: black !important; }
+  .print-receipt .text-base { font-size: 11px !important; }
+  .print-receipt .text-sm { font-size: 10px !important; }
+  .print-receipt .text-xs { font-size: 9px !important; }
+  .print-payslip {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+  }
+  .print-payslip * { color: black !important; }
+  @page { size: 80mm auto; margin: 0; }
+  html, body { margin: 0 !important; padding: 0 !important; background: white !important; }
+}
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
