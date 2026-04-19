@@ -101,9 +101,9 @@ export function OrderPanel({
   };
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--card)', color: 'var(--card-fg)', borderLeft: '1px solid var(--border-color)' }}>
+    <div className="flex flex-col flex-1 min-h-0" style={{ backgroundColor: 'var(--card)', color: 'var(--card-fg)', borderLeft: '1px solid var(--border-color)' }}>
       {/* Header */}
-      <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--muted)' }}>
+      <div className="px-4 py-3 shrink-0" style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--muted)' }}>
         <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-fg)' }}>
           Current Order
         </h2>
@@ -116,7 +116,7 @@ export function OrderPanel({
 
       {/* Universal name (applies to all stickers unless a line overrides) */}
       {hasItems && onSetOrderLabel && (
-        <div className="px-4 py-2" style={{ borderBottom: '1px solid var(--border-color)' }}>
+        <div className="px-4 py-2 shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
           <label
             htmlFor="order-label-input"
             className="block text-[10px] font-semibold uppercase tracking-widest mb-1"
@@ -149,7 +149,7 @@ export function OrderPanel({
       )}
 
       {/* Items list */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {!hasItems ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-stone-400 text-sm">Tap an item to start</p>
@@ -272,7 +272,7 @@ export function OrderPanel({
 
       {/* Totals + actions */}
       {hasItems && order && (
-        <div className="px-4 py-3" style={{ borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--muted)' }}>
+        <div className="px-4 py-3 shrink-0" style={{ borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--muted)' }}>
           {/* Add Discount button */}
           {!order.discountAmount && onAddDiscount && (
             <button

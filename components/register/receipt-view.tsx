@@ -106,10 +106,10 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  }
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:print:static">
- <div className="print-receipt rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+ <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 print:p-0 print:bg-white print:block print:items-start">
+ <div className="print-receipt rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] flex flex-col overflow-hidden print:max-h-none print:block" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  {/* Close button - hidden in print */}
- <div className="flex justify-end px-4 pt-3 print:hidden">
+ <div className="flex justify-end px-4 pt-3 shrink-0 print:hidden">
  <button
  onClick={onClose}
  className="text-stone-400 text-xl leading-none p-1"
@@ -119,7 +119,7 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  </div>
 
  {/* Receipt body */}
- <div className="px-6 pb-6 pt-2 font-mono text-sm">
+ <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6 pt-2 font-mono text-sm print:overflow-visible print:block">
  {/* Header */}
  <div className="text-center mb-4">
  <p className="text-base font-bold">{receipt.locationName}</p>
@@ -234,7 +234,7 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  </div>
 
  {/* Action buttons - hidden in print */}
- <div className="px-6 pb-6 flex gap-3 print:hidden">
+ <div className="px-6 pb-6 pt-3 flex gap-3 shrink-0 print:hidden" style={{ borderTop: '1px solid var(--border-color)' }}>
  <button
  onClick={() => window.print()}
  className="flex-1 py-2.5 font-medium rounded-2xl hover:bg-stone-200 active:bg-stone-300 transition-colors text-sm"

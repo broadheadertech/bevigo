@@ -234,14 +234,14 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-auto print:p-0 print:bg-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 print:p-0 print:bg-white print:block print:items-start">
       <div
-        className="print-sticker-host rounded-3xl shadow-2xl w-full max-w-md my-8 overflow-hidden"
+        className="print-sticker-host rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden print:max-h-none print:block"
         style={{ backgroundColor: "var(--card)", border: "1px solid var(--border-color)" }}
       >
         {/* Header (hidden in print) */}
         <div
-          className="px-6 py-4 flex items-center justify-between print:hidden"
+          className="px-6 py-4 flex items-center justify-between shrink-0 print:hidden"
           style={{ borderBottom: "1px solid var(--border-color)" }}
         >
           <div>
@@ -261,8 +261,8 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
           </button>
         </div>
 
-        {/* Sticker preview list (also what prints) */}
-        <div className="p-4 print:p-0 space-y-2 print:space-y-0">
+        {/* Sticker preview list (also what prints) — scrolls inside modal */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 print:p-0 space-y-2 print:space-y-0 print:overflow-visible">
           {stickers.map((s, i) => {
             const name = pickName(s);
             return (
