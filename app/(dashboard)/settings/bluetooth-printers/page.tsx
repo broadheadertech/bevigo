@@ -7,9 +7,21 @@ import { niimbotPrinter } from "@/lib/niimbot-printer";
 
 const NIIMBOT_KEY = "bevigo:niimbot:label";
 
-type LabelDims = { widthMm: number; heightMm: number; density: number };
+type LabelDims = {
+  widthMm: number;
+  heightMm: number;
+  density: number;
+  textScale: number;
+  gapMm: number;
+};
 
-const DEFAULT_LABEL: LabelDims = { widthMm: 30, heightMm: 15, density: 3 };
+const DEFAULT_LABEL: LabelDims = {
+  widthMm: 30,
+  heightMm: 15,
+  density: 3,
+  textScale: 1,
+  gapMm: 2,
+};
 
 export default function BluetoothPrintersPage() {
   const { session, token } = useAuth();
@@ -43,7 +55,13 @@ export default function BluetoothPrintersPage() {
           typeof parsed.heightMm === "number" &&
           typeof parsed.density === "number"
         ) {
-          setLabel(parsed);
+          setLabel({
+            widthMm: parsed.widthMm,
+            heightMm: parsed.heightMm,
+            density: parsed.density,
+            textScale: typeof parsed.textScale === "number" ? parsed.textScale : 1,
+            gapMm: typeof parsed.gapMm === "number" ? parsed.gapMm : 2,
+          });
         }
       } catch {
         // ignore parse error
@@ -131,6 +149,7 @@ export default function BluetoothPrintersPage() {
         labelWidthMm: label.widthMm,
         labelHeightMm: label.heightMm,
         density: label.density,
+        textScale: label.textScale,
         printTask: "B1",
       });
       setNiimMsg("Test sticker sent — check the printer");
@@ -227,16 +246,44 @@ export default function BluetoothPrintersPage() {
                 max={80}
               />
               <NumberField
+                label="Gap (mm)"
+                value={label.gapMm}
+                onChange={(n) => saveLabel({ ...label, gapMm: n })}
+                min={0}
+                max={10}
+                step={0.5}
+              />
+              <NumberField
                 label="Density (1-5)"
                 value={label.density}
                 onChange={(n) => saveLabel({ ...label, density: n })}
                 min={1}
                 max={5}
               />
+              <NumberField
+                label="Text scale"
+                value={label.textScale}
+                onChange={(n) => saveLabel({ ...label, textScale: n })}
+                min={0.7}
+                max={2}
+                step={0.1}
+              />
             </div>
-            <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
-              Default is 30×15mm at density 3 — common for the B1. Saved per device.
-            </p>
+            <div className="rounded-xl p-3 text-xs space-y-1.5" style={{ backgroundColor: "var(--muted)", color: "var(--muted-fg)" }}>
+              <p>
+                <strong style={{ color: "var(--fg)" }}>Height = sticker face only</strong> — measure the printable
+                face of one label, NOT including the gap to the next sticker.
+              </p>
+              <p>
+                <strong style={{ color: "var(--fg)" }}>Gap (mm)</strong> is informational. The B1 uses its
+                gap sensor to advance between labels automatically. If your prints overlap the gap, your
+                <em> Height</em> is too large; if there&apos;s a big blank area, it&apos;s too small.
+              </p>
+              <p>
+                <strong style={{ color: "var(--fg)" }}>Text scale</strong> bumps every text size on the
+                sticker. Try 1.2–1.5 if names look too small. Saved per device.
+              </p>
+            </div>
           </div>
         </PrinterCard>
       </div>
@@ -360,12 +407,14 @@ function NumberField({
   onChange,
   min,
   max,
+  step,
 }: {
   label: string;
   value: number;
   onChange: (n: number) => void;
   min: number;
   max: number;
+  step?: number;
 }) {
   return (
     <div>
@@ -376,6 +425,7 @@ function NumberField({
         type="number"
         min={min}
         max={max}
+        step={step ?? 1}
         value={value}
         onChange={(e) => {
           const n = Number(e.target.value);

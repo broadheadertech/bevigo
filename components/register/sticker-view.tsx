@@ -30,13 +30,13 @@ type StickerViewProps = {
   onClose: () => void;
 };
 
-function formatTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+// "ORD-MAIN-BRANCH-1776668667481" → "ORD-1776668667481"
+// Strip the location slug between the leading "ORD-" prefix and the trailing
+// numeric segment so the sticker stays compact.
+function shortOrderNumber(orderNumber: string): string {
+  const m = orderNumber.match(/^(ORD)-.*-(\d+)$/);
+  if (m) return `${m[1]}-${m[2]}`;
+  return orderNumber;
 }
 
 // Expand each item by its quantity → one sticker per cup.
@@ -93,6 +93,8 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
   const [thermalStatus, setThermalStatus] = useState<string | null>(null);
   const [thermalError, setThermalError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [oneByOne, setOneByOne] = useState(true);
+  const [nextIndex, setNextIndex] = useState(0);
 
   if (data === undefined) {
     return (
@@ -144,7 +146,7 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
       }
       await receiptPrinter.printStickers(
         stickers.map((s) => ({
-          orderNumber: s.orderNumber,
+          orderNumber: shortOrderNumber(s.orderNumber),
           name: s.name,
           indexLabel: s.indexLabel,
           customerName: pickName(s),
@@ -172,7 +174,7 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
       }
       await bluetoothPrinter.printStickers(
         stickers.map((s) => ({
-          orderNumber: s.orderNumber,
+          orderNumber: shortOrderNumber(s.orderNumber),
           name: s.name,
           indexLabel: s.indexLabel,
           customerName: pickName(s),
@@ -193,13 +195,17 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
   const handlePrintNiimbot = async () => {
     setBusy(true);
     setThermalError(null);
-    setThermalStatus("Sending to Niimbot…");
     try {
       if (!niimbotPrinter.isConnected()) {
         await niimbotPrinter.connect();
       }
       // Read label config saved on the Bluetooth Printers settings page
-      let labelConfig: { labelWidthMm?: number; labelHeightMm?: number; density?: number } = {};
+      let labelConfig: {
+        labelWidthMm?: number;
+        labelHeightMm?: number;
+        density?: number;
+        textScale?: number;
+      } = {};
       try {
         const raw = localStorage.getItem("bevigo:niimbot:label");
         if (raw) {
@@ -208,25 +214,56 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
             labelWidthMm: parsed.widthMm,
             labelHeightMm: parsed.heightMm,
             density: parsed.density,
+            textScale: typeof parsed.textScale === "number" ? parsed.textScale : undefined,
           };
         }
       } catch {
         // ignore
       }
+
+      // 1-by-1: print only the next un-printed sticker so the operator can
+      // tear / verify between labels (avoids gap-detection drift on the B1).
+      // Otherwise: print all in a single loop.
+      const batch = oneByOne ? stickers.slice(nextIndex, nextIndex + 1) : stickers;
+      const startIdx = oneByOne ? nextIndex : 0;
+
+      setThermalStatus(
+        oneByOne
+          ? `Printing sticker ${startIdx + 1} of ${stickers.length}…`
+          : "Sending to Niimbot…"
+      );
+
       await niimbotPrinter.printStickers(
-        stickers.map((s) => ({
-          orderNumber: s.orderNumber,
+        batch.map((s) => ({
+          orderNumber: shortOrderNumber(s.orderNumber),
           itemName: s.name,
           indexLabel: s.indexLabel,
           modifiers: s.modifiers.map((m) => m.name),
           customerOrTable: pickName(s) ?? "",
+          orderedBy: data.customerName,
           time: new Date(s.completedAt).toLocaleString(),
         })),
         labelConfig
       );
-      setThermalStatus(`Sent ${stickers.length} sticker${stickers.length === 1 ? "" : "s"} to Niimbot`);
+
+      if (oneByOne) {
+        const nextI = startIdx + 1;
+        if (nextI >= stickers.length) {
+          setNextIndex(0);
+          setThermalStatus(`All ${stickers.length} stickers printed`);
+        } else {
+          setNextIndex(nextI);
+          setThermalStatus(`Printed ${startIdx + 1}/${stickers.length} — tap again for next`);
+        }
+      } else {
+        setThermalStatus(`Sent ${stickers.length} sticker${stickers.length === 1 ? "" : "s"} to Niimbot`);
+      }
     } catch (err) {
-      setThermalError(err instanceof Error ? err.message : "Niimbot print failed");
+      const raw = err instanceof Error ? err.message : "Niimbot print failed";
+      const friendly = /GATT operation already in progress/i.test(raw)
+        ? "Printer is still finishing the previous label. Wait a moment and tap again."
+        : raw;
+      setThermalError(friendly);
       setThermalStatus(null);
     } finally {
       setBusy(false);
@@ -264,7 +301,6 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
         {/* Sticker preview list (also what prints) — scrolls inside modal */}
         <div className="flex-1 min-h-0 overflow-y-auto p-4 print:p-0 space-y-2 print:space-y-0 print:overflow-visible">
           {stickers.map((s, i) => {
-            const name = pickName(s);
             return (
               <div
                 key={i}
@@ -275,19 +311,12 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
                   border: "1px dashed #ccc",
                 }}
               >
-                {/* Name dominant — Starbucks-style. Falls back to order# when no name. */}
-                {name ? (
-                  <>
-                    <div className="text-3xl font-extrabold leading-none uppercase">
-                      {name}
-                    </div>
-                    <div className="text-base font-semibold leading-tight mt-1">
-                      {s.name}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-base font-bold leading-tight">
-                    {s.name}
+                <div className="text-base font-bold leading-tight">
+                  {s.name}
+                </div>
+                {data.customerName && (
+                  <div className="text-[11px] mt-1 leading-tight opacity-80">
+                    Ordered by <strong>{data.customerName}</strong>
                   </div>
                 )}
                 {s.modifiers.length > 0 && (
@@ -297,11 +326,8 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
                     ))}
                   </div>
                 )}
-                <div className="flex items-center justify-between text-[10px] mt-2 opacity-60">
-                  <span>
-                    {s.orderNumber} &middot; {s.indexLabel}
-                  </span>
-                  <span>{formatTime(data.completedAt)}</span>
+                <div className="text-[10px] mt-2 opacity-60">
+                  {shortOrderNumber(s.orderNumber)} &middot; {s.indexLabel}
                 </div>
               </div>
             );
@@ -324,11 +350,36 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
           </div>
         )}
 
-        {/* Actions (hidden in print) */}
+        {/* 1-by-1 toggle (hidden in print) */}
         <div
-          className="px-6 py-4 flex flex-wrap gap-2 print:hidden"
+          className="px-6 pt-3 pb-1 flex items-center justify-between print:hidden"
           style={{ borderTop: "1px solid var(--border-color)" }}
         >
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={oneByOne}
+              onChange={(e) => {
+                setOneByOne(e.target.checked);
+                setNextIndex(0);
+                setThermalStatus(null);
+              }}
+              className="w-4 h-4 accent-current"
+              style={{ accentColor: "var(--accent-color)" }}
+            />
+            <span className="text-xs font-medium" style={{ color: "var(--fg)" }}>
+              Print 1 at a time
+            </span>
+          </label>
+          {oneByOne && stickers.length > 1 && (
+            <span className="text-[11px]" style={{ color: "var(--muted-fg)" }}>
+              Niimbot only · next: {Math.min(nextIndex + 1, stickers.length)}/{stickers.length}
+            </span>
+          )}
+        </div>
+
+        {/* Actions (hidden in print) */}
+        <div className="px-6 pt-2 pb-4 flex flex-wrap gap-2 print:hidden">
           <button
             onClick={onClose}
             disabled={busy}
@@ -367,7 +418,9 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
             className="flex-1 px-4 py-2.5 rounded-2xl text-sm font-bold text-white"
             style={{ backgroundColor: "var(--accent-color)" }}
           >
-            Niimbot (BT)
+            {oneByOne && stickers.length > 1
+              ? `Niimbot — Print ${Math.min(nextIndex + 1, stickers.length)}/${stickers.length}`
+              : "Niimbot (BT)"}
           </button>
         </div>
       </div>
