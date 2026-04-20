@@ -330,15 +330,16 @@ export default function RegisterPage() {
       try {
         const orderId = await ensureDraftOrder();
         if (!orderId) return;
-        await addItemWithDefaults({ token, orderId, menuItemId: item._id });
-      } catch (err: unknown) {
-        // If customization is required (no defaults), open the modifier panel
-        const data = (err as { data?: { code?: string } } | undefined)?.data;
-        if (data?.code === "needs_customization") {
+        const result = await addItemWithDefaults({
+          token,
+          orderId,
+          menuItemId: item._id,
+        });
+        if (result.needsCustomization) {
           setSelectedItemForModifiers(item);
-        } else {
-          console.error("Failed to add item:", err);
         }
+      } catch (err: unknown) {
+        console.error("Failed to add item:", err);
       } finally {
         setIsProcessing(false);
       }

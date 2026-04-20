@@ -1,5 +1,5 @@
 import { mutation, MutationCtx } from "../_generated/server";
-import { v, ConvexError } from "convex/values";
+import { v } from "convex/values";
 import { Id, Doc } from "../_generated/dataModel";
 import { requireAuth, requireRole } from "../lib/auth";
 import { logAuditEntry } from "../audit/helpers";
@@ -232,11 +232,13 @@ export const addItemWithDefaults = mutation({
     }
 
     if (missingRequired.length > 0) {
-      throw new ConvexError({
-        code: "needs_customization",
-        message: `Customization required for: ${missingRequired.join(", ")}`,
+      // Return — don't throw — so the dev console isn't spammed with a
+      // "Server Error" for every required-customization prompt. The client
+      // checks `result.needsCustomization` and opens the modifier modal.
+      return {
+        needsCustomization: true as const,
         groups: missingRequired,
-      });
+      };
     }
 
     const override = await ctx.db
@@ -271,7 +273,7 @@ export const addItemWithDefaults = mutation({
     }
 
     await recalculateOrderTotals(ctx, args.orderId);
-    return orderItemId;
+    return { needsCustomization: false as const, orderItemId };
   },
 });
 

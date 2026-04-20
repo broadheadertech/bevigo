@@ -260,9 +260,20 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
       }
     } catch (err) {
       const raw = err instanceof Error ? err.message : "Niimbot print failed";
-      const friendly = /GATT operation already in progress/i.test(raw)
-        ? "Printer is still finishing the previous label. Wait a moment and tap again."
-        : raw;
+      let friendly = raw;
+      if (/GATT operation already in progress/i.test(raw)) {
+        friendly = "Printer is still finishing the previous label. Wait a moment and tap again.";
+      } else if (/Timeout waiting response/i.test(raw)) {
+        // Drop the stale BLE handle so the next attempt re-pairs cleanly.
+        try {
+          await niimbotPrinter.disconnect();
+        } catch {
+          // ignore
+        }
+        friendly =
+          "Printer didn't respond. It may be asleep or out of range. " +
+          "Wake it (press any button), then tap Print again — it'll re-pair.";
+      }
       setThermalError(friendly);
       setThermalStatus(null);
     } finally {
