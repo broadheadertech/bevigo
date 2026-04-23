@@ -371,6 +371,11 @@ export default defineSchema({
     ingredientId: v.id("ingredients"),
     tenantId: v.id("tenants"),
     quantityUsed: v.number(), // amount consumed per 1 unit of the menu item
+    // If set, this row only applies when the order item carries a modifier
+    // with this name (e.g. "500ml"). Variant rows fully replace the base
+    // recipe for deduction; if no variantKey matches a chosen modifier, base
+    // rows (variantKey === undefined) are used.
+    variantKey: v.optional(v.string()),
   })
     .index("by_menu_item", ["menuItemId"])
     .index("by_ingredient", ["ingredientId"])

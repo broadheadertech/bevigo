@@ -10,6 +10,8 @@ export const addRecipeItem = mutation({
     menuItemId: v.id("menuItems"),
     ingredientId: v.id("ingredients"),
     quantityUsed: v.number(),
+    /** Optional — bind this row to a modifier name (e.g. "500ml"). */
+    variantKey: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -25,17 +27,26 @@ export const addRecipeItem = mutation({
       throw new Error("Ingredient not found");
     }
 
-    // Check for duplicate
+    const variantKey = args.variantKey?.trim() || undefined;
+
+    // Duplicate check is per (menuItem, ingredient, variantKey) so the same
+    // ingredient can appear in the base AND in each size variant.
     const existing = await ctx.db
       .query("recipes")
-      .withIndex("by_menu_item", (q: any) => q.eq("menuItemId", args.menuItemId))
+      .withIndex("by_menu_item", (q) => q.eq("menuItemId", args.menuItemId))
       .collect();
 
     const duplicate = existing.find(
-      (r: { ingredientId: string }) => r.ingredientId === args.ingredientId
+      (r) =>
+        r.ingredientId === args.ingredientId &&
+        (r.variantKey ?? undefined) === variantKey
     );
     if (duplicate) {
-      throw new Error("This ingredient is already in the recipe");
+      throw new Error(
+        variantKey
+          ? `This ingredient is already in the "${variantKey}" variant recipe`
+          : "This ingredient is already in the recipe"
+      );
     }
 
     const recipeId = await ctx.db.insert("recipes", {
@@ -43,6 +54,7 @@ export const addRecipeItem = mutation({
       ingredientId: args.ingredientId,
       tenantId: session.tenantId,
       quantityUsed: args.quantityUsed,
+      variantKey,
     });
 
     await logAuditEntry(
@@ -56,6 +68,7 @@ export const addRecipeItem = mutation({
         menuItemId: args.menuItemId,
         ingredientId: args.ingredientId,
         quantityUsed: args.quantityUsed,
+        variantKey,
       }
     );
 
@@ -135,6 +148,7 @@ export const bulkImportRecipes = mutation({
         menuItemSku: v.string(),
         ingredientName: v.string(),
         quantityUsed: v.number(),
+        variantKey: v.optional(v.string()),
       })
     ),
   },
@@ -197,11 +211,17 @@ export const bulkImportRecipes = mutation({
         continue;
       }
 
+      const variantKey = row.variantKey?.trim() || undefined;
+
       const existing = await ctx.db
         .query("recipes")
         .withIndex("by_menu_item", (q) => q.eq("menuItemId", menuItemId))
         .collect();
-      const dup = existing.find((r) => r.ingredientId === ingredientId);
+      const dup = existing.find(
+        (r) =>
+          r.ingredientId === ingredientId &&
+          (r.variantKey ?? undefined) === variantKey
+      );
       if (dup) {
         await ctx.db.patch(dup._id, { quantityUsed: row.quantityUsed });
         updated++;
@@ -211,6 +231,7 @@ export const bulkImportRecipes = mutation({
           ingredientId,
           tenantId: session.tenantId,
           quantityUsed: row.quantityUsed,
+          variantKey,
         });
         created++;
       }

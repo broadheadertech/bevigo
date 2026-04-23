@@ -30,6 +30,7 @@ export const getRecipeForItem = query({
           ingredientName: ingredient?.name ?? "Unknown",
           ingredientUnit: ingredient?.unit ?? "",
           quantityUsed: entry.quantityUsed,
+          variantKey: entry.variantKey ?? null,
         };
       })
     );

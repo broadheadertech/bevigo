@@ -984,13 +984,34 @@ async function deductStockForOrder(
   tenantId: Id<"tenants">,
 ) {
   for (const item of orderItems) {
-    // Find all recipe rows for this menu item
-    const recipes = await ctx.db
+    // Look up which modifiers this order line carries — variant recipe rows
+    // are matched against modifier names (e.g. "500ml").
+    const chosenModifiers = await ctx.db
+      .query("orderItemModifiers")
+      .withIndex("by_order_item", (q: any) => q.eq("orderItemId", item._id))
+      .collect();
+    const chosenModifierNames = new Set<string>(
+      chosenModifiers.map((m) => m.modifierName)
+    );
+
+    // Find all recipe rows for this menu item, then pick the right set:
+    // any variant rows whose key matches a chosen modifier fully replace the
+    // base; if no variant matches, base rows are used. Operators define the
+    // complete recipe per variant — we don't merge variant + base.
+    const allRecipes = await ctx.db
       .query("recipes")
       .withIndex("by_menu_item", (q: any) => q.eq("menuItemId", item.menuItemId))
       .collect();
 
-    for (const recipe of recipes) {
+    const matchingVariants = allRecipes.filter(
+      (r) => r.variantKey && chosenModifierNames.has(r.variantKey)
+    );
+    const recipesToConsume =
+      matchingVariants.length > 0
+        ? matchingVariants
+        : allRecipes.filter((r) => r.variantKey === undefined);
+
+    for (const recipe of recipesToConsume) {
       const deductionAmount = recipe.quantityUsed * item.quantity;
 
       // Look up existing stock record for this ingredient at this location

@@ -75,9 +75,19 @@ export const getItem = query({
     const modifierGroups = await Promise.all(
       assignments.map(async (a) => {
         const group = await ctx.db.get(a.modifierGroupId);
-        return group
-          ? { _id: group._id, name: group.name, required: group.required }
-          : null;
+        if (!group) return null;
+        const options = await ctx.db
+          .query("modifiers")
+          .withIndex("by_group", (q) => q.eq("groupId", group._id))
+          .collect();
+        return {
+          _id: group._id,
+          name: group.name,
+          required: group.required,
+          options: options
+            .filter((o) => o.status === "active")
+            .map((o) => ({ _id: o._id, name: o.name })),
+        };
       })
     );
 
