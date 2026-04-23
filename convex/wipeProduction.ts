@@ -21,9 +21,15 @@ export const wipeAllExceptOwners = mutation({
     confirmString: v.string(),
   },
   handler: async (ctx, args) => {
-    if (args.confirmString !== "WIPE_PRODUCTION") {
+    // Be lenient on whitespace + case so PowerShell / CMD quoting doesn't
+    // bite. The string itself still has to be intentional.
+    const normalized = (args.confirmString ?? "")
+      .trim()
+      .toUpperCase()
+      .replace(/^["']|["']$/g, "");
+    if (normalized !== "WIPE_PRODUCTION") {
       throw new Error(
-        'Refusing to wipe — confirmString must be exactly "WIPE_PRODUCTION".'
+        `Refusing to wipe — confirmString must be "WIPE_PRODUCTION" (received: ${JSON.stringify(args.confirmString)}).`
       );
     }
 
