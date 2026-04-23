@@ -353,17 +353,12 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  const [err, setErr] = useState<string | null>(null);
 
  const typedRows = rows ?? [];
- // Allow the same ingredient across different variant keys — duplicate
- // check is per (ingredient, variantKey).
  const trimmedVariant = variantKey.trim();
- const usedHere = new Set(
- typedRows
- .filter((r) => (r.variantKey ?? "") === trimmedVariant)
- .map((r) => r.ingredientId as string)
- );
- const ingOptions = (ingredients ?? []).filter(
- (i) => i.status ==="active" && !usedHere.has(i._id as string)
- );
+ // Show ALL active ingredients in the dropdown — the server validates that
+ // (ingredient + variantKey) is unique on Add. Filtering on the client used
+ // to hide an ingredient if any row referenced it, which made size-aware
+ // duplicates (e.g. Oat Milk for 330ml AND 500ml) impossible to add.
+ const ingOptions = (ingredients ?? []).filter((i) => i.status ==="active");
  const replacesOptions = ingredients ?? [];
 
  const submit = async () => {
@@ -435,8 +430,22 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  </p>
  )}
 
- {/* Add row */}
+ {/* Add row — "Only when" first so operator scopes by size before picking
+ ingredient + qty. */}
  <div className="grid grid-cols-12 gap-2 items-end">
+ <div className="col-span-2">
+ <label className="block text-[10px] mb-1" style={{ color:"var(--muted-fg)" }}>
+ Only when (optional)
+ </label>
+ <input
+ type="text"
+ value={variantKey}
+ onChange={(e) => setVariantKey(e.target.value)}
+ placeholder="e.g. 500ml"
+ className="w-full rounded-lg px-2 py-1.5 text-xs"
+ style={{ backgroundColor:"var(--card)", color:"var(--fg)", border:"1px solid var(--border-color)" }}
+ />
+ </div>
  <div className="col-span-4">
  <label className="block text-[10px] mb-1" style={{ color:"var(--muted-fg)" }}>
  Ingredient
@@ -465,19 +474,6 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  min={0.01}
  value={qty}
  onChange={(e) => setQty(Number(e.target.value))}
- className="w-full rounded-lg px-2 py-1.5 text-xs"
- style={{ backgroundColor:"var(--card)", color:"var(--fg)", border:"1px solid var(--border-color)" }}
- />
- </div>
- <div className="col-span-2">
- <label className="block text-[10px] mb-1" style={{ color:"var(--muted-fg)" }}>
- Only when (optional)
- </label>
- <input
- type="text"
- value={variantKey}
- onChange={(e) => setVariantKey(e.target.value)}
- placeholder="e.g. 500ml"
  className="w-full rounded-lg px-2 py-1.5 text-xs"
  style={{ backgroundColor:"var(--card)", color:"var(--fg)", border:"1px solid var(--border-color)" }}
  />
