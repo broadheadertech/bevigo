@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useAuth } from "@/lib/auth-context";
@@ -23,21 +23,10 @@ type Ingredient = {
   status: "active" | "inactive";
 };
 
-type ModifierGroup = {
-  _id: Id<"modifierGroups">;
-  name: string;
-  required: boolean;
-  options: { _id: Id<"modifiers">; name: string }[];
-};
-
-type ItemDoc = { modifierGroups: ModifierGroup[] };
-
 type RecipeEditorProps = {
   menuItemId: Id<"menuItems">;
   menuItemName: string;
 };
-
-type VariantTab = { key: string | null; label: string };
 
 export function RecipeEditor({ menuItemId, menuItemName }: RecipeEditorProps) {
   const { token } = useAuth();
@@ -52,11 +41,6 @@ export function RecipeEditor({ menuItemId, menuItemName }: RecipeEditorProps) {
     token ? { token } : "skip"
   ) as (Ingredient & { stockQuantity: number | null })[] | undefined;
 
-  const itemData = useQuery(
-    api.menu.queries.getItem,
-    token ? { token, itemId: menuItemId } : "skip"
-  ) as ItemDoc | undefined;
-
   const addRecipeItem = useMutation(api.inventory.recipeMutations.addRecipeItem);
   const updateRecipeItem = useMutation(
     api.inventory.recipeMutations.updateRecipeItem
@@ -64,23 +48,6 @@ export function RecipeEditor({ menuItemId, menuItemName }: RecipeEditorProps) {
   const removeRecipeItem = useMutation(
     api.inventory.recipeMutations.removeRecipeItem
   );
-
-  // Build the tab list: Base first, then one tab per option of every attached
-  // modifier group. Operators usually only define variants for the "Size"
-  // group, but we don't hard-code that — anything they attach can drive
-  // recipe variants.
-  const tabs = useMemo<VariantTab[]>(() => {
-    const base: VariantTab = { key: null, label: "Base" };
-    const variantTabs: VariantTab[] = [];
-    for (const g of itemData?.modifierGroups ?? []) {
-      for (const opt of g.options) {
-        variantTabs.push({ key: opt.name, label: `${g.name}: ${opt.name}` });
-      }
-    }
-    return [base, ...variantTabs];
-  }, [itemData]);
-
-  const [currentVariant, setCurrentVariant] = useState<string | null>(null);
 
   const [selectedIngredientId, setSelectedIngredientId] = useState<
     Id<"ingredients"> | ""
@@ -94,20 +61,16 @@ export function RecipeEditor({ menuItemId, menuItemName }: RecipeEditorProps) {
   const typedRecipeItems = recipeItems ?? [];
   const typedIngredients = ingredients ?? [];
 
-  // Recipe rows for the currently selected variant only.
-  const visibleRows = useMemo(
-    () => typedRecipeItems.filter((r) => r.variantKey === currentVariant),
-    [typedRecipeItems, currentVariant]
-  );
+  // Only the Base recipe is shown/edited here. All size- and option-driven
+  // variation lives on the modifier itself (Menu → Modifiers → Recipe).
+  const visibleRows = typedRecipeItems.filter((r) => r.variantKey === null);
 
-  // Don't offer ingredients already used in THIS variant — operator can still
-  // add the same ingredient to other variants.
-  const usedInCurrentVariant = new Set(
+  const usedIngredientIds = new Set(
     visibleRows.map((r) => r.ingredientId as string)
   );
   const availableIngredients = typedIngredients.filter(
     (ing) =>
-      !usedInCurrentVariant.has(ing._id as string) && ing.status === "active"
+      !usedIngredientIds.has(ing._id as string) && ing.status === "active"
   );
 
   const handleAdd = async () => {
@@ -120,7 +83,6 @@ export function RecipeEditor({ menuItemId, menuItemName }: RecipeEditorProps) {
         menuItemId,
         ingredientId: selectedIngredientId as Id<"ingredients">,
         quantityUsed,
-        variantKey: currentVariant ?? undefined,
       });
       setSelectedIngredientId("");
       setQuantityUsed(1);
@@ -168,49 +130,13 @@ export function RecipeEditor({ menuItemId, menuItemName }: RecipeEditorProps) {
         className="text-base font-semibold mb-1"
         style={{ color: "var(--fg)" }}
       >
-        Recipe for {menuItemName}
+        Base recipe for {menuItemName}
       </h3>
       <p className="text-sm mb-4" style={{ color: "var(--muted-fg)" }}>
-        Ingredients consumed per unit sold. Define a Base recipe and optionally
-        a full recipe per modifier option (e.g. Size: 500ml). When a variant
-        recipe exists, it fully replaces the Base for that option.
+        Default ingredients consumed per unit sold. For size- or
+        option-specific changes (e.g. 500ml uses more milk, Oat Milk replaces
+        Milk), set those on the modifier under <strong>Menu → Modifiers</strong>.
       </p>
-
-      {/* Variant tabs */}
-      {tabs.length > 1 && (
-        <div
-          className="flex flex-wrap gap-1 mb-5 pb-3"
-          style={{ borderBottom: "1px solid var(--border-color)" }}
-        >
-          {tabs.map((tab) => {
-            const isActive = currentVariant === tab.key;
-            const rowCount = typedRecipeItems.filter(
-              (r) => r.variantKey === tab.key
-            ).length;
-            return (
-              <button
-                key={tab.key ?? "_base"}
-                onClick={() => setCurrentVariant(tab.key)}
-                className="px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
-                style={
-                  isActive
-                    ? {
-                        backgroundColor: "var(--accent-color)",
-                        color: "white",
-                      }
-                    : {
-                        backgroundColor: "var(--muted)",
-                        color: "var(--muted-fg)",
-                      }
-                }
-              >
-                {tab.label}
-                <span className="ml-1.5 opacity-70">({rowCount})</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       {error && (
         <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm">
@@ -221,13 +147,8 @@ export function RecipeEditor({ menuItemId, menuItemName }: RecipeEditorProps) {
       {recipeItems === undefined ? (
         <p className="text-sm">Loading recipe...</p>
       ) : visibleRows.length === 0 ? (
-        <p
-          className="text-sm mb-4"
-          style={{ color: "var(--muted-fg)" }}
-        >
-          {currentVariant
-            ? `No "${currentVariant}" variant defined. Add ingredients below — they'll be used instead of the Base recipe when this option is chosen.`
-            : "No Base recipe defined yet. Add ingredients below."}
+        <p className="text-sm mb-4" style={{ color: "var(--muted-fg)" }}>
+          No base recipe yet. Add the default ingredients below.
         </p>
       ) : (
         <div className="mb-4">
@@ -351,8 +272,7 @@ export function RecipeEditor({ menuItemId, menuItemName }: RecipeEditorProps) {
             className="block text-xs font-medium mb-1"
             style={{ color: "var(--muted-fg)" }}
           >
-            Add ingredient to{" "}
-            <strong>{currentVariant ?? "Base"}</strong>
+            Add ingredient
           </label>
           <select
             value={selectedIngredientId as string}
