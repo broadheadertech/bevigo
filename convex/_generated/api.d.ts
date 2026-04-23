@@ -102,6 +102,7 @@ import type * as timesheets_photoMutations from "../timesheets/photoMutations.js
 import type * as timesheets_pinClockAction from "../timesheets/pinClockAction.js";
 import type * as timesheets_pinClockHelpers from "../timesheets/pinClockHelpers.js";
 import type * as timesheets_queries from "../timesheets/queries.js";
+import type * as wipeProduction from "../wipeProduction.js";
 
 import type {
   ApiFromModules,
@@ -204,6 +205,7 @@ declare const fullApi: ApiFromModules<{
   "timesheets/pinClockAction": typeof timesheets_pinClockAction;
   "timesheets/pinClockHelpers": typeof timesheets_pinClockHelpers;
   "timesheets/queries": typeof timesheets_queries;
+  wipeProduction: typeof wipeProduction;
 }>;
 
 /**

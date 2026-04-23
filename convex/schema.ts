@@ -393,6 +393,12 @@ export default defineSchema({
     tenantId: v.id("tenants"),
     quantityUsed: v.number(),
     replacesIngredientId: v.optional(v.id("ingredients")),
+    // Size-aware modifier recipes. If set, this row only applies when the
+    // order line also carries a modifier with this name (e.g. "500ml").
+    // Same semantic as recipes.variantKey: any matching variant-keyed rows
+    // fully replace the default (variantKey === undefined) rows for this
+    // modifier on this line.
+    variantKey: v.optional(v.string()),
   })
     .index("by_modifier", ["modifierId"])
     .index("by_ingredient", ["ingredientId"])

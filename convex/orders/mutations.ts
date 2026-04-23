@@ -1031,11 +1031,23 @@ async function deductStockForOrder(
       for (const om of chosenModifiers) {
         const mod = modifierByName.get(om.modifierName);
         if (!mod) continue;
-        const modRows = await ctx.db
+        const allModRows = await ctx.db
           .query("modifierRecipes")
           .withIndex("by_modifier", (q: any) => q.eq("modifierId", mod._id))
           .collect();
-        for (const row of modRows) {
+
+        // Pick the right rows: any variant-keyed row that matches a chosen
+        // modifier name (the "size") fully replaces the default rows; if
+        // nothing matches, default (no variantKey) rows apply.
+        const matching = allModRows.filter(
+          (r) => r.variantKey && chosenModifierNames.has(r.variantKey)
+        );
+        const rowsToApply =
+          matching.length > 0
+            ? matching
+            : allModRows.filter((r) => r.variantKey === undefined);
+
+        for (const row of rowsToApply) {
           if (row.replacesIngredientId) {
             totals.delete(String(row.replacesIngredientId));
           }

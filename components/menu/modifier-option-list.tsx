@@ -328,6 +328,7 @@ type ModifierRecipeRow = {
  quantityUsed: number;
  replacesIngredientId?: Id<"ingredients">;
  replacesIngredientName?: string;
+ variantKey: string | null;
 };
 
 function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
@@ -347,13 +348,21 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  const [ingId, setIngId] = useState<Id<"ingredients"> |"">("");
  const [qty, setQty] = useState(1);
  const [replacesId, setReplacesId] = useState<Id<"ingredients"> |"">("");
+ const [variantKey, setVariantKey] = useState("");
  const [busy, setBusy] = useState(false);
  const [err, setErr] = useState<string | null>(null);
 
  const typedRows = rows ?? [];
- const usedIds = new Set(typedRows.map((r) => r.ingredientId as string));
+ // Allow the same ingredient across different variant keys — duplicate
+ // check is per (ingredient, variantKey).
+ const trimmedVariant = variantKey.trim();
+ const usedHere = new Set(
+ typedRows
+ .filter((r) => (r.variantKey ?? "") === trimmedVariant)
+ .map((r) => r.ingredientId as string)
+ );
  const ingOptions = (ingredients ?? []).filter(
- (i) => i.status ==="active" && !usedIds.has(i._id as string)
+ (i) => i.status ==="active" && !usedHere.has(i._id as string)
  );
  const replacesOptions = ingredients ?? [];
 
@@ -368,10 +377,12 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  ingredientId: ingId as Id<"ingredients">,
  quantityUsed: qty,
  replacesIngredientId: replacesId ? (replacesId as Id<"ingredients">) : undefined,
+ variantKey: trimmedVariant || undefined,
  });
  setIngId("");
  setQty(1);
  setReplacesId("");
+ setVariantKey("");
  } catch (e) {
  setErr(e instanceof Error ? e.message :"Failed to add");
  } finally {
@@ -398,6 +409,11 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  <div key={r._id} className="flex items-center justify-between text-xs">
  <div style={{ color:"var(--fg)" }}>
  <strong>{r.quantityUsed}{r.ingredientUnit}</strong> {r.ingredientName}
+ {r.variantKey && (
+ <span className="ml-2 text-[11px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor:"var(--card)", color:"var(--accent-color)" }}>
+ only when: {r.variantKey}
+ </span>
+ )}
  {r.replacesIngredientName && (
  <span className="ml-2 text-[11px]" style={{ color:"var(--muted-fg)" }}>
  (replaces {r.replacesIngredientName})
@@ -421,7 +437,7 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
 
  {/* Add row */}
  <div className="grid grid-cols-12 gap-2 items-end">
- <div className="col-span-5">
+ <div className="col-span-4">
  <label className="block text-[10px] mb-1" style={{ color:"var(--muted-fg)" }}>
  Ingredient
  </label>
@@ -453,7 +469,20 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  style={{ backgroundColor:"var(--card)", color:"var(--fg)", border:"1px solid var(--border-color)" }}
  />
  </div>
- <div className="col-span-4">
+ <div className="col-span-2">
+ <label className="block text-[10px] mb-1" style={{ color:"var(--muted-fg)" }}>
+ Only when (optional)
+ </label>
+ <input
+ type="text"
+ value={variantKey}
+ onChange={(e) => setVariantKey(e.target.value)}
+ placeholder="e.g. 500ml"
+ className="w-full rounded-lg px-2 py-1.5 text-xs"
+ style={{ backgroundColor:"var(--card)", color:"var(--fg)", border:"1px solid var(--border-color)" }}
+ />
+ </div>
+ <div className="col-span-3">
  <label className="block text-[10px] mb-1" style={{ color:"var(--muted-fg)" }}>
  Replaces (optional)
  </label>
@@ -483,7 +512,8 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  </div>
  </div>
  <p className="text-[10px] mt-2" style={{ color:"var(--muted-fg)" }}>
- Tip: set <em>Replaces</em> to swap a base ingredient (e.g. Oat Milk replaces Regular Milk). Leave blank to simply add (e.g. Extra Shot).
+ Tips · <em>Replaces</em>: swap a base ingredient (Oat Milk replaces Regular Milk). Leave blank to add. ·{" "}
+ <em>Only when</em>: type a size modifier name (e.g. <code>500ml</code>) to make this row size-specific. Any size-specific row replaces the default rows for the matching size.
  </p>
  </div>
  );

@@ -35,6 +35,7 @@ export const listForModifier = query({
       quantityUsed: number;
       replacesIngredientId?: Doc<"modifierRecipes">["replacesIngredientId"];
       replacesIngredientName?: string;
+      variantKey: string | null;
     }> = [];
     for (const r of rows) {
       const ing = await ctx.db.get(r.ingredientId);
@@ -49,6 +50,7 @@ export const listForModifier = query({
         quantityUsed: r.quantityUsed,
         replacesIngredientId: r.replacesIngredientId,
         replacesIngredientName: replaces?.name,
+        variantKey: r.variantKey ?? null,
       });
     }
     return results;
@@ -62,6 +64,9 @@ export const addForModifier = mutation({
     ingredientId: v.id("ingredients"),
     quantityUsed: v.number(),
     replacesIngredientId: v.optional(v.id("ingredients")),
+    /** Optional — size-specific delta (e.g. "500ml"). Must match a modifier
+     *  name on the same order line for the row to apply. */
+    variantKey: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -82,12 +87,26 @@ export const addForModifier = mutation({
       }
     }
 
+    const variantKey = args.variantKey?.trim() || undefined;
+
+    // Duplicate check is per (modifier, ingredient, variantKey) so the same
+    // ingredient can appear once per size variant plus a default row.
     const existing = await ctx.db
       .query("modifierRecipes")
       .withIndex("by_modifier", (q) => q.eq("modifierId", args.modifierId))
       .collect();
-    if (existing.some((r) => r.ingredientId === args.ingredientId)) {
-      throw new Error("This ingredient is already in the modifier recipe");
+    if (
+      existing.some(
+        (r) =>
+          r.ingredientId === args.ingredientId &&
+          (r.variantKey ?? undefined) === variantKey
+      )
+    ) {
+      throw new Error(
+        variantKey
+          ? `This ingredient is already in the "${variantKey}" variant for this modifier`
+          : "This ingredient is already in the modifier recipe"
+      );
     }
 
     const id = await ctx.db.insert("modifierRecipes", {
@@ -96,6 +115,7 @@ export const addForModifier = mutation({
       tenantId: session.tenantId,
       quantityUsed: args.quantityUsed,
       replacesIngredientId: args.replacesIngredientId,
+      variantKey,
     });
 
     await logAuditEntry(
