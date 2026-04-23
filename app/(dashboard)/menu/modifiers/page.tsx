@@ -8,6 +8,7 @@ import { Id } from"../../../../convex/_generated/dataModel";
 import { ModifierGroupForm } from"@/components/menu/modifier-group-form";
 import { ModifierOptionList } from"@/components/menu/modifier-option-list";
 import { ConfirmModal } from"@/components/ui/confirm-modal";
+import { useConfirm } from"@/lib/confirm-context";
 
 type Modifier = {
  _id: Id<"modifiers">;
@@ -31,6 +32,7 @@ type ModifierGroup = {
 
 export default function ModifiersPage() {
  const { session, token } = useAuth();
+ const confirm = useConfirm();
 
  const groups = useQuery(
  api.menu.modifierQueries.listModifierGroups,
@@ -167,9 +169,12 @@ export default function ModifiersPage() {
  onClick={async (e) => {
  e.stopPropagation();
  if (!token) return;
- const ok = window.confirm(
- `Permanently delete modifier group "${group.name}" and its ${group.modifiers.length} option(s)? Blocked if it's still attached to any product.`
- );
+ const ok = await confirm({
+ title: `Delete "${group.name}"?`,
+ message: `This removes the group and its ${group.modifiers.length} option(s). Blocked if the group is still attached to any product.`,
+ confirmLabel: "Delete",
+ danger: true,
+ });
  if (!ok) return;
  try {
  await deleteGroup({ token, groupId: group._id });
@@ -179,7 +184,12 @@ export default function ModifiersPage() {
  return next;
  });
  } catch (err) {
- alert(err instanceof Error ? err.message : "Delete failed");
+ await confirm({
+ title: "Couldn't delete",
+ message: err instanceof Error ? err.message : "Delete failed",
+ confirmLabel: "OK",
+ cancelLabel: "Close",
+ });
  }
  }}
  className="text-sm text-red-400 hover:text-red-300"

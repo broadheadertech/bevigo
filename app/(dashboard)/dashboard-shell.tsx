@@ -5,6 +5,7 @@ import { RoleNavigation } from"@/components/auth/role-navigation";
 import { SearchCommand } from"@/components/search/search-command";
 import { BrandingProvider, useBranding } from"@/components/providers/branding-provider";
 import { ThemeToggle } from"@/components/ui/theme-toggle";
+import { ConfirmProvider } from"@/lib/confirm-context";
 
 function DashboardNav({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClose: () => void }) {
  const { session, logout } = useAuth();
@@ -131,6 +132,7 @@ export function DashboardShell({
  return (
  <AuthProvider token={token}>
  <BrandingProvider>
+ <ConfirmProvider>
  <div className="flex flex-col min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
  <MobileTopBar onOpen={handleOpen} />
  <div className="flex flex-1">
@@ -140,6 +142,7 @@ export function DashboardShell({
  </main>
  </div>
  </div>
+ </ConfirmProvider>
  </BrandingProvider>
  </AuthProvider>
  );

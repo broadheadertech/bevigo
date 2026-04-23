@@ -11,6 +11,7 @@ import { ItemCard } from"@/components/menu/item-card";
 import { ManagerMenuView } from"@/components/menu/manager-menu-view";
 import { ImportItemsModal } from"@/components/menu/import-items-modal";
 import { ItemModifierAssignment } from"@/components/menu/item-modifier-assignment";
+import { useConfirm } from"@/lib/confirm-context";
 
 type Category = {
  _id: Id<"categories">;
@@ -36,6 +37,7 @@ type MenuItem = {
 
 export default function MenuPage() {
  const { session, token } = useAuth();
+ const confirm = useConfirm();
 
  const categories = useQuery(
  api.menu.queries.listCategories,
@@ -118,28 +120,45 @@ export default function MenuPage() {
 
  const handleDelete = async (item: MenuItem) => {
  if (!token) return;
- const ok = window.confirm(
- `Permanently delete "${item.name}"? This cannot be undone. The action will be blocked if the product is referenced by orders, recipes, modifiers, or price overrides — use Deactivate for those.`
- );
+ const ok = await confirm({
+ title: `Delete "${item.name}"?`,
+ message:
+ "This permanently removes the product. It will be blocked if the product is referenced by orders, recipes, modifiers, or price overrides — use Deactivate for those.",
+ confirmLabel: "Delete",
+ danger: true,
+ });
  if (!ok) return;
  try {
  await deleteItem({ token, itemId: item._id });
  } catch (err) {
- alert(err instanceof Error ? err.message : "Delete failed");
+ await confirm({
+ title: "Couldn't delete",
+ message: err instanceof Error ? err.message : "Delete failed",
+ confirmLabel: "OK",
+ cancelLabel: "Close",
+ });
  }
  };
 
  const handleDeleteCategory = async (cat: Category) => {
  if (!token) return;
- const ok = window.confirm(
- `Permanently delete category "${cat.name}"? Blocked if it still contains products.`
- );
+ const ok = await confirm({
+ title: `Delete category "${cat.name}"?`,
+ message: "Blocked if the category still contains products.",
+ confirmLabel: "Delete",
+ danger: true,
+ });
  if (!ok) return;
  try {
  await deleteCategory({ token, categoryId: cat._id });
  if (selectedCategoryId === cat._id) setSelectedCategoryId(null);
  } catch (err) {
- alert(err instanceof Error ? err.message : "Delete failed");
+ await confirm({
+ title: "Couldn't delete",
+ message: err instanceof Error ? err.message : "Delete failed",
+ confirmLabel: "OK",
+ cancelLabel: "Close",
+ });
  }
  };
 

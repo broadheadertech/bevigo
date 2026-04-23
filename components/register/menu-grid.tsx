@@ -14,6 +14,8 @@ type LocationItem = {
  hasOverride: boolean;
  isFeatured: boolean;
  imageUrl?: string | null;
+ sku?: string;
+ hasModifierGroups: boolean;
 };
 
 type Category = {

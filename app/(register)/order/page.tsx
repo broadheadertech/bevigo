@@ -41,6 +41,7 @@ type LocationItem = {
   isFeatured: boolean;
   imageUrl?: string | null;
   sku?: string;
+  hasModifierGroups: boolean;
 };
 
 export default function RegisterPage() {
@@ -326,6 +327,15 @@ export default function RegisterPage() {
   const handleItemTap = useCallback(
     async (item: LocationItem) => {
       if (!token) return;
+
+      // If the item has any modifier groups, always pop the customization
+      // modal so the cashier can confirm choices instead of silently
+      // applying defaults. The gear icon is now redundant for these items.
+      if (item.hasModifierGroups) {
+        setSelectedItemForModifiers(item);
+        return;
+      }
+
       setIsProcessing(true);
       try {
         const orderId = await ensureDraftOrder();

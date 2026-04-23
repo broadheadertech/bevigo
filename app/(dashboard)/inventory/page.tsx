@@ -9,6 +9,7 @@ import { IngredientForm } from"@/components/inventory/ingredient-form";
 import { ImportIngredientsModal } from"@/components/inventory/import-ingredients-modal";
 import { exportToCSV } from"@/lib/export";
 import { Pagination, usePagination } from"@/components/ui/pagination";
+import { useConfirm } from"@/lib/confirm-context";
 
 type Location = {
  _id: Id<"locations">;
@@ -37,6 +38,7 @@ type Tab ="ingredients" |"lowstock";
 
 export default function InventoryPage() {
  const { session, token } = useAuth();
+ const confirm = useConfirm();
 
  const [activeTab, setActiveTab] = useState<Tab>("ingredients");
  const [selectedLocationId, setSelectedLocationId] =
@@ -372,9 +374,13 @@ export default function InventoryPage() {
  <button
  onClick={async () => {
  if (!token) return;
- const ok = window.confirm(
- `Permanently delete "${ingredient.name}"? Blocked if it's used in any recipe, has on-hand stock, or appears in stock-adjustment / purchase-order history.`
- );
+ const ok = await confirm({
+ title: `Delete "${ingredient.name}"?`,
+ message:
+ "Blocked if it's used in any recipe, has on-hand stock, or appears in stock-adjustment / purchase-order history.",
+ confirmLabel: "Delete",
+ danger: true,
+ });
  if (!ok) return;
  try {
  await deleteIngredient({
@@ -382,7 +388,12 @@ export default function InventoryPage() {
  ingredientId: ingredient._id,
  });
  } catch (err) {
- alert(err instanceof Error ? err.message : "Delete failed");
+ await confirm({
+ title: "Couldn't delete",
+ message: err instanceof Error ? err.message : "Delete failed",
+ confirmLabel: "OK",
+ cancelLabel: "Close",
+ });
  }
  }}
  className="text-xs text-red-400 hover:text-red-300 font-medium"

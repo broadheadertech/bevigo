@@ -138,6 +138,15 @@ export const listItemsForLocation = query({
       }
     }
 
+    // Build a set of menuItemIds that have any modifier group attached, so
+    // the register can pop the modifier modal automatically on tap.
+    const links = await ctx.db
+      .query("menuItemModifierGroups")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", session.tenantId))
+      .collect();
+    const itemsWithModifiers = new Set<string>();
+    for (const l of links) itemsWithModifiers.add(l.menuItemId);
+
     const results = [];
     for (const item of items) {
       const overridePrice = overrideMap.get(item._id);
@@ -153,6 +162,7 @@ export const listItemsForLocation = query({
         isFeatured: item.isFeatured,
         imageUrl,
         sku: item.sku,
+        hasModifierGroups: itemsWithModifiers.has(item._id),
       });
     }
     return results;
