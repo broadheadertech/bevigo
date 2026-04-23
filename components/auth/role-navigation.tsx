@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 
 type Role = "owner" | "manager" | "barista";
@@ -251,6 +252,24 @@ export function RoleNavigation() {
   const { session, isLoading } = useAuth();
   const pathname = usePathname();
 
+  // Track which parent groups are open. Auto-open any parent whose own href
+  // OR one of its children matches the current path so the active route is
+  // always visible without an extra click.
+  const computeInitialOpen = () => {
+    const set = new Set<string>();
+    for (const item of NAV_ITEMS) {
+      if (!item.children?.length) continue;
+      const childMatch = item.children.some((c) =>
+        c.href === "/" ? pathname === "/" : pathname.startsWith(c.href)
+      );
+      const selfMatch =
+        item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+      if (childMatch || selfMatch) set.add(item.href);
+    }
+    return set;
+  };
+  const [openGroups, setOpenGroups] = useState<Set<string>>(computeInitialOpen);
+
   if (isLoading || !session) return null;
 
   const userRole = session.role as Role;
@@ -263,53 +282,100 @@ export function RoleNavigation() {
     return pathname.startsWith(href);
   };
 
+  const toggleGroup = (href: string) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(href)) next.delete(href);
+      else next.add(href);
+      return next;
+    });
+  };
+
   return (
     <nav className="flex flex-col gap-0.5">
       {visibleItems.map((item) => {
         const active = isActive(item.href);
+        const visibleChildren = item.children?.filter((c) =>
+          c.roles.includes(userRole)
+        ) ?? [];
+        const hasChildren = visibleChildren.length > 0;
+        const isOpen = openGroups.has(item.href);
+
         return (
           <div key={item.href}>
-            <Link
-              href={item.href}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150"
-              style={
-                active
-                  ? { backgroundColor: 'var(--muted)', color: 'var(--fg)' }
-                  : { color: 'var(--muted-fg)' }
-              }
-            >
-              <svg
-                className="w-5 h-5 shrink-0"
-                style={{ color: active ? 'var(--accent-color)' : 'var(--muted-fg)' }}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
+            <div className="flex items-center">
+              <Link
+                href={item.href}
+                className="flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150"
+                style={
+                  active
+                    ? { backgroundColor: "var(--muted)", color: "var(--fg)" }
+                    : { color: "var(--muted-fg)" }
+                }
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d={item.icon}
-                />
-              </svg>
-              {item.label}
-            </Link>
-            {item.children &&
-              item.children
-                .filter((child) => child.roles.includes(userRole))
-                .map((child) => (
+                <svg
+                  className="w-5 h-5 shrink-0"
+                  style={{
+                    color: active ? "var(--accent-color)" : "var(--muted-fg)",
+                  }}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d={item.icon}
+                  />
+                </svg>
+                {item.label}
+              </Link>
+              {hasChildren && (
+                <button
+                  type="button"
+                  aria-label={isOpen ? `Collapse ${item.label}` : `Expand ${item.label}`}
+                  aria-expanded={isOpen}
+                  onClick={() => toggleGroup(item.href)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+                  style={{ color: "var(--muted-fg)" }}
+                >
+                  <svg
+                    className="w-4 h-4 transition-transform duration-150"
+                    style={{ transform: isOpen ? "rotate(90deg)" : "rotate(0deg)" }}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+            {hasChildren && isOpen && (
+              <div className="flex flex-col gap-0.5 mt-0.5">
+                {visibleChildren.map((child) => (
                   <Link
                     key={child.href}
                     href={child.href}
                     className="flex items-center gap-3 pl-11 pr-3 py-2 rounded-xl text-sm transition-all duration-150"
                     style={{
-                      color: isActive(child.href) ? 'var(--accent-color)' : 'var(--muted-fg)',
+                      color: isActive(child.href)
+                        ? "var(--accent-color)"
+                        : "var(--muted-fg)",
                       fontWeight: isActive(child.href) ? 500 : 400,
                     }}
                   >
                     {child.label}
                   </Link>
                 ))}
+              </div>
+            )}
           </div>
         );
       })}
