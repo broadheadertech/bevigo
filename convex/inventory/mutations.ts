@@ -43,6 +43,77 @@ export const createIngredient = mutation({
   },
 });
 
+/**
+ * Hard-delete an ingredient — refuses if anything still references it.
+ * Use updateIngredient with status="inactive" for the soft-delete path.
+ */
+export const deleteIngredient = mutation({
+  args: {
+    token: v.string(),
+    ingredientId: v.id("ingredients"),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner"]);
+
+    const ingredient = await ctx.db.get(args.ingredientId);
+    if (!ingredient || ingredient.tenantId !== session.tenantId) {
+      throw new Error("Ingredient not found");
+    }
+
+    const recipeUses = await ctx.db
+      .query("recipes")
+      .withIndex("by_ingredient", (q) => q.eq("ingredientId", args.ingredientId))
+      .collect();
+    const stockRows = await ctx.db
+      .query("ingredientStock")
+      .withIndex("by_ingredient", (q) => q.eq("ingredientId", args.ingredientId))
+      .collect();
+    const adjustments = await ctx.db
+      .query("stockAdjustments")
+      .withIndex("by_ingredient", (q) => q.eq("ingredientId", args.ingredientId))
+      .collect();
+    // purchaseOrderItems has no by_ingredient index — scan tenant and filter.
+    const purchaseRefs = await ctx.db
+      .query("purchaseOrderItems")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", session.tenantId))
+      .filter((q) => q.eq(q.field("ingredientId"), args.ingredientId))
+      .collect();
+
+    const stockTotal = stockRows.reduce((sum, s) => sum + s.quantity, 0);
+
+    const blockers: string[] = [];
+    if (recipeUses.length > 0) blockers.push(`${recipeUses.length} recipe(s)`);
+    if (stockTotal > 0) blockers.push(`${stockTotal} ${ingredient.unit} on hand`);
+    if (adjustments.length > 0) blockers.push(`${adjustments.length} stock adjustment(s)`);
+    if (purchaseRefs.length > 0) blockers.push(`${purchaseRefs.length} purchase order line(s)`);
+
+    if (blockers.length > 0) {
+      throw new Error(
+        `Cannot delete "${ingredient.name}" — still referenced by: ${blockers.join(", ")}. Deactivate it instead.`
+      );
+    }
+
+    // Safe to clean up zero-quantity stock rows before deleting the ingredient.
+    for (const s of stockRows) {
+      await ctx.db.delete(s._id);
+    }
+    await ctx.db.delete(args.ingredientId);
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      "ingredient_deleted",
+      "ingredients",
+      args.ingredientId,
+      { name: ingredient.name }
+    );
+
+    return args.ingredientId;
+  },
+});
+
 export const updateIngredient = mutation({
   args: {
     token: v.string(),

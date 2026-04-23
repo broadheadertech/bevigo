@@ -105,19 +105,20 @@ export function ItemForm({
  };
 
  return (
- <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
- <div className="rounded-2xl shadow-2xl w-full max-w-md p-6 border" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
- <h2 className="text-lg font-bold mb-4" style={{ color: 'var(--fg)' }}>
+ <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+ <div className="rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden border" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+ <h2 className="text-lg font-bold px-6 pt-6 pb-3 shrink-0" style={{ color: 'var(--fg)' }}>
  {editingItem ?"Edit Menu Item" :"Add Menu Item"}
  </h2>
 
  {error && (
- <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm">
+ <div className="mx-6 mb-3 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm shrink-0">
  {error}
  </div>
  )}
 
- <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+ <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col overflow-hidden">
+ <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-2 flex flex-col gap-4">
  <div>
  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--muted-fg)' }}>
  Name *
@@ -233,18 +234,21 @@ export function ItemForm({
  </div>
  )}
 
- <div className="flex justify-end gap-3 mt-2">
+ </div>
+ <div className="flex justify-end gap-3 px-6 py-4 shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
  <button
  type="button"
  onClick={onClose}
  className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+ style={{ border: '1px solid var(--border-color)', color: 'var(--fg)' }}
  >
  Cancel
  </button>
  <button
  type="submit"
  disabled={isSubmitting}
- className="px-4 py-2.5 text-white rounded-xl disabled:opacity-50 text-sm font-medium transition-colors"
+ className="px-4 py-2.5 text-white rounded-xl disabled:opacity-50 text-sm font-semibold transition-colors"
+ style={{ backgroundColor: 'var(--accent-color)' }}
  >
  {isSubmitting
  ?"Saving..."

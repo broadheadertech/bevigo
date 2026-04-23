@@ -23,6 +23,8 @@ type ItemCardProps = {
  onDeactivate: (itemId: Id<"menuItems">) => void;
  onReactivate: (itemId: Id<"menuItems">) => void;
  onToggleFeatured: (itemId: Id<"menuItems">) => void;
+ onManageModifiers: (item: MenuItem) => void;
+ onDelete: (item: MenuItem) => void;
 };
 
 export function ItemCard({
@@ -32,6 +34,8 @@ export function ItemCard({
  onDeactivate,
  onReactivate,
  onToggleFeatured,
+ onManageModifiers,
+ onDelete,
 }: ItemCardProps) {
  return (
  <div className="rounded-2xl border shadow-lg p-5 flex flex-col gap-2.5" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
@@ -70,12 +74,19 @@ export function ItemCard({
  )}
  </div>
 
- <div className="flex gap-3 mt-2 pt-3 border-t">
+ <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 pt-3 border-t">
  <button
  onClick={() => onEdit(item)}
  className="text-sm font-medium text-amber-400 hover:text-amber-300 transition-colors"
  >
  Edit
+ </button>
+ <button
+ onClick={() => onManageModifiers(item)}
+ className="text-sm font-medium text-sky-400 hover:text-sky-300 transition-colors"
+ title="Attach or remove modifier groups"
+ >
+ Modifiers
  </button>
  <button
  onClick={() => onToggleFeatured(item._id)}
@@ -103,6 +114,13 @@ export function ItemCard({
  Reactivate
  </button>
  ) : null}
+ <button
+ onClick={() => onDelete(item)}
+ className="text-sm font-medium text-red-400 hover:text-red-300 transition-colors"
+ title="Permanently delete (only if unreferenced)"
+ >
+ Delete
+ </button>
  </div>
  </div>
  );

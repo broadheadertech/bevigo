@@ -10,6 +10,7 @@ import { ItemForm } from"@/components/menu/item-form";
 import { ItemCard } from"@/components/menu/item-card";
 import { ManagerMenuView } from"@/components/menu/manager-menu-view";
 import { ImportItemsModal } from"@/components/menu/import-items-modal";
+import { ItemModifierAssignment } from"@/components/menu/item-modifier-assignment";
 
 type Category = {
  _id: Id<"categories">;
@@ -49,6 +50,7 @@ export default function MenuPage() {
  const deactivateItem = useMutation(api.menu.mutations.deactivateItem);
  const reactivateItem = useMutation(api.menu.mutations.reactivateItem);
  const toggleFeatured = useMutation(api.menu.mutations.toggleFeatured);
+ const deleteItem = useMutation(api.menu.mutations.deleteItem);
 
  const [selectedCategoryId, setSelectedCategoryId] =
  useState<Id<"categories"> | null>(null);
@@ -58,6 +60,7 @@ export default function MenuPage() {
  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
  const [showFeaturedOnly, setShowFeaturedOnly] = useState(false);
  const [showImportModal, setShowImportModal] = useState(false);
+ const [modifierItem, setModifierItem] = useState<MenuItem | null>(null);
 
  if (!token || !session) {
  return (
@@ -110,6 +113,19 @@ export default function MenuPage() {
  const handleToggleFeatured = async (itemId: Id<"menuItems">) => {
  if (!token) return;
  await toggleFeatured({ token, itemId });
+ };
+
+ const handleDelete = async (item: MenuItem) => {
+ if (!token) return;
+ const ok = window.confirm(
+ `Permanently delete "${item.name}"? This cannot be undone. The action will be blocked if the product is referenced by orders, recipes, modifiers, or price overrides — use Deactivate for those.`
+ );
+ if (!ok) return;
+ try {
+ await deleteItem({ token, itemId: item._id });
+ } catch (err) {
+ alert(err instanceof Error ? err.message : "Delete failed");
+ }
  };
 
  return (
@@ -254,6 +270,8 @@ export default function MenuPage() {
  onDeactivate={handleDeactivate}
  onReactivate={handleReactivate}
  onToggleFeatured={handleToggleFeatured}
+ onManageModifiers={setModifierItem}
+ onDelete={handleDelete}
  />
  ))}
  </div>
@@ -296,6 +314,14 @@ export default function MenuPage() {
  {/* Import CSV Modal */}
  {showImportModal && (
  <ImportItemsModal onClose={() => setShowImportModal(false)} />
+ )}
+
+ {/* Modifier Group Assignment Modal */}
+ {modifierItem && (
+ <ItemModifierAssignment
+ menuItemId={modifierItem._id}
+ onClose={() => setModifierItem(null)}
+ />
  )}
  </div>
  );

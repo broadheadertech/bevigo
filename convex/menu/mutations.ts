@@ -245,6 +245,72 @@ export const updateItem = mutation({
   },
 });
 
+/**
+ * Hard-delete a menu item — refuses if anything still references it.
+ * Use deactivateItem for the soft-delete (reversible) path.
+ */
+export const deleteItem = mutation({
+  args: {
+    token: v.string(),
+    itemId: v.id("menuItems"),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner"]);
+
+    const item = await ctx.db.get(args.itemId);
+    if (!item || item.tenantId !== session.tenantId) {
+      throw new Error("Menu item not found");
+    }
+
+    // Referential integrity checks — block deletion if any of these exist.
+    const recipeLinks = await ctx.db
+      .query("recipes")
+      .withIndex("by_menu_item", (q) => q.eq("menuItemId", args.itemId))
+      .collect();
+    const modifierLinks = await ctx.db
+      .query("menuItemModifierGroups")
+      .withIndex("by_menu_item", (q) => q.eq("menuItemId", args.itemId))
+      .collect();
+    const overrides = await ctx.db
+      .query("locationPriceOverrides")
+      .withIndex("by_menu_item", (q) => q.eq("menuItemId", args.itemId))
+      .collect();
+    // orderItems has no by_menu_item index — scan tenant and filter.
+    const orderRefs = await ctx.db
+      .query("orderItems")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", session.tenantId))
+      .filter((q) => q.eq(q.field("menuItemId"), args.itemId))
+      .collect();
+
+    const blockers: string[] = [];
+    if (orderRefs.length > 0) blockers.push(`${orderRefs.length} past order line(s)`);
+    if (recipeLinks.length > 0) blockers.push(`${recipeLinks.length} recipe ingredient(s)`);
+    if (modifierLinks.length > 0) blockers.push(`${modifierLinks.length} modifier group link(s)`);
+    if (overrides.length > 0) blockers.push(`${overrides.length} price override(s)`);
+
+    if (blockers.length > 0) {
+      throw new Error(
+        `Cannot delete "${item.name}" — still referenced by: ${blockers.join(", ")}. Deactivate it instead.`
+      );
+    }
+
+    await ctx.db.delete(args.itemId);
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      "menu_item_deleted",
+      "menuItems",
+      args.itemId,
+      { name: item.name }
+    );
+
+    return args.itemId;
+  },
+});
+
 export const deactivateItem = mutation({
   args: {
     token: v.string(),

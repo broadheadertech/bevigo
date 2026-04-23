@@ -3,6 +3,60 @@ import { v } from "convex/values";
 import { requireAuth, requireRole } from "../lib/auth";
 import { logAuditEntry } from "../audit/helpers";
 
+/**
+ * Hard-delete a modifier group. Refuses if the group is still attached to
+ * any product. Cascades the group's own option rows (modifiers) automatically
+ * since they're meaningless without the group. Past order line items snapshot
+ * the modifier name as a string, so they don't reference modifier IDs.
+ */
+export const deleteModifierGroup = mutation({
+  args: {
+    token: v.string(),
+    groupId: v.id("modifierGroups"),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner"]);
+
+    const group = await ctx.db.get(args.groupId);
+    if (!group || group.tenantId !== session.tenantId) {
+      throw new Error("Modifier group not found");
+    }
+
+    const productLinks = await ctx.db
+      .query("menuItemModifierGroups")
+      .withIndex("by_modifier_group", (q) => q.eq("modifierGroupId", args.groupId))
+      .collect();
+    if (productLinks.length > 0) {
+      throw new Error(
+        `Cannot delete "${group.name}" — still attached to ${productLinks.length} product(s). Detach it from each product first.`
+      );
+    }
+
+    const options = await ctx.db
+      .query("modifiers")
+      .withIndex("by_group", (q) => q.eq("groupId", args.groupId))
+      .collect();
+    for (const opt of options) {
+      await ctx.db.delete(opt._id);
+    }
+
+    await ctx.db.delete(args.groupId);
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      "modifier_group_deleted",
+      "modifierGroups",
+      args.groupId,
+      { name: group.name, cascadedOptions: options.length }
+    );
+
+    return args.groupId;
+  },
+});
+
 export const createModifierGroup = mutation({
   args: {
     token: v.string(),
