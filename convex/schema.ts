@@ -399,6 +399,11 @@ export default defineSchema({
     // fully replace the default (variantKey === undefined) rows for this
     // modifier on this line.
     variantKey: v.optional(v.string()),
+    // Optional per-variant PRICE override in cents. When set on a row whose
+    // variantKey matches a chosen modifier on the line, this overrides the
+    // modifier option's default priceAdjustment. Lets one Oat Milk option
+    // charge +₱20 on 330ml and +₱30 on 500ml without splitting it into two.
+    priceAdjustment: v.optional(v.number()),
   })
     .index("by_modifier", ["modifierId"])
     .index("by_ingredient", ["ingredientId"])

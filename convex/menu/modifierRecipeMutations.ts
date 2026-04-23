@@ -36,6 +36,7 @@ export const listForModifier = query({
       replacesIngredientId?: Doc<"modifierRecipes">["replacesIngredientId"];
       replacesIngredientName?: string;
       variantKey: string | null;
+      priceAdjustment: number | null;
     }> = [];
     for (const r of rows) {
       const ing = await ctx.db.get(r.ingredientId);
@@ -51,6 +52,7 @@ export const listForModifier = query({
         replacesIngredientId: r.replacesIngredientId,
         replacesIngredientName: replaces?.name,
         variantKey: r.variantKey ?? null,
+        priceAdjustment: r.priceAdjustment ?? null,
       });
     }
     return results;
@@ -67,6 +69,9 @@ export const addForModifier = mutation({
     /** Optional — size-specific delta (e.g. "500ml"). Must match a modifier
      *  name on the same order line for the row to apply. */
     variantKey: v.optional(v.string()),
+    /** Optional — per-variant price override in cents. Only honored when
+     *  variantKey is also set (otherwise the modifier's own price is used). */
+    priceAdjustment: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -116,6 +121,11 @@ export const addForModifier = mutation({
       quantityUsed: args.quantityUsed,
       replacesIngredientId: args.replacesIngredientId,
       variantKey,
+      // Only meaningful when variantKey is set; ignored otherwise.
+      priceAdjustment:
+        variantKey && args.priceAdjustment !== undefined
+          ? args.priceAdjustment
+          : undefined,
     });
 
     await logAuditEntry(

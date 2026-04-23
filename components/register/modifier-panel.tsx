@@ -12,6 +12,8 @@ type Modifier = {
  status: string;
  sortOrder: number;
  isDefault?: boolean;
+ /** Per-variant price overrides keyed by another modifier's name. */
+ priceOverrides?: Array<{ variantKey: string; priceAdjustment: number }>;
 };
 
 type ModifierGroup = {
@@ -53,8 +55,10 @@ export function ModifierPanel({
  { token, menuItemId }
  ) as ModifierGroup[] | undefined;
 
- // Map of groupId -> Set of selected modifier ids
- const [selections, setSelections] = useState<Record<string, Set<string>>>({});
+ // groupId -> (modifierId -> qty). Absence or qty=0 = unselected.
+ const [selections, setSelections] = useState<
+ Record<string, Record<string, number>>
+ >({});
  const [defaultsHydrated, setDefaultsHydrated] = useState(false);
  const [validationErrors, setValidationErrors] = useState<Set<string>>(
  new Set()
@@ -63,56 +67,94 @@ export function ModifierPanel({
  // Pre-select defaults once groups arrive
  useEffect(() => {
  if (defaultsHydrated || !groups) return;
- const initial: Record<string, Set<string>> = {};
+ const initial: Record<string, Record<string, number>> = {};
  for (const group of groups) {
  const defaults = group.modifiers.filter(
  (m) => m.status ==="active" && m.isDefault
  );
  if (defaults.length > 0) {
- initial[group._id] = new Set(defaults.map((d) => d._id));
+ const map: Record<string, number> = {};
+ for (const d of defaults) map[d._id] = 1;
+ initial[group._id] = map;
  }
  }
  setSelections(initial);
  setDefaultsHydrated(true);
  }, [groups, defaultsHydrated]);
 
+ const clearGroupError = (groupId: string) => {
+ setValidationErrors((prev) => {
+ if (!prev.has(groupId)) return prev;
+ const next = new Set(prev);
+ next.delete(groupId);
+ return next;
+ });
+ };
+
  const toggleModifier = useCallback(
  (group: ModifierGroup, modifierId: string) => {
  setSelections((prev) => {
- const current = prev[group._id] ?? new Set<string>();
- const next = new Set(current);
+ const current = prev[group._id] ?? {};
+ const isSelected = (current[modifierId] ?? 0) > 0;
 
  if (group.maxSelect === 1) {
- // Single-select: radio behavior
- if (next.has(modifierId)) {
- next.delete(modifierId);
- } else {
- next.clear();
- next.add(modifierId);
- }
- } else {
- // Multi-select: toggle
- if (next.has(modifierId)) {
- next.delete(modifierId);
- } else {
- if (next.size < group.maxSelect) {
- next.add(modifierId);
- }
- }
+ // Single-select: radio behavior — picking one clears the rest
+ if (isSelected) return { ...prev, [group._id]: {} };
+ return { ...prev, [group._id]: { [modifierId]: 1 } };
  }
 
+ // Multi-select: toggle this modifier on/off at qty 1
+ const next = { ...current };
+ if (isSelected) {
+ delete next[modifierId];
+ } else {
+ const distinctSelected = Object.keys(next).length;
+ if (distinctSelected < group.maxSelect) next[modifierId] = 1;
+ }
  return { ...prev, [group._id]: next };
  });
+ clearGroupError(group._id);
+ },
+ []
+ );
 
- // Clear validation error for this group on interaction
- setValidationErrors((prev) => {
- if (!prev.has(group._id)) return prev;
- const next = new Set(prev);
- next.delete(group._id);
- return next;
+ const adjustQty = useCallback(
+ (groupId: string, modifierId: string, delta: number) => {
+ setSelections((prev) => {
+ const current = prev[groupId] ?? {};
+ const qty = current[modifierId] ?? 0;
+ if (qty === 0) return prev; // can't adjust an unselected modifier
+ const nextQty = Math.max(1, Math.min(20, qty + delta));
+ return { ...prev, [groupId]: { ...current, [modifierId]: nextQty } };
  });
  },
  []
+ );
+
+ // Names of every selected modifier — used to look up variant-specific
+ // price overrides (e.g. Oat Milk costs +20 on 330ml but +30 on 500ml).
+ const chosenNames = useMemo(() => {
+ if (!groups) return new Set<string>();
+ const set = new Set<string>();
+ for (const group of groups) {
+ const sel = selections[group._id];
+ if (!sel) continue;
+ for (const mod of group.modifiers) {
+ if ((sel[mod._id] ?? 0) > 0) set.add(mod.name);
+ }
+ }
+ return set;
+ }, [groups, selections]);
+
+ const modPrice = useCallback(
+ (mod: Modifier): number => {
+ const overrides = mod.priceOverrides ?? [];
+ for (const o of overrides) {
+ if (chosenNames.has(o.variantKey)) return o.priceAdjustment;
+ }
+ return mod.priceAdjustment;
+ },
+ [chosenNames]
  );
 
  const modifierTotal = useMemo(() => {
@@ -122,28 +164,25 @@ export function ModifierPanel({
  const selected = selections[group._id];
  if (!selected) continue;
  for (const mod of group.modifiers) {
- if (selected.has(mod._id)) {
- total += mod.priceAdjustment;
- }
+ const qty = selected[mod._id] ?? 0;
+ if (qty > 0) total += modPrice(mod) * qty;
  }
  }
  return total;
- }, [groups, selections]);
+ }, [groups, selections, modPrice]);
 
  const runningTotal = effectivePrice + modifierTotal;
 
  const handleConfirm = useCallback(() => {
  if (!groups) return;
 
- // Validate required groups
+ // Validate required groups (count distinct modifiers selected, not qty)
  const errors = new Set<string>();
  for (const group of groups) {
  if (group.required) {
- const selected = selections[group._id];
- const count = selected?.size ?? 0;
- if (count < group.minSelect) {
- errors.add(group._id);
- }
+ const selected = selections[group._id] ?? {};
+ const count = Object.keys(selected).length;
+ if (count < group.minSelect) errors.add(group._id);
  }
  }
 
@@ -152,24 +191,27 @@ export function ModifierPanel({
  return;
  }
 
- // Build modifier payload
+ // Emit one row per qty so the existing server-side ingredient deduction
+ // (which loops over orderItemModifiers) multiplies correctly.
  const modifiers: Array<{ modifierName: string; priceAdjustment: number }> =
  [];
  for (const group of groups) {
  const selected = selections[group._id];
  if (!selected) continue;
  for (const mod of group.modifiers) {
- if (selected.has(mod._id)) {
+ const qty = selected[mod._id] ?? 0;
+ const price = modPrice(mod);
+ for (let i = 0; i < qty; i++) {
  modifiers.push({
  modifierName: mod.name,
- priceAdjustment: mod.priceAdjustment,
+ priceAdjustment: price,
  });
  }
  }
  }
 
  onConfirm({ modifiers });
- }, [groups, selections, onConfirm]);
+ }, [groups, selections, onConfirm, modPrice]);
 
  const isLoading = groups === undefined;
 
@@ -259,18 +301,24 @@ export function ModifierPanel({
  )}
  <div className="grid grid-cols-2 gap-2">
  {activeModifiers.map((mod) => {
- const isSelected = selected.has(mod._id);
+ const qty = selected[mod._id] ?? 0;
+ const isSelected = qty > 0;
+ // Qty steppers don't apply to single-select (radio) groups.
+ const showStepper = isSelected && group.maxSelect > 1;
  return (
- <button
+ <div
  key={mod._id}
- onClick={() => toggleModifier(group, mod._id)}
- className={`min-h-[48px] p-3 rounded-2xl border-2 text-left transition-colors ${
+ className={`min-h-[48px] rounded-2xl border-2 transition-colors ${
  isSelected
  ?"border-amber-500 bg-amber-500/10"
  : hasError
  ?"border-red-500/20"
  :""
  }`}
+ >
+ <button
+ onClick={() => toggleModifier(group, mod._id)}
+ className="w-full text-left p-3"
  >
  <div className="flex items-center justify-between">
  <span className="text-sm font-medium">
@@ -290,13 +338,59 @@ export function ModifierPanel({
  </svg>
  )}
  </div>
- {mod.priceAdjustment !== 0 && (
+ {(() => {
+ const p = modPrice(mod);
+ if (p === 0) return null;
+ return (
  <span className="text-xs mt-0.5 block">
- {mod.priceAdjustment > 0 ?"+" :""}
- {formatPrice(mod.priceAdjustment)}
- </span>
+ {p > 0 ?"+" :""}
+ {formatPrice(p)}
+ {qty > 1 && (
+ <span className="ml-1 opacity-70">× {qty}</span>
  )}
+ </span>
+ );
+ })()}
  </button>
+ {showStepper && (
+ <div
+ className="flex items-center justify-between px-3 py-2 mt-1"
+ style={{ borderTop:"1px solid var(--border-color)" }}
+ >
+ <span className="text-[11px]" style={{ color:"var(--muted-fg)" }}>
+ Qty
+ </span>
+ <div className="flex items-center gap-2">
+ <button
+ onClick={(e) => {
+ e.stopPropagation();
+ adjustQty(group._id, mod._id, -1);
+ }}
+ disabled={qty <= 1}
+ className="w-7 h-7 rounded-lg text-sm font-bold disabled:opacity-30"
+ style={{ backgroundColor:"var(--muted)", color:"var(--fg)" }}
+ aria-label="Decrease quantity"
+ >
+ −
+ </button>
+ <span className="min-w-[1.5rem] text-center text-sm font-semibold" style={{ color:"var(--fg)" }}>
+ {qty}
+ </span>
+ <button
+ onClick={(e) => {
+ e.stopPropagation();
+ adjustQty(group._id, mod._id, +1);
+ }}
+ className="w-7 h-7 rounded-lg text-sm font-bold"
+ style={{ backgroundColor:"var(--accent-color)", color:"white" }}
+ aria-label="Increase quantity"
+ >
+ +
+ </button>
+ </div>
+ </div>
+ )}
+ </div>
  );
  })}
  </div>

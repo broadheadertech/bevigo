@@ -93,9 +93,32 @@ export const getItemModifierGroups = query({
           .withIndex("by_group", (q) => q.eq("groupId", group._id))
           .collect();
 
+        // For each modifier, look up any per-variant PRICE overrides defined
+        // in modifierRecipes. The order panel uses these to charge a different
+        // price when a specific size is also chosen on the line.
+        const modifiersWithOverrides = await Promise.all(
+          modifiers.map(async (m) => {
+            const recipeRows = await ctx.db
+              .query("modifierRecipes")
+              .withIndex("by_modifier", (q) => q.eq("modifierId", m._id))
+              .collect();
+            const priceOverrides = recipeRows
+              .filter(
+                (r) => r.variantKey && r.priceAdjustment !== undefined
+              )
+              .map((r) => ({
+                variantKey: r.variantKey as string,
+                priceAdjustment: r.priceAdjustment as number,
+              }));
+            return { ...m, priceOverrides };
+          })
+        );
+
         return {
           ...group,
-          modifiers: modifiers.sort((a, b) => a.sortOrder - b.sortOrder),
+          modifiers: modifiersWithOverrides.sort(
+            (a, b) => a.sortOrder - b.sortOrder
+          ),
         };
       })
     );

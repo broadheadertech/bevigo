@@ -329,6 +329,7 @@ type ModifierRecipeRow = {
  replacesIngredientId?: Id<"ingredients">;
  replacesIngredientName?: string;
  variantKey: string | null;
+ priceAdjustment: number | null;
 };
 
 function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
@@ -349,6 +350,7 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  const [qty, setQty] = useState(1);
  const [replacesId, setReplacesId] = useState<Id<"ingredients"> |"">("");
  const [variantKey, setVariantKey] = useState("");
+ const [priceDisplay, setPriceDisplay] = useState("");
  const [busy, setBusy] = useState(false);
  const [err, setErr] = useState<string | null>(null);
 
@@ -366,6 +368,13 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  setBusy(true);
  setErr(null);
  try {
+ const priceCents =
+ priceDisplay.trim() === ""
+ ? undefined
+ : Math.round(parseFloat(priceDisplay) * 100);
+ if (priceCents !== undefined && !Number.isFinite(priceCents)) {
+ throw new Error("Invalid price");
+ }
  await addRow({
  token,
  modifierId,
@@ -373,11 +382,13 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  quantityUsed: qty,
  replacesIngredientId: replacesId ? (replacesId as Id<"ingredients">) : undefined,
  variantKey: trimmedVariant || undefined,
+ priceAdjustment: priceCents,
  });
  setIngId("");
  setQty(1);
  setReplacesId("");
  setVariantKey("");
+ setPriceDisplay("");
  } catch (e) {
  setErr(e instanceof Error ? e.message :"Failed to add");
  } finally {
@@ -409,6 +420,11 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  only when: {r.variantKey}
  </span>
  )}
+ {r.priceAdjustment !== null && r.variantKey && (
+ <span className="ml-2 text-[11px] font-semibold" style={{ color:"var(--accent-color)" }}>
+ price: {r.priceAdjustment >= 0 ? "+" : ""}P{(r.priceAdjustment / 100).toFixed(2)}
+ </span>
+ )}
  {r.replacesIngredientName && (
  <span className="ml-2 text-[11px]" style={{ color:"var(--muted-fg)" }}>
  (replaces {r.replacesIngredientName})
@@ -431,7 +447,7 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  )}
 
  {/* Add row — "Only when" first so operator scopes by size before picking
- ingredient + qty. */}
+ ingredient + qty. Price overrides only fire when "Only when" is set. */}
  <div className="grid grid-cols-12 gap-2 items-end">
  <div className="col-span-2">
  <label className="block text-[10px] mb-1" style={{ color:"var(--muted-fg)" }}>
@@ -446,7 +462,7 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  style={{ backgroundColor:"var(--card)", color:"var(--fg)", border:"1px solid var(--border-color)" }}
  />
  </div>
- <div className="col-span-4">
+ <div className="col-span-3">
  <label className="block text-[10px] mb-1" style={{ color:"var(--muted-fg)" }}>
  Ingredient
  </label>
@@ -464,7 +480,7 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  ))}
  </select>
  </div>
- <div className="col-span-2">
+ <div className="col-span-1">
  <label className="block text-[10px] mb-1" style={{ color:"var(--muted-fg)" }}>
  Qty
  </label>
@@ -475,6 +491,22 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  value={qty}
  onChange={(e) => setQty(Number(e.target.value))}
  className="w-full rounded-lg px-2 py-1.5 text-xs"
+ style={{ backgroundColor:"var(--card)", color:"var(--fg)", border:"1px solid var(--border-color)" }}
+ />
+ </div>
+ <div className="col-span-2">
+ <label className="block text-[10px] mb-1" style={{ color:"var(--muted-fg)" }}>
+ Price ₱ (optional)
+ </label>
+ <input
+ type="number"
+ step={0.01}
+ value={priceDisplay}
+ onChange={(e) => setPriceDisplay(e.target.value)}
+ placeholder="e.g. 30.00"
+ disabled={!variantKey.trim()}
+ title={!variantKey.trim() ? "Set 'Only when' first to enable per-variant price" : undefined}
+ className="w-full rounded-lg px-2 py-1.5 text-xs disabled:opacity-40"
  style={{ backgroundColor:"var(--card)", color:"var(--fg)", border:"1px solid var(--border-color)" }}
  />
  </div>
@@ -508,8 +540,9 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  </div>
  </div>
  <p className="text-[10px] mt-2" style={{ color:"var(--muted-fg)" }}>
- Tips · <em>Replaces</em>: swap a base ingredient (Oat Milk replaces Regular Milk). Leave blank to add. ·{" "}
- <em>Only when</em>: type a size modifier name (e.g. <code>500ml</code>) to make this row size-specific. Any size-specific row replaces the default rows for the matching size.
+ Tips · <em>Replaces</em>: swap a base ingredient (Oat Milk replaces Regular Milk). ·{" "}
+ <em>Only when</em>: type a size modifier name (e.g. <code>500ml</code>) to make this row size-specific. ·{" "}
+ <em>Price</em>: only honored when <em>Only when</em> is set — overrides the modifier's own price for that size (e.g. Oat Milk +₱20 on 330ml, +₱30 on 500ml).
  </p>
  </div>
  );
