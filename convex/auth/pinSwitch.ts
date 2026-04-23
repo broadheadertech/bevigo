@@ -4,6 +4,7 @@ import { action } from "../_generated/server";
 import { v, ConvexError } from "convex/values";
 import bcrypt from "bcryptjs";
 import { internal } from "../_generated/api";
+import type { Doc } from "../_generated/dataModel";
 import crypto from "crypto";
 
 export const pinSwitch = action({
@@ -35,11 +36,12 @@ export const pinSwitch = action({
       return { success: false as const, locked: true, requireFullLogin: true };
     }
 
-    // 4. Get all active users at this location
-    const locationUsers = await ctx.runQuery(
+    // 4. Get all active users at this location.
+    // Cast via `as` breaks the TS2589 inference cycle from runQuery.
+    const locationUsers = (await ctx.runQuery(
       internal.auth.helpers.getActiveUsersAtLocation,
       { locationId: args.locationId }
-    );
+    )) as Doc<"users">[];
 
     // 5. Compare PIN against each user's hash
     for (const user of locationUsers) {

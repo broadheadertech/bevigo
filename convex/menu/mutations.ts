@@ -2,6 +2,7 @@ import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { requireAuth, requireRole } from "../lib/auth";
 import { logAuditEntry } from "../audit/helpers";
+import { generateUniqueSku } from "./skuHelpers";
 
 export const createCategory = mutation({
   args: {
@@ -128,6 +129,31 @@ export const createItem = mutation({
       throw new Error("Category not found");
     }
 
+    // Resolve SKU: honor explicit value (and fail on duplicate), otherwise
+    // auto-generate from the product name and ensure uniqueness.
+    let sku = args.sku?.trim() || undefined;
+    if (sku) {
+      const existing = await ctx.db
+        .query("menuItems")
+        .withIndex("by_tenant_sku", (q) =>
+          q.eq("tenantId", session.tenantId).eq("sku", sku!)
+        )
+        .first();
+      if (existing) {
+        throw new Error(`SKU already exists: ${sku}`);
+      }
+    } else {
+      const allItems = await ctx.db
+        .query("menuItems")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", session.tenantId))
+        .collect();
+      const used = new Set<string>();
+      for (const it of allItems) {
+        if (it.sku) used.add(it.sku);
+      }
+      sku = generateUniqueSku(args.name, used);
+    }
+
     const now = Date.now();
     const itemId = await ctx.db.insert("menuItems", {
       tenantId: session.tenantId,
@@ -135,7 +161,7 @@ export const createItem = mutation({
       name: args.name,
       description: args.description,
       basePrice: args.basePrice,
-      sku: args.sku,
+      sku,
       isFeatured: args.isFeatured ?? false,
       sortOrder: args.sortOrder,
       status: "active",
@@ -153,6 +179,7 @@ export const createItem = mutation({
         name: args.name,
         categoryId: args.categoryId,
         basePrice: args.basePrice,
+        sku,
       }
     );
 

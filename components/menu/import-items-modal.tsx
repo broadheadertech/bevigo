@@ -72,7 +72,8 @@ export function ImportItemsModal({ onClose }: ImportItemsModalProps) {
       const header = grid[0].map((h) => h.trim().toLowerCase());
       const idx: Record<string, number> = {};
       for (const h of TEMPLATE_HEADERS) {
-        idx[h] = header.indexOf(h.toLowerCase());
+        // Store index under the lowercase key so the reads below match.
+        idx[h.toLowerCase()] = header.indexOf(h.toLowerCase());
       }
       if (idx.name === -1 || idx.category === -1 || idx.baseprice === -1) {
         setParseError(

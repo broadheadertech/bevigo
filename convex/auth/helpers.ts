@@ -1,5 +1,6 @@
 import { internalQuery, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
+import type { Doc } from "../_generated/dataModel";
 
 export const getSessionByToken = internalQuery({
   args: { token: v.string() },
@@ -39,13 +40,15 @@ export const validateSession = internalQuery({
 
 export const getActiveUsersAtLocation = internalQuery({
   args: { locationId: v.id("locations") },
-  handler: async (ctx, args) => {
+  // Explicit return type breaks the TS2589 "excessively deep" cycle that
+  // otherwise hits any action calling this via ctx.runQuery.
+  handler: async (ctx, args): Promise<Doc<"users">[]> => {
     const userLocs = await ctx.db
       .query("userLocations")
       .withIndex("by_location", (q) => q.eq("locationId", args.locationId))
       .collect();
 
-    const users = [];
+    const users: Doc<"users">[] = [];
     for (const ul of userLocs) {
       const user = await ctx.db.get(ul.userId);
       if (user && user.status === "active") {

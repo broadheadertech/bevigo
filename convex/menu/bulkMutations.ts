@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { requireAuth, requireRole } from "../lib/auth";
 import { logAuditEntry } from "../audit/helpers";
 import { Id } from "../_generated/dataModel";
+import { generateUniqueSku } from "./skuHelpers";
 
 export const getBulkPricingData = query({
   args: {
@@ -258,6 +259,17 @@ export const bulkImportItems = mutation({
       sortByCategory.set(key, max);
     };
 
+    // Pre-load every SKU already in use so we can probe collisions in-memory
+    // when generating SKUs for rows that didn't supply one.
+    const allItems = await ctx.db
+      .query("menuItems")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", session.tenantId))
+      .collect();
+    const usedSkus = new Set<string>();
+    for (const it of allItems) {
+      if (it.sku) usedSkus.add(it.sku);
+    }
+
     let created = 0;
     let createdCategories = 0;
     const skipped: Array<{ row: number; reason: string }> = [];
@@ -281,19 +293,19 @@ export const bulkImportItems = mutation({
         continue;
       }
 
-      const sku = row.sku?.trim() || undefined;
+      let sku = row.sku?.trim() || undefined;
       if (sku) {
-        const existing = await ctx.db
-          .query("menuItems")
-          .withIndex("by_tenant_sku", (q) =>
-            q.eq("tenantId", session.tenantId).eq("sku", sku)
-          )
-          .first();
-        if (existing) {
+        if (usedSkus.has(sku)) {
           skipped.push({ row: rowNum, reason: `SKU already exists: ${sku}` });
           continue;
         }
+      } else {
+        // Auto-generate from the product name. Format: first-3-letters of
+        // up to three words, joined by dashes, with a numeric suffix only
+        // appended when needed to avoid collision.
+        sku = generateUniqueSku(name, usedSkus);
       }
+      usedSkus.add(sku);
 
       const catKey = categoryName.toLowerCase();
       let categoryId = categoryByName.get(catKey);
