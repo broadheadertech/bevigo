@@ -43,6 +43,7 @@ export default function ModifiersPage() {
  const [confirmSeed, setConfirmSeed] = useState(false);
  const [seedResult, setSeedResult] = useState<string | null>(null);
  const seedSamples = useMutation(api.menu.modifierMutations.seedSampleModifiers);
+ const deleteGroup = useMutation(api.menu.modifierMutations.deleteModifierGroup);
 
  if (!token || !session) {
  return (
@@ -152,6 +153,7 @@ export default function ModifiersPage() {
  </p>
  </div>
  </div>
+ <div className="flex items-center gap-3">
  <button
  onClick={(e) => {
  e.stopPropagation();
@@ -161,6 +163,31 @@ export default function ModifiersPage() {
  >
  Edit
  </button>
+ <button
+ onClick={async (e) => {
+ e.stopPropagation();
+ if (!token) return;
+ const ok = window.confirm(
+ `Permanently delete modifier group "${group.name}" and its ${group.modifiers.length} option(s)? Blocked if it's still attached to any product.`
+ );
+ if (!ok) return;
+ try {
+ await deleteGroup({ token, groupId: group._id });
+ setExpandedGroups((prev) => {
+ const next = new Set(prev);
+ next.delete(group._id);
+ return next;
+ });
+ } catch (err) {
+ alert(err instanceof Error ? err.message : "Delete failed");
+ }
+ }}
+ className="text-sm text-red-400 hover:text-red-300"
+ title="Delete group (cascades options; only if no product uses it)"
+ >
+ Delete
+ </button>
+ </div>
  </div>
 
  {isExpanded && (

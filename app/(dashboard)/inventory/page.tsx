@@ -80,6 +80,9 @@ export default function InventoryPage() {
  const updateIngredient = useMutation(
  api.inventory.mutations.updateIngredient
  );
+ const deleteIngredient = useMutation(
+ api.inventory.mutations.deleteIngredient
+ );
 
  const typedLocations = locations ?? [];
  const typedIngredients = ingredients ?? [];
@@ -365,6 +368,27 @@ export default function InventoryPage() {
  {ingredient.status ==="active"
  ?"Deactivate"
  :"Activate"}
+ </button>
+ <button
+ onClick={async () => {
+ if (!token) return;
+ const ok = window.confirm(
+ `Permanently delete "${ingredient.name}"? Blocked if it's used in any recipe, has on-hand stock, or appears in stock-adjustment / purchase-order history.`
+ );
+ if (!ok) return;
+ try {
+ await deleteIngredient({
+ token,
+ ingredientId: ingredient._id,
+ });
+ } catch (err) {
+ alert(err instanceof Error ? err.message : "Delete failed");
+ }
+ }}
+ className="text-xs text-red-400 hover:text-red-300 font-medium"
+ title="Permanently delete (only if unreferenced)"
+ >
+ Delete
  </button>
  </>
  )}

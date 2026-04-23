@@ -37,6 +37,54 @@ export const createCategory = mutation({
   },
 });
 
+/**
+ * Hard-delete a category — refuses if any product (active, inactive, or
+ * archived) is still in it. Move products to a different category first
+ * if you really need to remove this one.
+ */
+export const deleteCategory = mutation({
+  args: {
+    token: v.string(),
+    categoryId: v.id("categories"),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner"]);
+
+    const category = await ctx.db.get(args.categoryId);
+    if (!category || category.tenantId !== session.tenantId) {
+      throw new Error("Category not found");
+    }
+
+    const items = await ctx.db
+      .query("menuItems")
+      .withIndex("by_tenant_category", (q) =>
+        q.eq("tenantId", session.tenantId).eq("categoryId", args.categoryId)
+      )
+      .collect();
+
+    if (items.length > 0) {
+      throw new Error(
+        `Cannot delete "${category.name}" — still has ${items.length} product(s). Move or delete them first.`
+      );
+    }
+
+    await ctx.db.delete(args.categoryId);
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      "category_deleted",
+      "categories",
+      args.categoryId,
+      { name: category.name }
+    );
+
+    return args.categoryId;
+  },
+});
+
 export const updateCategory = mutation({
   args: {
     token: v.string(),

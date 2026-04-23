@@ -51,6 +51,7 @@ export default function MenuPage() {
  const reactivateItem = useMutation(api.menu.mutations.reactivateItem);
  const toggleFeatured = useMutation(api.menu.mutations.toggleFeatured);
  const deleteItem = useMutation(api.menu.mutations.deleteItem);
+ const deleteCategory = useMutation(api.menu.mutations.deleteCategory);
 
  const [selectedCategoryId, setSelectedCategoryId] =
  useState<Id<"categories"> | null>(null);
@@ -123,6 +124,20 @@ export default function MenuPage() {
  if (!ok) return;
  try {
  await deleteItem({ token, itemId: item._id });
+ } catch (err) {
+ alert(err instanceof Error ? err.message : "Delete failed");
+ }
+ };
+
+ const handleDeleteCategory = async (cat: Category) => {
+ if (!token) return;
+ const ok = window.confirm(
+ `Permanently delete category "${cat.name}"? Blocked if it still contains products.`
+ );
+ if (!ok) return;
+ try {
+ await deleteCategory({ token, categoryId: cat._id });
+ if (selectedCategoryId === cat._id) setSelectedCategoryId(null);
  } catch (err) {
  alert(err instanceof Error ? err.message : "Delete failed");
  }
@@ -240,6 +255,13 @@ export default function MenuPage() {
  title="Edit category"
  >
  Edit
+ </button>
+ <button
+ onClick={() => handleDeleteCategory(cat)}
+ className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-300 px-1 transition-opacity"
+ title="Delete category (only if empty)"
+ >
+ Del
  </button>
  </div>
  );

@@ -53,6 +53,7 @@ import type * as menu_priceMutations from "../menu/priceMutations.js";
 import type * as menu_priceQueries from "../menu/priceQueries.js";
 import type * as menu_publicQueries from "../menu/publicQueries.js";
 import type * as menu_queries from "../menu/queries.js";
+import type * as menu_skuHelpers from "../menu/skuHelpers.js";
 import type * as orders_historyQueries from "../orders/historyQueries.js";
 import type * as orders_internals from "../orders/internals.js";
 import type * as orders_mutations from "../orders/mutations.js";
@@ -153,6 +154,7 @@ declare const fullApi: ApiFromModules<{
   "menu/priceQueries": typeof menu_priceQueries;
   "menu/publicQueries": typeof menu_publicQueries;
   "menu/queries": typeof menu_queries;
+  "menu/skuHelpers": typeof menu_skuHelpers;
   "orders/historyQueries": typeof orders_historyQueries;
   "orders/internals": typeof orders_internals;
   "orders/mutations": typeof orders_mutations;
