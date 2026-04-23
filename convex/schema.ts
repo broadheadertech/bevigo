@@ -381,6 +381,23 @@ export default defineSchema({
     .index("by_ingredient", ["ingredientId"])
     .index("by_tenant", ["tenantId"]),
 
+  // Per-modifier-option ingredient deduction. When a modifier (e.g.
+  // "Oat Milk", "Extra shot", "Whipped Cream") is chosen on an order line,
+  // each row here adds quantityUsed × line.quantity to the deduction.
+  // If `replacesIngredientId` is set, that ingredient is REMOVED from the
+  // base/variant recipe before this row is added — perfect for milk swaps
+  // (Oat Milk replaces Regular Milk at the same quantity).
+  modifierRecipes: defineTable({
+    modifierId: v.id("modifiers"),
+    ingredientId: v.id("ingredients"),
+    tenantId: v.id("tenants"),
+    quantityUsed: v.number(),
+    replacesIngredientId: v.optional(v.id("ingredients")),
+  })
+    .index("by_modifier", ["modifierId"])
+    .index("by_ingredient", ["ingredientId"])
+    .index("by_tenant", ["tenantId"]),
+
   purchaseOrders: defineTable({
     tenantId: v.id("tenants"),
     locationId: v.id("locations"),

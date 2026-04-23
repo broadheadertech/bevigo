@@ -984,8 +984,9 @@ async function deductStockForOrder(
   tenantId: Id<"tenants">,
 ) {
   for (const item of orderItems) {
-    // Look up which modifiers this order line carries — variant recipe rows
-    // are matched against modifier names (e.g. "500ml").
+    // Look up which modifiers this order line carries — used for both
+    // variant matching (recipe rows keyed by name) and modifier-specific
+    // ingredient deltas (rows in the modifierRecipes table).
     const chosenModifiers = await ctx.db
       .query("orderItemModifiers")
       .withIndex("by_order_item", (q: any) => q.eq("orderItemId", item._id))
@@ -994,10 +995,7 @@ async function deductStockForOrder(
       chosenModifiers.map((m) => m.modifierName)
     );
 
-    // Find all recipe rows for this menu item, then pick the right set:
-    // any variant rows whose key matches a chosen modifier fully replace the
-    // base; if no variant matches, base rows are used. Operators define the
-    // complete recipe per variant — we don't merge variant + base.
+    // 1. Pick base or variant recipe rows.
     const allRecipes = await ctx.db
       .query("recipes")
       .withIndex("by_menu_item", (q: any) => q.eq("menuItemId", item.menuItemId))
@@ -1011,14 +1009,54 @@ async function deductStockForOrder(
         ? matchingVariants
         : allRecipes.filter((r) => r.variantKey === undefined);
 
-    for (const recipe of recipesToConsume) {
-      const deductionAmount = recipe.quantityUsed * item.quantity;
+    // Build the per-line ingredient totals before applying modifier deltas.
+    const totals = new Map<string, number>();
+    for (const r of recipesToConsume) {
+      const key = String(r.ingredientId);
+      totals.set(key, (totals.get(key) ?? 0) + r.quantityUsed * item.quantity);
+    }
 
-      // Look up existing stock record for this ingredient at this location
+    // 2. Apply modifier deltas. For each chosen modifier we look up the
+    //    actual modifier doc (by name within the tenant) and pull its
+    //    ingredient rows. `replacesIngredientId` removes a base entry; the
+    //    new ingredient is then added at quantityUsed × line.quantity.
+    if (chosenModifiers.length > 0) {
+      const tenantModifiers = await ctx.db
+        .query("modifiers")
+        .withIndex("by_tenant", (q: any) => q.eq("tenantId", tenantId))
+        .collect();
+      const modifierByName = new Map<string, Doc<"modifiers">>();
+      for (const m of tenantModifiers) modifierByName.set(m.name, m);
+
+      for (const om of chosenModifiers) {
+        const mod = modifierByName.get(om.modifierName);
+        if (!mod) continue;
+        const modRows = await ctx.db
+          .query("modifierRecipes")
+          .withIndex("by_modifier", (q: any) => q.eq("modifierId", mod._id))
+          .collect();
+        for (const row of modRows) {
+          if (row.replacesIngredientId) {
+            totals.delete(String(row.replacesIngredientId));
+          }
+          const key = String(row.ingredientId);
+          totals.set(
+            key,
+            (totals.get(key) ?? 0) + row.quantityUsed * item.quantity
+          );
+        }
+      }
+    }
+
+    // 3. Apply totals to ingredient stock at this location.
+    for (const [ingredientIdStr, deductionAmount] of totals) {
+      if (deductionAmount === 0) continue;
+      const ingredientId = ingredientIdStr as Id<"ingredients">;
+
       const stockRecord = await ctx.db
         .query("ingredientStock")
         .withIndex("by_ingredient_location", (q: any) =>
-          q.eq("ingredientId", recipe.ingredientId).eq("locationId", locationId)
+          q.eq("ingredientId", ingredientId).eq("locationId", locationId)
         )
         .unique();
 
@@ -1028,9 +1066,8 @@ async function deductStockForOrder(
           updatedAt: Date.now(),
         });
       } else {
-        // No stock record yet — create with negative quantity
         await ctx.db.insert("ingredientStock", {
-          ingredientId: recipe.ingredientId,
+          ingredientId,
           locationId,
           tenantId,
           quantity: -deductionAmount,

@@ -48,6 +48,7 @@ import type * as menu_cloneMutations from "../menu/cloneMutations.js";
 import type * as menu_imageMutations from "../menu/imageMutations.js";
 import type * as menu_modifierMutations from "../menu/modifierMutations.js";
 import type * as menu_modifierQueries from "../menu/modifierQueries.js";
+import type * as menu_modifierRecipeMutations from "../menu/modifierRecipeMutations.js";
 import type * as menu_mutations from "../menu/mutations.js";
 import type * as menu_priceMutations from "../menu/priceMutations.js";
 import type * as menu_priceQueries from "../menu/priceQueries.js";
@@ -149,6 +150,7 @@ declare const fullApi: ApiFromModules<{
   "menu/imageMutations": typeof menu_imageMutations;
   "menu/modifierMutations": typeof menu_modifierMutations;
   "menu/modifierQueries": typeof menu_modifierQueries;
+  "menu/modifierRecipeMutations": typeof menu_modifierRecipeMutations;
   "menu/mutations": typeof menu_mutations;
   "menu/priceMutations": typeof menu_priceMutations;
   "menu/priceQueries": typeof menu_priceQueries;

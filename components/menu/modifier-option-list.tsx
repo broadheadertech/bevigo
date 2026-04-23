@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from"react";
-import { useMutation } from"convex/react";
+import { useMutation, useQuery } from"convex/react";
 import { api } from"../../convex/_generated/api";
 import { useAuth } from"@/lib/auth-context";
 import { Id } from"../../convex/_generated/dataModel";
@@ -42,6 +42,7 @@ export function ModifierOptionList({
 
  const [showAddForm, setShowAddForm] = useState(false);
  const [editingId, setEditingId] = useState<Id<"modifiers"> | null>(null);
+ const [recipeForId, setRecipeForId] = useState<Id<"modifiers"> | null>(null);
  const [name, setName] = useState("");
  const [priceDisplay, setPriceDisplay] = useState("");
  const [isSubmitting, setIsSubmitting] = useState(false);
@@ -190,10 +191,8 @@ export function ModifierOptionList({
  </button>
  </form>
  ) : (
- <div
- key={mod._id}
- className="flex items-center justify-between px-2 py-1.5 rounded group"
- >
+ <div key={mod._id}>
+ <div className="flex items-center justify-between px-2 py-1.5 rounded group">
  <div className="flex items-center gap-2">
  <span
  className={`text-sm ${mod.status ==="inactive" ?"text-gray-400 line-through" :"text-gray-700"}`}
@@ -223,6 +222,15 @@ export function ModifierOptionList({
  {mod.isDefault ?"Unset default" :"Set as default"}
  </button>
  <button
+ onClick={() =>
+ setRecipeForId(recipeForId === mod._id ? null : mod._id)
+ }
+ className="text-xs text-sky-400 hover:text-sky-300"
+ title="Edit ingredient deductions for this option"
+ >
+ {recipeForId === mod._id ?"Hide recipe" :"Recipe"}
+ </button>
+ <button
  onClick={() => startEdit(mod)}
  className="text-xs"
  >
@@ -235,6 +243,10 @@ export function ModifierOptionList({
  {mod.status ==="active" ?"Deactivate" :"Activate"}
  </button>
  </div>
+ </div>
+ {recipeForId === mod._id && (
+ <ModifierRecipeEditor modifierId={mod._id} />
+ )}
  </div>
  )
  )}
@@ -290,6 +302,189 @@ export function ModifierOptionList({
  + Add Option
  </button>
  )}
+ </div>
+ );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Per-modifier recipe editor (shown inline under a modifier option).
+// Lets the operator declare "when this modifier is chosen, deduct X of
+// ingredient Y" — and optionally swap a base ingredient (e.g. Oat Milk
+// replaces Regular Milk).
+// ─────────────────────────────────────────────────────────────────────────
+
+type IngOpt = {
+ _id: Id<"ingredients">;
+ name: string;
+ unit: string;
+ status:"active" |"inactive";
+};
+
+type ModifierRecipeRow = {
+ _id: Id<"modifierRecipes">;
+ ingredientId: Id<"ingredients">;
+ ingredientName: string;
+ ingredientUnit: string;
+ quantityUsed: number;
+ replacesIngredientId?: Id<"ingredients">;
+ replacesIngredientName?: string;
+};
+
+function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
+ const { token } = useAuth();
+ const rows = useQuery(
+ api.menu.modifierRecipeMutations.listForModifier,
+ token ? { token, modifierId } :"skip"
+ ) as ModifierRecipeRow[] | undefined;
+ const ingredients = useQuery(
+ api.inventory.queries.listIngredients,
+ token ? { token } :"skip"
+ ) as (IngOpt & { stockQuantity: number | null })[] | undefined;
+
+ const addRow = useMutation(api.menu.modifierRecipeMutations.addForModifier);
+ const removeRow = useMutation(api.menu.modifierRecipeMutations.removeForModifier);
+
+ const [ingId, setIngId] = useState<Id<"ingredients"> |"">("");
+ const [qty, setQty] = useState(1);
+ const [replacesId, setReplacesId] = useState<Id<"ingredients"> |"">("");
+ const [busy, setBusy] = useState(false);
+ const [err, setErr] = useState<string | null>(null);
+
+ const typedRows = rows ?? [];
+ const usedIds = new Set(typedRows.map((r) => r.ingredientId as string));
+ const ingOptions = (ingredients ?? []).filter(
+ (i) => i.status ==="active" && !usedIds.has(i._id as string)
+ );
+ const replacesOptions = ingredients ?? [];
+
+ const submit = async () => {
+ if (!token || !ingId) return;
+ setBusy(true);
+ setErr(null);
+ try {
+ await addRow({
+ token,
+ modifierId,
+ ingredientId: ingId as Id<"ingredients">,
+ quantityUsed: qty,
+ replacesIngredientId: replacesId ? (replacesId as Id<"ingredients">) : undefined,
+ });
+ setIngId("");
+ setQty(1);
+ setReplacesId("");
+ } catch (e) {
+ setErr(e instanceof Error ? e.message :"Failed to add");
+ } finally {
+ setBusy(false);
+ }
+ };
+
+ return (
+ <div
+ className="ml-4 mt-1 mb-2 p-3 rounded-xl"
+ style={{ backgroundColor:"var(--muted)", border:"1px solid var(--border-color)" }}
+ >
+ <p className="text-[11px] uppercase tracking-widest mb-2" style={{ color:"var(--muted-fg)" }}>
+ Ingredient deduction when this option is chosen
+ </p>
+
+ {err && (
+ <p className="text-xs text-red-400 mb-2">{err}</p>
+ )}
+
+ {typedRows.length > 0 ? (
+ <div className="flex flex-col gap-1 mb-3">
+ {typedRows.map((r) => (
+ <div key={r._id} className="flex items-center justify-between text-xs">
+ <div style={{ color:"var(--fg)" }}>
+ <strong>{r.quantityUsed}{r.ingredientUnit}</strong> {r.ingredientName}
+ {r.replacesIngredientName && (
+ <span className="ml-2 text-[11px]" style={{ color:"var(--muted-fg)" }}>
+ (replaces {r.replacesIngredientName})
+ </span>
+ )}
+ </div>
+ <button
+ onClick={() => token && removeRow({ token, rowId: r._id })}
+ className="text-red-400 hover:text-red-300"
+ >
+ Remove
+ </button>
+ </div>
+ ))}
+ </div>
+ ) : (
+ <p className="text-xs mb-3" style={{ color:"var(--muted-fg)" }}>
+ No ingredients yet. Add at least one to deduct stock when this option is chosen.
+ </p>
+ )}
+
+ {/* Add row */}
+ <div className="grid grid-cols-12 gap-2 items-end">
+ <div className="col-span-5">
+ <label className="block text-[10px] mb-1" style={{ color:"var(--muted-fg)" }}>
+ Ingredient
+ </label>
+ <select
+ value={ingId as string}
+ onChange={(e) => setIngId(e.target.value as Id<"ingredients"> |"")}
+ className="w-full rounded-lg px-2 py-1.5 text-xs"
+ style={{ backgroundColor:"var(--card)", color:"var(--fg)", border:"1px solid var(--border-color)" }}
+ >
+ <option value="">Select…</option>
+ {ingOptions.map((i) => (
+ <option key={i._id} value={i._id}>
+ {i.name} ({i.unit})
+ </option>
+ ))}
+ </select>
+ </div>
+ <div className="col-span-2">
+ <label className="block text-[10px] mb-1" style={{ color:"var(--muted-fg)" }}>
+ Qty
+ </label>
+ <input
+ type="number"
+ step={0.01}
+ min={0.01}
+ value={qty}
+ onChange={(e) => setQty(Number(e.target.value))}
+ className="w-full rounded-lg px-2 py-1.5 text-xs"
+ style={{ backgroundColor:"var(--card)", color:"var(--fg)", border:"1px solid var(--border-color)" }}
+ />
+ </div>
+ <div className="col-span-4">
+ <label className="block text-[10px] mb-1" style={{ color:"var(--muted-fg)" }}>
+ Replaces (optional)
+ </label>
+ <select
+ value={replacesId as string}
+ onChange={(e) => setReplacesId(e.target.value as Id<"ingredients"> |"")}
+ className="w-full rounded-lg px-2 py-1.5 text-xs"
+ style={{ backgroundColor:"var(--card)", color:"var(--fg)", border:"1px solid var(--border-color)" }}
+ >
+ <option value="">— none —</option>
+ {replacesOptions.map((i) => (
+ <option key={i._id} value={i._id}>
+ {i.name}
+ </option>
+ ))}
+ </select>
+ </div>
+ <div className="col-span-1">
+ <button
+ onClick={submit}
+ disabled={!ingId || busy}
+ className="w-full px-2 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
+ style={{ backgroundColor:"var(--accent-color)" }}
+ >
+ Add
+ </button>
+ </div>
+ </div>
+ <p className="text-[10px] mt-2" style={{ color:"var(--muted-fg)" }}>
+ Tip: set <em>Replaces</em> to swap a base ingredient (e.g. Oat Milk replaces Regular Milk). Leave blank to simply add (e.g. Extra Shot).
+ </p>
  </div>
  );
 }

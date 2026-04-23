@@ -38,6 +38,14 @@ export const deleteModifierGroup = mutation({
       .withIndex("by_group", (q) => q.eq("groupId", args.groupId))
       .collect();
     for (const opt of options) {
+      // Also cascade the modifier's recipe rows so we don't leave orphans.
+      const optRecipes = await ctx.db
+        .query("modifierRecipes")
+        .withIndex("by_modifier", (q) => q.eq("modifierId", opt._id))
+        .collect();
+      for (const r of optRecipes) {
+        await ctx.db.delete(r._id);
+      }
       await ctx.db.delete(opt._id);
     }
 
