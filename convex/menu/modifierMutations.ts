@@ -4,6 +4,50 @@ import { requireAuth, requireRole } from "../lib/auth";
 import { logAuditEntry } from "../audit/helpers";
 
 /**
+ * Hard-delete a single modifier option. Cascades its modifierRecipes rows
+ * (they're meaningless without the parent option). Past order line items
+ * snapshot the modifier name as a string, so they don't reference modifier
+ * IDs and don't block deletion.
+ */
+export const deleteModifier = mutation({
+  args: {
+    token: v.string(),
+    modifierId: v.id("modifiers"),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner"]);
+
+    const mod = await ctx.db.get(args.modifierId);
+    if (!mod || mod.tenantId !== session.tenantId) {
+      throw new Error("Modifier not found");
+    }
+
+    const recipeRows = await ctx.db
+      .query("modifierRecipes")
+      .withIndex("by_modifier", (q) => q.eq("modifierId", args.modifierId))
+      .collect();
+    for (const r of recipeRows) {
+      await ctx.db.delete(r._id);
+    }
+
+    await ctx.db.delete(args.modifierId);
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      "modifier_deleted",
+      "modifiers",
+      args.modifierId,
+      { name: mod.name, cascadedRecipeRows: recipeRows.length }
+    );
+
+    return args.modifierId;
+  },
+});
+
+/**
  * Hard-delete a modifier group. Refuses if the group is still attached to
  * any product. Cascades the group's own option rows (modifiers) automatically
  * since they're meaningless without the group. Past order line items snapshot

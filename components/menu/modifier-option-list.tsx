@@ -5,6 +5,7 @@ import { useMutation, useQuery } from"convex/react";
 import { api } from"../../convex/_generated/api";
 import { useAuth } from"@/lib/auth-context";
 import { Id } from"../../convex/_generated/dataModel";
+import { useConfirm } from"@/lib/confirm-context";
 
 type Modifier = {
  _id: Id<"modifiers">;
@@ -39,6 +40,8 @@ export function ModifierOptionList({
  );
  const setAsDefault = useMutation(api.menu.modifierMutations.setAsDefault);
  const clearDefault = useMutation(api.menu.modifierMutations.clearDefault);
+ const deleteModifier = useMutation(api.menu.modifierMutations.deleteModifier);
+ const confirm = useConfirm();
 
  const [showAddForm, setShowAddForm] = useState(false);
  const [editingId, setEditingId] = useState<Id<"modifiers"> | null>(null);
@@ -241,6 +244,34 @@ export function ModifierOptionList({
  className={`text-xs ${mod.status ==="active" ?"text-orange-600 hover:text-orange-800" :"text-green-600 hover:text-green-800"}`}
  >
  {mod.status ==="active" ?"Deactivate" :"Activate"}
+ </button>
+ <button
+ onClick={async () => {
+ if (!token) return;
+ const ok = await confirm({
+ title: `Delete option "${mod.name}"?`,
+ message:
+ "This permanently removes the modifier option and any ingredient deduction rows attached to it. Past order line items keep the modifier name as text and aren't affected.",
+ confirmLabel: "Delete",
+ danger: true,
+ });
+ if (!ok) return;
+ try {
+ if (recipeForId === mod._id) setRecipeForId(null);
+ await deleteModifier({ token, modifierId: mod._id });
+ } catch (e) {
+ await confirm({
+ title:"Couldn't delete",
+ message: e instanceof Error ? e.message :"Delete failed",
+ confirmLabel:"OK",
+ cancelLabel:"Close",
+ });
+ }
+ }}
+ className="text-xs text-red-400 hover:text-red-300 font-medium"
+ title="Permanently delete this option (cascades its ingredient rows)"
+ >
+ Delete
  </button>
  </div>
  </div>
