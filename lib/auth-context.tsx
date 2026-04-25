@@ -49,11 +49,40 @@ export function AuthProvider({
 
   const logout = async () => {
     if (token) {
-      await logoutMutation({ token });
+      try {
+        await logoutMutation({ token });
+      } catch {
+        // Even if the server call fails, still tear down the client-side
+        // session so the user isn't trapped in a stale UI.
+      }
     }
-    // Clear cookie by redirecting to login
-    // The middleware will handle the redirect since the session is now invalid
-    window.location.href = "/login";
+
+    if (typeof document !== "undefined") {
+      // Expire the auth cookie on every plausible path so middleware no
+      // longer sees a token. Without this, refreshing the login page can
+      // re-attach the dead token and flash old auth state.
+      document.cookie =
+        "session_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
+      document.cookie =
+        "session_token=; Path=/login; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
+    }
+
+    if (typeof window !== "undefined") {
+      // Drop any cached service-worker assets so the next page load fetches
+      // a fresh shell — prevents stale UI from a previous user.
+      try {
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+      } catch {
+        // ignore
+      }
+
+      // Hard reload to "/login" so React tree, Convex client subscriptions,
+      // and any in-memory state from the previous session are discarded.
+      window.location.replace("/login");
+    }
   };
 
   return (
