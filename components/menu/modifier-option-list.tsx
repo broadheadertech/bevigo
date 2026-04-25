@@ -361,6 +361,7 @@ type ModifierRecipeRow = {
  replacesIngredientName?: string;
  variantKey: string | null;
  priceAdjustment: number | null;
+ onlyIfBaseHas: boolean;
 };
 
 function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
@@ -382,6 +383,7 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  const [replacesId, setReplacesId] = useState<Id<"ingredients"> |"">("");
  const [variantKey, setVariantKey] = useState("");
  const [priceDisplay, setPriceDisplay] = useState("");
+ const [onlyIfBaseHas, setOnlyIfBaseHas] = useState(false);
  const [busy, setBusy] = useState(false);
  const [err, setErr] = useState<string | null>(null);
 
@@ -414,12 +416,14 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  replacesIngredientId: replacesId ? (replacesId as Id<"ingredients">) : undefined,
  variantKey: trimmedVariant || undefined,
  priceAdjustment: priceCents,
+ onlyIfBaseHas: onlyIfBaseHas || undefined,
  });
  setIngId("");
  setQty(1);
  setReplacesId("");
  setVariantKey("");
  setPriceDisplay("");
+ setOnlyIfBaseHas(false);
  } catch (e) {
  setErr(e instanceof Error ? e.message :"Failed to add");
  } finally {
@@ -459,6 +463,11 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  {r.replacesIngredientName && (
  <span className="ml-2 text-[11px]" style={{ color:"var(--muted-fg)" }}>
  (replaces {r.replacesIngredientName})
+ </span>
+ )}
+ {r.onlyIfBaseHas && (
+ <span className="ml-2 text-[11px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor:"var(--card)", color:"var(--muted-fg)", border:"1px solid var(--border-color)" }}>
+ only if drink already has it
  </span>
  )}
  </div>
@@ -570,10 +579,26 @@ function ModifierRecipeEditor({ modifierId }: { modifierId: Id<"modifiers"> }) {
  </button>
  </div>
  </div>
+ <label className="flex items-center gap-2 mt-3 text-xs cursor-pointer select-none" style={{ color:"var(--fg)" }}>
+ <input
+ type="checkbox"
+ checked={onlyIfBaseHas}
+ onChange={(e) => setOnlyIfBaseHas(e.target.checked)}
+ className="w-4 h-4"
+ style={{ accentColor:"var(--accent-color)" }}
+ />
+ <span>
+ Only deduct when the drink already contains this ingredient
+ <span className="ml-1 text-[10px]" style={{ color:"var(--muted-fg)" }}>
+ (use this on size boosts — e.g. 500ml &quot;+5g of Hazelnut Syrup&quot; should NOT fire on a Vanilla Latte)
+ </span>
+ </span>
+ </label>
  <p className="text-[10px] mt-2" style={{ color:"var(--muted-fg)" }}>
  Tips · <em>Replaces</em>: swap a base ingredient (Oat Milk replaces Regular Milk). ·{" "}
  <em>Only when</em>: type a size modifier name (e.g. <code>500ml</code>) to make this row size-specific. ·{" "}
- <em>Price</em>: only honored when <em>Only when</em> is set — overrides the modifier's own price for that size (e.g. Oat Milk +₱20 on 330ml, +₱30 on 500ml).
+ <em>Price</em>: only honored when <em>Only when</em> is set — overrides the modifier's own price for that size (e.g. Oat Milk +₱20 on 330ml, +₱30 on 500ml). ·{" "}
+ <em>Only if drink already has it</em>: makes a row conditional on the base recipe — perfect for size-driven syrup boosts.
  </p>
  </div>
  );

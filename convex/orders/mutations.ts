@@ -1015,6 +1015,10 @@ async function deductStockForOrder(
       const key = String(r.ingredientId);
       totals.set(key, (totals.get(key) ?? 0) + r.quantityUsed * item.quantity);
     }
+    // Snapshot of which ingredient IDs are present in the BASE recipe — used
+    // by `onlyIfBaseHas` rows so a size modifier's per-syrup boost only fires
+    // for drinks that actually contain that syrup.
+    const baseIngredientIds = new Set<string>(totals.keys());
 
     // 2. Apply modifier deltas. For each chosen modifier we look up the
     //    actual modifier doc (by name within the tenant) and pull its
@@ -1048,6 +1052,17 @@ async function deductStockForOrder(
             : allModRows.filter((r) => r.variantKey === undefined);
 
         for (const row of rowsToApply) {
+          // Conditional rows (size-driven boosts) only apply when the base
+          // recipe already contains the relevant ingredient. For pure swap
+          // rows we look at the replaced ingredient; otherwise the row's own
+          // ingredient. Prevents "500ml adds Hazelnut Syrup to a Vanilla
+          // Latte" type wrong deductions.
+          if (row.onlyIfBaseHas) {
+            const checkKey = row.replacesIngredientId
+              ? String(row.replacesIngredientId)
+              : String(row.ingredientId);
+            if (!baseIngredientIds.has(checkKey)) continue;
+          }
           if (row.replacesIngredientId) {
             totals.delete(String(row.replacesIngredientId));
           }

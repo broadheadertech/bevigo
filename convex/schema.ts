@@ -407,6 +407,13 @@ export default defineSchema({
     // modifier option's default priceAdjustment. Lets one Oat Milk option
     // charge +₱20 on 330ml and +₱30 on 500ml without splitting it into two.
     priceAdjustment: v.optional(v.number()),
+    // When true, this row only fires if the menu item's base recipe ALREADY
+    // contains the same ingredient (or the replaced ingredient). Use it for
+    // size-driven boosts: "500ml adds +5g of whatever syrup is in the
+    // drink" — a Vanilla Latte ordered as 500ml will get +5g vanilla, but a
+    // Hazelnut Latte's vanilla row stays inert because vanilla isn't in
+    // the recipe. Default false (legacy behavior: always apply).
+    onlyIfBaseHas: v.optional(v.boolean()),
   })
     .index("by_modifier", ["modifierId"])
     .index("by_ingredient", ["ingredientId"])

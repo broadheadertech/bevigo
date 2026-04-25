@@ -37,6 +37,7 @@ export const listForModifier = query({
       replacesIngredientName?: string;
       variantKey: string | null;
       priceAdjustment: number | null;
+      onlyIfBaseHas: boolean;
     }> = [];
     for (const r of rows) {
       const ing = await ctx.db.get(r.ingredientId);
@@ -53,6 +54,7 @@ export const listForModifier = query({
         replacesIngredientName: replaces?.name,
         variantKey: r.variantKey ?? null,
         priceAdjustment: r.priceAdjustment ?? null,
+        onlyIfBaseHas: r.onlyIfBaseHas ?? false,
       });
     }
     return results;
@@ -72,6 +74,11 @@ export const addForModifier = mutation({
     /** Optional — per-variant price override in cents. Only honored when
      *  variantKey is also set (otherwise the modifier's own price is used). */
     priceAdjustment: v.optional(v.number()),
+    /** When true, the row only deducts if the menu item's base recipe
+     *  already contains this ingredient (or the replaced ingredient).
+     *  Use it for size-driven boosts so a Hazelnut-syrup row on the 500ml
+     *  modifier doesn't fire on a Vanilla Latte. Default false. */
+    onlyIfBaseHas: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -126,6 +133,7 @@ export const addForModifier = mutation({
         variantKey && args.priceAdjustment !== undefined
           ? args.priceAdjustment
           : undefined,
+      onlyIfBaseHas: args.onlyIfBaseHas === true ? true : undefined,
     });
 
     await logAuditEntry(
@@ -155,6 +163,7 @@ export const updateForModifier = mutation({
     replacesIngredientId: v.optional(v.id("ingredients")),
     /** Pass null to clear the replacement link. */
     clearReplacement: v.optional(v.boolean()),
+    onlyIfBaseHas: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -170,6 +179,9 @@ export const updateForModifier = mutation({
     if (args.clearReplacement) updates.replacesIngredientId = undefined;
     else if (args.replacesIngredientId !== undefined)
       updates.replacesIngredientId = args.replacesIngredientId;
+    if (args.onlyIfBaseHas !== undefined) {
+      updates.onlyIfBaseHas = args.onlyIfBaseHas === true ? true : undefined;
+    }
 
     await ctx.db.patch(args.rowId, updates);
     return args.rowId;
