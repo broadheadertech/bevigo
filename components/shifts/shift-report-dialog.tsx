@@ -43,6 +43,8 @@ type ShiftReport = Summary & {
 type DailyReport = Summary & {
   kind: "Z";
   locationName: string;
+  scope: "user" | "everyone";
+  userName: string | null;
   dayStart: number;
   dayEnd: number;
   shiftCount: number;
@@ -72,16 +74,20 @@ export function ShiftReportDialog({
   locationId,
   onClose,
 }: ShiftReportDialogProps) {
-  const { token } = useAuth();
+  const { token, session } = useAuth();
 
   const xReport = useQuery(
     api.shifts.queries.getShiftReport,
     token && mode === "X" && shiftId ? { token, shiftId } : "skip"
   ) as ShiftReport | null | undefined;
 
+  // Z report is always scoped to the current operator — admin and barista
+  // each get their own daily total so their cash drawers stay separate.
   const zReport = useQuery(
     api.shifts.queries.getDailyReport,
-    token && mode === "Z" ? { token, locationId } : "skip"
+    token && mode === "Z" && session
+      ? { token, locationId, userId: session.userId }
+      : "skip"
   ) as DailyReport | null | undefined;
 
   const report = mode === "X" ? xReport : zReport;
@@ -92,7 +98,7 @@ export function ShiftReportDialog({
   const subtitle =
     mode === "X"
       ? "Mid-shift sales snapshot. Does not close the shift."
-      : "Today's totals at this location, across every shift.";
+      : `Today's totals for ${zReport?.userName ?? session?.userName ?? "you"} at this location.`;
 
   return (
     <div
@@ -168,6 +174,10 @@ export function ShiftReportDialog({
                   </>
                 ) : (
                   <>
+                    <Row
+                      label="Operator"
+                      value={(report as DailyReport).userName ?? session?.userName ?? "—"}
+                    />
                     <Row label="Location" value={(report as DailyReport).locationName} />
                     <Row label="Date" value={fmtDate((report as DailyReport).dayStart)} />
                     <Row

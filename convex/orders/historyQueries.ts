@@ -17,10 +17,16 @@ export const listOrderHistory = query({
       v.union(v.literal("cash"), v.literal("card"), v.literal("ewallet"))
     ),
     searchQuery: v.optional(v.string()),
+    /** When true, restrict the result to orders rung up by the caller. */
+    mineOnly: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
     requireRole(session, ["barista", "owner", "manager"]);
+    // Baristas always see only their own history regardless of the flag —
+    // managers and owners can pivot via mineOnly.
+    const restrictToSelf =
+      session.role === "barista" || args.mineOnly === true;
 
     const locationIds = getLocationScope(session, args.locationId);
     const limit = args.limit ?? 50;
@@ -85,6 +91,9 @@ export const listOrderHistory = query({
 
       for (const order of combined) {
         const orderTime = order.completedAt ?? order._creationTime;
+
+        // Per-operator scope (set above)
+        if (restrictToSelf && order.userId !== session.userId) continue;
 
         // Date range filter
         if (args.startDate != null && orderTime < args.startDate) continue;

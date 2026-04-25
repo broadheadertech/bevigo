@@ -8,6 +8,8 @@ import { ConfirmModal } from "@/components/ui/confirm-modal";
 type PendingOrder = {
   _id: Id<"orders">;
   userId: Id<"users">;
+  baristaName?: string;
+  isMine?: boolean;
   subtotal: number;
   itemCount: number;
   _creationTime: number;

@@ -159,6 +159,9 @@ export const listPending = query({
   args: {
     token: v.string(),
     locationId: v.id("locations"),
+    /** When true, return every operator's parked orders. Owners and managers
+     *  can audit the whole register; baristas always see only their own. */
+    includeOthers: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -173,16 +176,29 @@ export const listPending = query({
       )
       .collect();
 
-    // Get item counts for each order
+    // Default visibility: operator only sees their own parked orders so two
+    // cashiers sharing one tablet don't pick up each other's drafts. An
+    // owner/manager can opt in to seeing everyone via includeOthers.
+    const showEveryone =
+      args.includeOthers === true &&
+      (session.role === "owner" || session.role === "manager");
+    const scoped = showEveryone
+      ? drafts
+      : drafts.filter((o) => o.userId === session.userId);
+
+    // Get item counts + operator name for each order
     const ordersWithCounts = await Promise.all(
-      drafts.map(async (order) => {
+      scoped.map(async (order) => {
         const items = await ctx.db
           .query("orderItems")
           .withIndex("by_order", (q) => q.eq("orderId", order._id))
           .collect();
+        const user = await ctx.db.get(order.userId);
         return {
           _id: order._id,
           userId: order.userId,
+          baristaName: user?.name ?? "Unknown",
+          isMine: order.userId === session.userId,
           subtotal: order.subtotal,
           itemCount: items.length,
           _creationTime: order._creationTime,

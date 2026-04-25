@@ -45,6 +45,8 @@ export function TodayOrders({ locationId, onClose }: TodayOrdersProps) {
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
 
+  // Always restricted to the current operator — admin/barista keep separate
+  // history feeds even when sharing a tablet.
   const orders = useQuery(
     api.orders.historyQueries.listOrderHistory,
     token
@@ -54,6 +56,7 @@ export function TodayOrders({ locationId, onClose }: TodayOrdersProps) {
           startDate: startOfDay,
           endDate: endOfDay,
           limit: 50,
+          mineOnly: true,
         }
       : "skip"
   ) as HistoryOrder[] | undefined;
@@ -68,8 +71,7 @@ export function TodayOrders({ locationId, onClose }: TodayOrdersProps) {
         const q = search.toLowerCase();
         return (
           o.orderNumber.toLowerCase().includes(q) ||
-          (o.customerName && o.customerName.toLowerCase().includes(q)) ||
-          o.baristaName.toLowerCase().includes(q)
+          (o.customerName && o.customerName.toLowerCase().includes(q))
         );
       })
     : allCompleted;
@@ -126,7 +128,7 @@ export function TodayOrders({ locationId, onClose }: TodayOrdersProps) {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by order #, customer, or barista..."
+                placeholder="Search by order # or customer..."
                 className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none"
                 style={{ backgroundColor: "var(--muted)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
               />

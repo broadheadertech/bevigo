@@ -248,21 +248,29 @@ export const getShiftReport = query({
 });
 
 /**
- * Z reading — daily total at this location across every operator/shift.
+ * Z reading — daily total at this location.
  *
  * `dayStart` is a midnight epoch millis; the window is [dayStart, dayStart + 24h).
  * Defaults to today (caller's clock) when omitted.
+ *
+ * `userId` optionally narrows the report to a single operator's day. Baristas
+ * are always restricted to their own user; only owners/managers may pass
+ * another userId or omit it entirely (everyone).
  */
 export const getDailyReport = query({
   args: {
     token: v.string(),
     locationId: v.id("locations"),
     dayStart: v.optional(v.number()),
+    userId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
     requireRole(session, ["barista", "manager", "owner"]);
     requireLocationAccess(session, args.locationId);
+
+    const targetUserId =
+      session.role === "barista" ? session.userId : args.userId;
 
     const dayStart =
       args.dayStart ??
@@ -280,7 +288,10 @@ export const getDailyReport = query({
       )
       .collect();
 
-    const summary = summarizeOrders(orders, dayStart, dayEnd);
+    const scopedOrders = targetUserId
+      ? orders.filter((o: Doc<"orders">) => o.userId === targetUserId)
+      : orders;
+    const summary = summarizeOrders(scopedOrders, dayStart, dayEnd);
 
     // Shifts whose work overlaps the window — useful context on the report.
     const shifts = await ctx.db
@@ -290,15 +301,19 @@ export const getDailyReport = query({
       )
       .collect();
     const shiftsInWindow = shifts.filter((s: Doc<"shifts">) => {
+      if (targetUserId && s.userId !== targetUserId) return false;
       const end = s.endedAt ?? Date.now();
       return end >= dayStart && s.startedAt <= dayEnd;
     });
 
     const location = await ctx.db.get(args.locationId);
+    const targetUser = targetUserId ? await ctx.db.get(targetUserId) : null;
 
     return {
       kind: "Z" as const,
       locationName: location?.name ?? "Unknown",
+      scope: targetUserId ? ("user" as const) : ("everyone" as const),
+      userName: targetUser?.name ?? null,
       dayStart,
       dayEnd,
       generatedAt: Date.now(),
