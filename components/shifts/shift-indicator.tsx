@@ -9,6 +9,7 @@ import { StartShiftDialog } from "./start-shift-dialog";
 import { EndShiftDialog } from "./end-shift-dialog";
 import { ShiftReportDialog } from "./shift-report-dialog";
 import { PrinterSettings } from "@/components/register/printer-settings";
+import { formatCurrency } from "@/lib/currency";
 
 type ShiftIndicatorProps = {
   locationId: Id<"locations">;
@@ -33,21 +34,54 @@ export function ShiftIndicator({ locationId, onLock }: ShiftIndicatorProps) {
     token ? { token, locationId } : "skip"
   ) as ActiveShift | null | undefined;
 
+  // Live shift report — gives us cash sales since shift started so we can
+  // surface a running "cash on hand" number on the register bar.
+  const liveReport = useQuery(
+    api.shifts.queries.getShiftReport,
+    token && activeShift ? { token, shiftId: activeShift._id } : "skip"
+  ) as { cashTotal: number; expectedCash: number } | null | undefined;
+
   if (!token) return null;
+
+  const cashOnHand =
+    liveReport?.expectedCash ??
+    (activeShift ? activeShift.openingCash : null);
 
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-xs" style={{ backgroundColor: 'var(--card)', borderBottom: '1px solid var(--border-color)', color: 'var(--card-fg)' }}>
         {/* Left: shift status */}
         {activeShift ? (
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-            <span>
-              Shift started at{" "}
-              {new Date(activeShift.startedAt).toLocaleTimeString([], {
-                hour: "numeric",
-                minute: "2-digit",
-              })}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              <span>
+                Shift started{" "}
+                {new Date(activeShift.startedAt).toLocaleString([], {
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+            <span className="hidden sm:inline" style={{ color: 'var(--border-color)' }}>·</span>
+            <span style={{ color: 'var(--muted-fg)' }}>
+              Opening{" "}
+              <span style={{ color: 'var(--fg)' }} className="font-semibold">
+                {formatCurrency(activeShift.openingCash)}
+              </span>
+            </span>
+            <span className="hidden sm:inline" style={{ color: 'var(--border-color)' }}>·</span>
+            <span style={{ color: 'var(--muted-fg)' }}>
+              Cash on hand{" "}
+              <span
+                style={{ color: 'var(--accent-color)' }}
+                className="font-bold"
+                title="Opening cash plus completed cash sales this shift"
+              >
+                {cashOnHand !== null ? formatCurrency(cashOnHand) : "…"}
+              </span>
             </span>
           </div>
         ) : activeShift === null ? (

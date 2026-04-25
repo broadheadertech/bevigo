@@ -1,17 +1,17 @@
 import { internalQuery, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
 
-// Internal: find user by email across all tenants
+// Internal: find user by email across all tenants.
+// Uses the by_email index — without it this was a full users-table scan
+// on every login attempt, which dominated login latency once the table grew.
 export const findUserByEmail = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, args) => {
-    const users = await ctx.db
+    const user = await ctx.db
       .query("users")
-      .filter((q) => q.eq(q.field("email"), args.email))
-      .collect();
-
-    if (users.length === 0) return null;
-    return users[0];
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+    return user ?? null;
   },
 });
 

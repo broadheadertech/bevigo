@@ -66,6 +66,7 @@ export default defineSchema({
   })
     .index("by_tenant", ["tenantId"])
     .index("by_tenant_email", ["tenantId", "email"])
+    .index("by_email", ["email"])
     .index("by_google_id", ["googleId"])
     .index("by_tenant_status", ["tenantId", "status"]),
 

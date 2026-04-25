@@ -5,6 +5,7 @@ import { useEffect, useMemo } from "react";
 import { useIdleLock } from "@/hooks/use-idle-lock";
 import { ConnectionStatus } from "@/components/register/connection-status";
 import { InstallPrompt } from "@/components/register/install-prompt";
+import { RegisterTopBar } from "@/components/register/register-topbar";
 import { AuthProvider } from "@/lib/auth-context";
 
 function getCookie(name: string): string | null {
@@ -44,9 +45,10 @@ export default function RegisterLayout({
 
   return (
     <AuthProvider token={token}>
-      <div className="relative h-screen w-screen overflow-hidden bg-stone-100 dark:bg-stone-950">
+      <div className="relative flex flex-col h-screen w-screen overflow-hidden bg-stone-100 dark:bg-stone-950">
         <ConnectionStatus />
-        {children}
+        {pathname !== "/pin-lock" && <RegisterTopBar />}
+        <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
         <InstallPrompt />
       </div>
     </AuthProvider>
