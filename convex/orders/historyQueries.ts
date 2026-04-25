@@ -20,7 +20,7 @@ export const listOrderHistory = query({
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
-    requireRole(session, ["owner", "manager"]);
+    requireRole(session, ["barista", "owner", "manager"]);
 
     const locationIds = getLocationScope(session, args.locationId);
     const limit = args.limit ?? 50;

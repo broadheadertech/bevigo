@@ -123,7 +123,7 @@ export const listItemsForLocation = query({
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
-    requireRole(session, ["manager", "owner"]);
+    requireRole(session, ["barista", "manager", "owner"]);
     requireLocationAccess(session, args.locationId);
 
     // Get all active menu items for this tenant
