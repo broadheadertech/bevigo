@@ -199,10 +199,17 @@ export function PaymentDialog({
     }
   };
 
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget && !isProcessing) onClose();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={handleBackdropClick}
+    >
       <div
-        className="rounded-3xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+        className="rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
         style={{ backgroundColor: "var(--card)", border: "1px solid var(--border-color)" }}
       >
         {/* Header */}
@@ -213,8 +220,9 @@ export function PaymentDialog({
           <button
             onClick={onClose}
             disabled={isProcessing}
-            className="w-8 h-8 flex items-center justify-center rounded-xl transition-colors"
-            style={{ color: "var(--muted-fg)" }}
+            aria-label="Close payment dialog"
+            className="w-12 h-12 flex items-center justify-center rounded-2xl text-2xl font-bold transition-colors disabled:opacity-40 active:scale-95"
+            style={{ backgroundColor: "var(--muted)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
           >
             &#10005;
           </button>
@@ -250,8 +258,8 @@ export function PaymentDialog({
               ))}
             </div>
 
-            {/* Split payment option */}
-            <div className="px-6 pb-6">
+            {/* Split payment option + cancel */}
+            <div className="px-6 pb-6 flex flex-col gap-3">
               <button
                 onClick={() => setMode("split")}
                 disabled={isProcessing}
@@ -259,6 +267,14 @@ export function PaymentDialog({
                 style={{ border: "1px solid var(--border-color)", color: "var(--fg)" }}
               >
                 Split Payment
+              </button>
+              <button
+                onClick={onClose}
+                disabled={isProcessing}
+                className="w-full py-4 rounded-2xl text-base font-bold transition-colors disabled:opacity-40 active:scale-[0.99]"
+                style={{ backgroundColor: "var(--muted)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
+              >
+                Cancel
               </button>
             </div>
           </>

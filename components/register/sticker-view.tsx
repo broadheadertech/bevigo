@@ -6,7 +6,7 @@ import { Id } from "../../convex/_generated/dataModel";
 import { receiptPrinter } from "@/lib/receipt-printer";
 import { bluetoothPrinter } from "@/lib/bluetooth-thermal-printer";
 import { niimbotPrinter } from "@/lib/niimbot-printer";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type StickerData = {
   orderNumber: string;
@@ -94,7 +94,11 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
   const [thermalError, setThermalError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [oneByOne, setOneByOne] = useState(true);
-  const [nextIndex, setNextIndex] = useState(0);
+  const [nextSelectedPos, setNextSelectedPos] = useState(0);
+  // Indexes (into the expanded sticker list) the operator wants to print.
+  // Default = all selected on first load. Selection survives reprints.
+  const [selectedSet, setSelectedSet] = useState<Set<number>>(new Set());
+  const [hasInitedSelection, setHasInitedSelection] = useState(false);
 
   if (data === undefined) {
     return (
@@ -129,13 +133,58 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
     );
   }
 
-  const stickers = expandStickers(data);
+  const stickers = useMemo(() => (data ? expandStickers(data) : []), [data]);
+
+  // Initialize "select all" the first time stickers arrive.
+  useEffect(() => {
+    if (!hasInitedSelection && stickers.length > 0) {
+      setSelectedSet(new Set(stickers.map((_, i) => i)));
+      setHasInitedSelection(true);
+    }
+  }, [stickers, hasInitedSelection]);
+
+  const selectedIndexes = useMemo(
+    () => stickers.map((_, i) => i).filter((i) => selectedSet.has(i)),
+    [stickers, selectedSet]
+  );
+  const selectedStickers = selectedIndexes.map((i) => stickers[i]);
+  const selectedCount = selectedIndexes.length;
+  const allSelected = selectedCount === stickers.length && stickers.length > 0;
+
+  const toggleOne = (i: number) => {
+    setSelectedSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+    setNextSelectedPos(0);
+    setThermalStatus(null);
+  };
+
+  const toggleAll = () => {
+    setSelectedSet(allSelected ? new Set() : new Set(stickers.map((_, i) => i)));
+    setNextSelectedPos(0);
+    setThermalStatus(null);
+  };
+
+  const requireSelection = (): boolean => {
+    if (selectedCount === 0) {
+      setThermalError("Pick at least one sticker to print.");
+      setThermalStatus(null);
+      return false;
+    }
+    setThermalError(null);
+    return true;
+  };
 
   const handlePrintBrowser = () => {
+    if (!requireSelection()) return;
     window.print();
   };
 
   const handlePrintThermal = async () => {
+    if (!requireSelection()) return;
     setBusy(true);
     setThermalError(null);
     setThermalStatus("Sending via USB serial…");
@@ -145,7 +194,7 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
         if (!ok) throw new Error("Could not connect to printer");
       }
       await receiptPrinter.printStickers(
-        stickers.map((s) => ({
+        selectedStickers.map((s) => ({
           orderNumber: shortOrderNumber(s.orderNumber),
           name: s.name,
           indexLabel: s.indexLabel,
@@ -155,7 +204,7 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
           time: new Date(s.completedAt).toLocaleString(),
         }))
       );
-      setThermalStatus(`Sent ${stickers.length} sticker${stickers.length === 1 ? "" : "s"}`);
+      setThermalStatus(`Sent ${selectedCount} sticker${selectedCount === 1 ? "" : "s"}`);
     } catch (err) {
       setThermalError(err instanceof Error ? err.message : "Print failed");
       setThermalStatus(null);
@@ -165,6 +214,7 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
   };
 
   const handlePrintVozy = async () => {
+    if (!requireSelection()) return;
     setBusy(true);
     setThermalError(null);
     setThermalStatus("Sending to Vozy (Bluetooth)…");
@@ -173,7 +223,7 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
         await bluetoothPrinter.connect();
       }
       await bluetoothPrinter.printStickers(
-        stickers.map((s) => ({
+        selectedStickers.map((s) => ({
           orderNumber: shortOrderNumber(s.orderNumber),
           name: s.name,
           indexLabel: s.indexLabel,
@@ -183,7 +233,7 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
           time: new Date(s.completedAt).toLocaleString(),
         }))
       );
-      setThermalStatus(`Sent ${stickers.length} sticker${stickers.length === 1 ? "" : "s"} to Vozy`);
+      setThermalStatus(`Sent ${selectedCount} sticker${selectedCount === 1 ? "" : "s"} to Vozy`);
     } catch (err) {
       setThermalError(err instanceof Error ? err.message : "Vozy print failed");
       setThermalStatus(null);
@@ -193,6 +243,7 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
   };
 
   const handlePrintNiimbot = async () => {
+    if (!requireSelection()) return;
     setBusy(true);
     setThermalError(null);
     try {
@@ -221,15 +272,15 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
         // ignore
       }
 
-      // 1-by-1: print only the next un-printed sticker so the operator can
-      // tear / verify between labels (avoids gap-detection drift on the B1).
-      // Otherwise: print all in a single loop.
-      const batch = oneByOne ? stickers.slice(nextIndex, nextIndex + 1) : stickers;
-      const startIdx = oneByOne ? nextIndex : 0;
+      // 1-by-1: print only the next un-printed sticker (within the current
+      // selection) so the operator can tear / verify between labels and avoid
+      // B1 gap-detection drift. Otherwise: print every selected sticker.
+      const pos = oneByOne ? Math.min(nextSelectedPos, selectedCount - 1) : 0;
+      const batch = oneByOne ? [selectedStickers[pos]] : selectedStickers;
 
       setThermalStatus(
         oneByOne
-          ? `Printing sticker ${startIdx + 1} of ${stickers.length}…`
+          ? `Printing sticker ${selectedStickers[pos].indexLabel}…`
           : "Sending to Niimbot…"
       );
 
@@ -247,16 +298,20 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
       );
 
       if (oneByOne) {
-        const nextI = startIdx + 1;
-        if (nextI >= stickers.length) {
-          setNextIndex(0);
-          setThermalStatus(`All ${stickers.length} stickers printed`);
+        const nextPos = pos + 1;
+        if (nextPos >= selectedCount) {
+          setNextSelectedPos(0);
+          setThermalStatus(
+            `All ${selectedCount} selected sticker${selectedCount === 1 ? "" : "s"} printed`
+          );
         } else {
-          setNextIndex(nextI);
-          setThermalStatus(`Printed ${startIdx + 1}/${stickers.length} — tap again for next`);
+          setNextSelectedPos(nextPos);
+          setThermalStatus(
+            `Printed ${pos + 1}/${selectedCount} selected — tap again for next`
+          );
         }
       } else {
-        setThermalStatus(`Sent ${stickers.length} sticker${stickers.length === 1 ? "" : "s"} to Niimbot`);
+        setThermalStatus(`Sent ${selectedCount} sticker${selectedCount === 1 ? "" : "s"} to Niimbot`);
       }
     } catch (err) {
       const raw = err instanceof Error ? err.message : "Niimbot print failed";
@@ -297,50 +352,97 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
               Stickers
             </h2>
             <p className="text-xs mt-0.5" style={{ color: "var(--muted-fg)" }}>
-              {stickers.length} sticker{stickers.length === 1 ? "" : "s"} · {data.orderNumber}
+              {selectedCount}/{stickers.length} selected · {data.orderNumber}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-xl"
-            style={{ color: "var(--muted-fg)" }}
+            aria-label="Close"
+            className="w-12 h-12 flex items-center justify-center rounded-2xl text-2xl font-bold transition-colors active:scale-95"
+            style={{ backgroundColor: "var(--muted)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
           >
             &#10005;
           </button>
         </div>
 
+        {/* Select-all bar (hidden in print) */}
+        {stickers.length > 1 && (
+          <div
+            className="px-4 py-2 flex items-center justify-between shrink-0 print:hidden"
+            style={{ borderBottom: "1px solid var(--border-color)", backgroundColor: "var(--muted)" }}
+          >
+            <button
+              onClick={toggleAll}
+              className="text-xs font-semibold px-3 py-2 rounded-xl transition-colors"
+              style={{
+                backgroundColor: allSelected ? "transparent" : "var(--accent-color)",
+                color: allSelected ? "var(--fg)" : "white",
+                border: "1px solid var(--border-color)",
+              }}
+            >
+              {allSelected ? "Clear all" : "Select all"}
+            </button>
+            <span className="text-[11px]" style={{ color: "var(--muted-fg)" }}>
+              Tap a sticker to {allSelected ? "skip" : "include"} it
+            </span>
+          </div>
+        )}
+
         {/* Sticker preview list (also what prints) — scrolls inside modal */}
         <div className="flex-1 min-h-0 overflow-y-auto p-4 print:p-0 space-y-2 print:space-y-0 print:overflow-visible">
           {stickers.map((s, i) => {
+            const isSelected = selectedSet.has(i);
             return (
-              <div
+              <button
                 key={i}
-                className="print-sticker rounded-xl px-4 py-3 print:rounded-none print:m-0"
+                type="button"
+                onClick={() => toggleOne(i)}
+                aria-pressed={isSelected}
+                className={`print-sticker w-full text-left rounded-xl px-4 py-3 transition-all print:rounded-none print:m-0 print:p-0 print:transition-none ${
+                  isSelected ? "" : "opacity-40 print:hidden"
+                }`}
                 style={{
                   backgroundColor: "white",
                   color: "black",
-                  border: "1px dashed #ccc",
+                  border: isSelected
+                    ? "2px solid var(--accent-color)"
+                    : "1px dashed #ccc",
                 }}
               >
-                <div className="text-base font-bold leading-tight">
-                  {s.name}
-                </div>
-                {data.customerName && (
-                  <div className="text-[11px] mt-1 leading-tight opacity-80">
-                    Ordered by <strong>{data.customerName}</strong>
+                <div className="flex items-start gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="mt-0.5 w-5 h-5 rounded-md flex items-center justify-center text-[12px] font-bold shrink-0 print:hidden"
+                    style={{
+                      backgroundColor: isSelected ? "var(--accent-color)" : "white",
+                      color: isSelected ? "white" : "transparent",
+                      border: "1.5px solid var(--accent-color)",
+                    }}
+                  >
+                    &#10003;
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-base font-bold leading-tight">
+                      {s.name}
+                    </div>
+                    {data.customerName && (
+                      <div className="text-[11px] mt-1 leading-tight opacity-80">
+                        Ordered by <strong>{data.customerName}</strong>
+                      </div>
+                    )}
+                    {s.modifiers.length > 0 && (
+                      <div className="text-[11px] mt-1 leading-snug">
+                        {s.modifiers.map((m, mi) => (
+                          <div key={mi}>+ {m.name}</div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="text-[10px] mt-2 opacity-60">
+                      {shortOrderNumber(s.orderNumber)} &middot; {s.indexLabel}
+                    </div>
                   </div>
-                )}
-                {s.modifiers.length > 0 && (
-                  <div className="text-[11px] mt-1 leading-snug">
-                    {s.modifiers.map((m, mi) => (
-                      <div key={mi}>+ {m.name}</div>
-                    ))}
-                  </div>
-                )}
-                <div className="text-[10px] mt-2 opacity-60">
-                  {shortOrderNumber(s.orderNumber)} &middot; {s.indexLabel}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -372,7 +474,7 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
               checked={oneByOne}
               onChange={(e) => {
                 setOneByOne(e.target.checked);
-                setNextIndex(0);
+                setNextSelectedPos(0);
                 setThermalStatus(null);
               }}
               className="w-4 h-4 accent-current"
@@ -382,9 +484,9 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
               Print 1 at a time
             </span>
           </label>
-          {oneByOne && stickers.length > 1 && (
+          {oneByOne && selectedCount > 1 && (
             <span className="text-[11px]" style={{ color: "var(--muted-fg)" }}>
-              Niimbot only · next: {Math.min(nextIndex + 1, stickers.length)}/{stickers.length}
+              Niimbot only · next: {selectedStickers[Math.min(nextSelectedPos, selectedCount - 1)]?.indexLabel}
             </span>
           )}
         </div>
@@ -425,13 +527,15 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
           </button>
           <button
             onClick={handlePrintNiimbot}
-            disabled={busy}
-            className="flex-1 px-4 py-2.5 rounded-2xl text-sm font-bold text-white"
+            disabled={busy || selectedCount === 0}
+            className="flex-1 px-4 py-2.5 rounded-2xl text-sm font-bold text-white disabled:opacity-50"
             style={{ backgroundColor: "var(--accent-color)" }}
           >
-            {oneByOne && stickers.length > 1
-              ? `Niimbot — Print ${Math.min(nextIndex + 1, stickers.length)}/${stickers.length}`
-              : "Niimbot (BT)"}
+            {oneByOne && selectedCount > 1
+              ? `Niimbot — Print ${selectedStickers[Math.min(nextSelectedPos, selectedCount - 1)]?.indexLabel}`
+              : selectedCount > 0
+                ? `Niimbot (BT) · ${selectedCount}`
+                : "Niimbot (BT)"}
           </button>
         </div>
       </div>

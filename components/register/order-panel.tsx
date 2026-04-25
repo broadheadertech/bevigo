@@ -259,8 +259,9 @@ export function OrderPanel({
                     e.stopPropagation();
                     onRemoveItem(item._id);
                   }}
-                  className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 text-xs p-1 transition-opacity shrink-0"
+                  aria-label="Remove item"
                   title="Remove item"
+                  className="w-9 h-9 flex items-center justify-center rounded-xl text-red-400 hover:bg-red-500/10 active:bg-red-500/20 active:scale-95 text-base shrink-0 transition-colors"
                 >
                   &#10005;
                 </button>

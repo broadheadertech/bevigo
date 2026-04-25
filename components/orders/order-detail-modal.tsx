@@ -80,7 +80,12 @@ export function OrderDetailModal({ orderId, onClose, onRefund, canRefund }: Orde
               {order?.completedAt ? formatDate(order.completedAt) : order?._creationTime ? formatDate(order._creationTime) : ""}
             </p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl" style={{ color: "var(--muted-fg)" }}>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="w-12 h-12 flex items-center justify-center rounded-2xl text-2xl font-bold transition-colors active:scale-95"
+            style={{ backgroundColor: "var(--muted)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
+          >
             &#10005;
           </button>
         </div>
@@ -219,40 +224,42 @@ export function OrderDetailModal({ orderId, onClose, onRefund, canRefund }: Orde
         )}
 
         {/* Actions */}
-        <div className="px-6 py-4 flex flex-wrap gap-2 shrink-0" style={{ borderTop: "1px solid var(--border-color)" }}>
-          <button
-            onClick={onClose}
-            className="px-4 py-3 rounded-2xl text-sm font-medium transition-colors"
-            style={{ border: "1px solid var(--border-color)", color: "var(--fg)" }}
-          >
-            Close
-          </button>
-          {order?.status === "completed" && (
-            <>
-              <button
-                onClick={() => setShowReprintReceipt(true)}
-                className="px-4 py-3 rounded-2xl text-sm font-medium"
-                style={{ border: "1px solid var(--border-color)", color: "var(--fg)" }}
-              >
-                Reprint Receipt
-              </button>
-              <button
-                onClick={() => setShowReprintStickers(true)}
-                className="px-4 py-3 rounded-2xl text-sm font-medium"
-                style={{ border: "1px solid var(--border-color)", color: "var(--fg)" }}
-              >
-                Reprint Stickers
-              </button>
-            </>
-          )}
+        <div className="px-6 py-4 flex flex-col gap-2 shrink-0" style={{ borderTop: "1px solid var(--border-color)" }}>
           {showRefundBtn && onRefund && (
             <button
               onClick={onRefund}
-              className="flex-1 py-3 rounded-2xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-colors"
+              className="w-full py-3 rounded-2xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-colors"
             >
               Refund Order
             </button>
           )}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={onClose}
+              className="flex-1 min-w-24 px-4 py-3 rounded-2xl text-sm font-medium transition-colors"
+              style={{ border: "1px solid var(--border-color)", color: "var(--fg)" }}
+            >
+              Close
+            </button>
+            {order?.status === "completed" && (
+              <>
+                <button
+                  onClick={() => setShowReprintReceipt(true)}
+                  className="flex-1 min-w-32 px-4 py-3 rounded-2xl text-sm font-medium"
+                  style={{ border: "1px solid var(--border-color)", color: "var(--fg)" }}
+                >
+                  Reprint Receipt
+                </button>
+                <button
+                  onClick={() => setShowReprintStickers(true)}
+                  className="flex-1 min-w-32 px-4 py-3 rounded-2xl text-sm font-medium"
+                  style={{ border: "1px solid var(--border-color)", color: "var(--fg)" }}
+                >
+                  Reprint Stickers
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
