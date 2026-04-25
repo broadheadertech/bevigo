@@ -33,7 +33,7 @@ export default function LoginContent() {
       }
 
       document.cookie = `session_token=${result.token}; path=/; max-age=${60 * 60 * 24}; samesite=lax`;
-      window.location.href = "/staff";
+      window.location.href = result.role === "barista" ? "/order" : "/staff";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
