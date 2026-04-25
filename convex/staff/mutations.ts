@@ -15,6 +15,7 @@ export const create = action({
     role: v.union(v.literal("owner"), v.literal("manager"), v.literal("barista")),
     locationIds: v.array(v.id("locations")),
     quickPin: v.optional(v.string()),
+    password: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Hash PIN outside of the mutation (bcrypt is async)
@@ -29,6 +30,17 @@ export const create = action({
       quickPinHash = await bcrypt.hash(args.quickPin, 12);
     }
 
+    let passwordHash: string | undefined;
+    if (args.password) {
+      if (args.password.length < 6) {
+        throw new Error("Password must be at least 6 characters");
+      }
+      if (!args.email) {
+        throw new Error("Email is required to set a password");
+      }
+      passwordHash = await bcrypt.hash(args.password, 12);
+    }
+
     // Run the actual DB insert as an internal mutation
     const userId = await ctx.runMutation(
       internal.staff.internals.insertStaff,
@@ -39,6 +51,7 @@ export const create = action({
         role: args.role,
         locationIds: args.locationIds,
         quickPinHash,
+        passwordHash,
       }
     );
 
@@ -67,6 +80,28 @@ export const resetPin = action({
       token: args.token,
       userId: args.userId,
       quickPinHash,
+    });
+  },
+});
+
+// Action because bcrypt is async
+export const resetPassword = action({
+  args: {
+    token: v.string(),
+    userId: v.id("users"),
+    newPassword: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (args.newPassword.length < 6) {
+      throw new Error("Password must be at least 6 characters");
+    }
+
+    const passwordHash = await bcrypt.hash(args.newPassword, 12);
+
+    await ctx.runMutation(internal.staff.internals.updatePasswordHash, {
+      token: args.token,
+      userId: args.userId,
+      passwordHash,
     });
   },
 });

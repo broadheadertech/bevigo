@@ -10,6 +10,7 @@ export const insertStaff = internalMutation({
     role: v.union(v.literal("owner"), v.literal("manager"), v.literal("barista")),
     locationIds: v.array(v.id("locations")),
     quickPinHash: v.optional(v.string()),
+    passwordHash: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -37,6 +38,10 @@ export const insertStaff = internalMutation({
       }
     }
 
+    if (args.passwordHash && !args.email) {
+      throw new Error("Email is required to set a password");
+    }
+
     const userId = await ctx.db.insert("users", {
       tenantId: session.tenantId,
       name: args.name,
@@ -44,6 +49,7 @@ export const insertStaff = internalMutation({
       googleId: undefined,
       role: args.role,
       quickPinHash: args.quickPinHash,
+      passwordHash: args.passwordHash,
       status: "active",
       updatedAt: Date.now(),
     });
@@ -98,6 +104,57 @@ export const updatePinHash = internalMutation({
       entityType: "user",
       entityId: args.userId.toString(),
       changes: { action: "pin_reset" },
+    });
+  },
+});
+
+export const updatePasswordHash = internalMutation({
+  args: {
+    token: v.string(),
+    userId: v.id("users"),
+    passwordHash: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner", "manager"]);
+
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser || targetUser.tenantId !== session.tenantId) {
+      throw new Error("User not found");
+    }
+    if (!targetUser.email) {
+      throw new Error("Staff member must have an email before a password can be set");
+    }
+
+    // Manager can only reset baristas they share a location with
+    if (session.role === "manager") {
+      if (targetUser.role !== "barista") {
+        throw new Error("Managers can only reset passwords for barista accounts");
+      }
+      const targetAssignments = await ctx.db
+        .query("userLocations")
+        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .collect();
+      const hasOverlap = targetAssignments.some((ul) =>
+        session.locationIds.includes(ul.locationId)
+      );
+      if (!hasOverlap) {
+        throw new Error("Not authorized to reset this staff member's password");
+      }
+    }
+
+    await ctx.db.patch(args.userId, {
+      passwordHash: args.passwordHash,
+      updatedAt: Date.now(),
+    });
+
+    await ctx.db.insert("auditLog", {
+      tenantId: session.tenantId,
+      userId: session.userId,
+      action: "reset_password",
+      entityType: "user",
+      entityId: args.userId.toString(),
+      changes: { action: "password_reset" },
     });
   },
 });

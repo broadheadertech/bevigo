@@ -30,6 +30,7 @@ type StaffFormData = {
   email: string;
   role: "owner" | "manager" | "barista";
   quickPin: string;
+  password: string;
   locationIds: Id<"locations">[];
   hourlyRate: string;
 };
@@ -39,6 +40,7 @@ const emptyForm: StaffFormData = {
   email: "",
   role: "barista",
   quickPin: "",
+  password: "",
   locationIds: [],
   hourlyRate: "",
 };
@@ -64,6 +66,7 @@ export default function StaffPage() {
   const createStaff = useAction(api.staff.mutations.create);
   const updateStaff = useMutation(api.staff.mutations.update);
   const resetPin = useAction(api.staff.mutations.resetPin);
+  const resetPassword = useAction(api.staff.mutations.resetPassword);
   const setHourlyRate = useMutation(api.timesheets.mutations.setHourlyRate);
 
   const [showForm, setShowForm] = useState(false);
@@ -107,6 +110,7 @@ export default function StaffPage() {
       email: staff.email || "",
       role: staff.role,
       quickPin: "",
+      password: "",
       locationIds: staff.locations.map((l) => l.locationId),
       hourlyRate:
         staff.hourlyRate !== undefined && staff.hourlyRate !== null
@@ -141,6 +145,14 @@ export default function StaffPage() {
             newPin: form.quickPin,
           });
         }
+        // Reset password if a new one was entered
+        if (form.password && form.password.length >= 6) {
+          await resetPassword({
+            token,
+            userId: editingId,
+            newPassword: form.password,
+          });
+        }
         // Update hourly rate if owner has changed it
         if (session.role === "owner" && form.hourlyRate.trim() !== "") {
           const parsed = parseFloat(form.hourlyRate);
@@ -160,6 +172,7 @@ export default function StaffPage() {
           role: form.role,
           locationIds: form.locationIds,
           quickPin: form.quickPin || undefined,
+          password: form.password || undefined,
         });
       }
       setShowForm(false);
@@ -410,6 +423,25 @@ export default function StaffPage() {
                   style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
                   placeholder={editingId ? "Leave blank to keep current PIN" : "e.g. 1234"}
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-fg)' }}>
+                  {editingId ? "Reset Password (leave blank to keep current)" : "Password (optional, min 6 chars)"}
+                </label>
+                <input
+                  type="password"
+                  minLength={6}
+                  autoComplete="new-password"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className="w-full rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-colors"
+                  style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
+                  placeholder={editingId ? "Leave blank to keep current password" : "Requires email above"}
+                />
+                <p className="text-xs mt-1.5" style={{ color: 'var(--muted-fg)' }}>
+                  Email is required for password login.
+                </p>
               </div>
 
               {editingId && (
