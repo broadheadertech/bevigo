@@ -538,10 +538,26 @@ export default function RegisterPage() {
     onCancelAction: handleCancelAction,
   });
 
-  if (!token || !session || !locationId) {
+  if (!token || !session) {
     return (
       <div className="flex h-full items-center justify-center">
         <p className="text-stone-500 dark:text-stone-400">Loading register...</p>
+      </div>
+    );
+  }
+
+  if (!locationId) {
+    return (
+      <div className="flex h-full items-center justify-center px-6">
+        <div className="text-center max-w-sm">
+          <h2 className="text-lg font-bold mb-2" style={{ color: "var(--fg)" }}>
+            No location assigned
+          </h2>
+          <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
+            Your account isn&apos;t assigned to a location yet. Ask an owner or
+            manager to assign you on the Staff page.
+          </p>
+        </div>
       </div>
     );
   }

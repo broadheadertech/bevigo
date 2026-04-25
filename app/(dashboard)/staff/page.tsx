@@ -2,7 +2,8 @@
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useAuth } from "@/lib/auth-context";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Pagination, usePagination } from "@/components/ui/pagination";
 import { ReferencePhotoUploader } from "@/components/staff/reference-photo-uploader";
@@ -58,15 +59,33 @@ function getInitials(name: string): string {
 
 export default function StaffPage() {
   const { session, token } = useAuth();
+  const router = useRouter();
+
+  const canManageStaff =
+    session?.role === "owner" || session?.role === "manager";
+
+  useEffect(() => {
+    if (session && !canManageStaff) {
+      router.replace("/order");
+    }
+  }, [session, canManageStaff, router]);
 
   const staffList = useQuery(
     api.staff.queries.list,
-    token ? { token } : "skip"
+    token && canManageStaff ? { token } : "skip"
   );
   const createStaff = useAction(api.staff.mutations.create);
   const updateStaff = useMutation(api.staff.mutations.update);
   const resetPin = useAction(api.staff.mutations.resetPin);
   const resetPassword = useAction(api.staff.mutations.resetPassword);
+
+  const allLocations = useQuery(
+    api.settings.queries.listLocations,
+    token && canManageStaff ? { token } : "skip"
+  ) as Array<{ _id: Id<"locations">; name: string; status: string }> | undefined;
+  const assignableLocations = (allLocations ?? []).filter(
+    (loc) => session?.role === "owner" || session?.locationIds.includes(loc._id)
+  );
   const setHourlyRate = useMutation(api.timesheets.mutations.setHourlyRate);
 
   const [showForm, setShowForm] = useState(false);
@@ -89,7 +108,7 @@ export default function StaffPage() {
 
   const { paginatedItems: paginatedStaff, currentPage: staffPage, totalPages: staffTotalPages, setCurrentPage: setStaffPage } = usePagination(filteredStaff ?? []);
 
-  if (!token || !session) {
+  if (!token || !session || !canManageStaff) {
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-stone-400">Loading...</p>
@@ -126,6 +145,12 @@ export default function StaffPage() {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
+
+    if (form.locationIds.length === 0) {
+      setError("Please assign at least one location.");
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       if (editingId) {
@@ -423,6 +448,47 @@ export default function StaffPage() {
                   style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
                   placeholder={editingId ? "Leave blank to keep current PIN" : "e.g. 1234"}
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-fg)' }}>
+                  Locations *
+                </label>
+                {assignableLocations.length === 0 ? (
+                  <p className="text-xs" style={{ color: 'var(--muted-fg)' }}>
+                    No locations available. Create one in Settings → Locations first.
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-2 max-h-40 overflow-y-auto rounded-2xl px-3 py-2" style={{ backgroundColor: 'var(--muted)', border: '1px solid var(--border-color)' }}>
+                    {assignableLocations.map((loc) => {
+                      const checked = form.locationIds.includes(loc._id);
+                      return (
+                        <label key={loc._id} className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--fg)' }}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              setForm({
+                                ...form,
+                                locationIds: e.target.checked
+                                  ? [...form.locationIds, loc._id]
+                                  : form.locationIds.filter((id) => id !== loc._id),
+                              });
+                            }}
+                            className="w-4 h-4 accent-amber-500"
+                          />
+                          {loc.name}
+                          {loc.status !== "active" && (
+                            <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>({loc.status})</span>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="text-xs mt-1.5" style={{ color: 'var(--muted-fg)' }}>
+                  Required — baristas can only access the register at assigned locations.
+                </p>
               </div>
 
               <div>
