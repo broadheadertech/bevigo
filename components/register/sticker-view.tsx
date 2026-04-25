@@ -425,11 +425,25 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
                     <div className="text-base font-bold leading-tight">
                       {s.name}
                     </div>
-                    {data.customerName && (
-                      <div className="text-[11px] mt-1 leading-tight opacity-80">
-                        Ordered by <strong>{data.customerName}</strong>
-                      </div>
-                    )}
+                    {(() => {
+                      // Show the same name the printer will use: per-sticker
+                      // override, then order-wide label, then linked customer,
+                      // then table. The earlier preview only checked the
+                      // linked-customer field, so manually-typed names
+                      // looked like they "didn't reflect."
+                      const printedName = pickName(s);
+                      return printedName ? (
+                        <div className="text-sm mt-1 leading-tight font-semibold">
+                          {printedName}
+                        </div>
+                      ) : null;
+                    })()}
+                    {data.customerName &&
+                      data.customerName !== pickName(s) && (
+                        <div className="text-[11px] mt-0.5 leading-tight opacity-70">
+                          Ordered by <strong>{data.customerName}</strong>
+                        </div>
+                      )}
                     {s.modifiers.length > 0 && (
                       <div className="text-[11px] mt-1 leading-snug">
                         {s.modifiers.map((m, mi) => (

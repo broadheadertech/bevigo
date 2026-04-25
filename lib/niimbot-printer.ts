@@ -141,7 +141,11 @@ class NiimbotPrinter {
     let modSize = px(0.16, 18);
     let footSize = px(0.11, 14);
 
+    const cupName = (sticker.customerOrTable ?? "").trim();
     const orderedBy = (sticker.orderedBy ?? "").trim();
+    // Only show "Ordered by …" when the linked-customer is set AND differs
+    // from the cup name, to avoid printing the same name twice.
+    const showOrderedBy = orderedBy && orderedBy !== cupName;
     const footerText = `${sticker.orderNumber} · ${sticker.indexLabel}`;
 
     // Two-pass layout: measure required height at base sizes, then shrink
@@ -150,11 +154,18 @@ class NiimbotPrinter {
       iSize: number,
       mSize: number,
       fSize: number
-    ): { total: number; itemL: string[]; orderedL: string[]; modL: string[][] } => {
+    ): {
+      total: number;
+      itemL: string[];
+      cupL: string[];
+      orderedL: string[];
+      modL: string[][];
+    } => {
       ctx.font = `bold ${iSize}px sans-serif`;
       const itemL = wrapText(ctx, sticker.itemName, innerWidth);
       ctx.font = `bold ${mSize}px sans-serif`;
-      const orderedL = orderedBy
+      const cupL = cupName ? wrapText(ctx, cupName, innerWidth) : [];
+      const orderedL = showOrderedBy
         ? wrapText(ctx, `Ordered by ${orderedBy}`, innerWidth)
         : [];
       ctx.font = `${mSize}px sans-serif`;
@@ -165,13 +176,14 @@ class NiimbotPrinter {
       const total =
         padding +
         itemL.length * lineHeight(iSize) +
+        cupL.length * lineHeight(mSize) +
         orderedL.length * lineHeight(mSize) +
         Math.floor(mSize * 0.15) +
         modL.reduce((sum, lines) => sum + lines.length * lineHeight(mSize), 0) +
         4 + // gap before footer
         fSize +
         padding;
-      return { total, itemL, orderedL, modL };
+      return { total, itemL, cupL, orderedL, modL };
     };
 
     let m = measure(itemSize, modSize, footSize);
@@ -192,7 +204,16 @@ class NiimbotPrinter {
       y += itemSize + 2;
     }
 
-    // "Ordered by {customerName}" — only when customer name is on file
+    // Cup name — printed right after the item name when present
+    if (m.cupL.length > 0) {
+      ctx.font = `bold ${modSize}px sans-serif`;
+      for (const line of m.cupL) {
+        ctx.fillText(line, padding, y);
+        y += modSize + 2;
+      }
+    }
+
+    // "Ordered by {linkedCustomerName}" — only when distinct from cup name
     if (m.orderedL.length > 0) {
       ctx.font = `bold ${modSize}px sans-serif`;
       for (const line of m.orderedL) {
