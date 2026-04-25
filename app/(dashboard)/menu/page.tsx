@@ -12,6 +12,7 @@ import { ManagerMenuView } from"@/components/menu/manager-menu-view";
 import { ImportItemsModal } from"@/components/menu/import-items-modal";
 import { ItemModifierAssignment } from"@/components/menu/item-modifier-assignment";
 import { useConfirm } from"@/lib/confirm-context";
+import { ExportButton } from "@/components/ui/export-button";
 
 type Category = {
  _id: Id<"categories">;
@@ -54,6 +55,9 @@ export default function MenuPage() {
  const toggleFeatured = useMutation(api.menu.mutations.toggleFeatured);
  const deleteItem = useMutation(api.menu.mutations.deleteItem);
  const deleteCategory = useMutation(api.menu.mutations.deleteCategory);
+ const backfillSkus = useMutation(api.skuBackfill.backfillSkus);
+ const [skuFilling, setSkuFilling] = useState(false);
+ const [skuResult, setSkuResult] = useState<string | null>(null);
 
  const [selectedCategoryId, setSelectedCategoryId] =
  useState<Id<"categories"> | null>(null);
@@ -186,6 +190,33 @@ export default function MenuPage() {
  >
  Import CSV
  </button>
+ <ExportButton queryRef={api.exports.exportMenu} filenameBase="menu" />
+ {session?.role === "owner" && (
+ <button
+ onClick={async () => {
+ if (!token || skuFilling) return;
+ const ok = await confirm({
+ title: "Assign SKUs to existing items?",
+ message: "Adds the new {category-letter}{name-letter}{NNN} SKU to every menu item and ingredient that doesn't have one yet. Existing SKUs are kept as-is.",
+ confirmLabel: "Assign SKUs",
+ });
+ if (!ok) return;
+ setSkuFilling(true);
+ try {
+ const r = await backfillSkus({ token });
+ setSkuResult(`Assigned ${r.menuFilled} menu + ${r.ingredientFilled} ingredient SKUs.`);
+ setTimeout(() => setSkuResult(null), 5000);
+ } finally {
+ setSkuFilling(false);
+ }
+ }}
+ className="px-3 py-2.5 text-sm font-medium rounded-xl transition-colors"
+ style={{ border: '1px solid var(--border-color)', color: 'var(--fg)' }}
+ title="One-shot: fill in the new SKU format on existing rows"
+ >
+ {skuFilling ? "Assigning…" : skuResult ?? "Assign SKUs"}
+ </button>
+ )}
  <button
  onClick={() => {
  setEditingItem(null);

@@ -7,9 +7,9 @@ import { useState } from"react";
 import { Id } from"../../../convex/_generated/dataModel";
 import { IngredientForm } from"@/components/inventory/ingredient-form";
 import { ImportIngredientsModal } from"@/components/inventory/import-ingredients-modal";
-import { exportToCSV } from"@/lib/export";
 import { Pagination, usePagination } from"@/components/ui/pagination";
 import { useConfirm } from"@/lib/confirm-context";
+import { ExportButton } from "@/components/ui/export-button";
 
 type Location = {
  _id: Id<"locations">;
@@ -135,24 +135,9 @@ export default function InventoryPage() {
  Track ingredients and stock levels
  </p>
  </div>
- <div className="flex gap-2 self-start md:self-auto">
- <button
- onClick={() => {
- if (typedIngredients.length > 0) {
- exportToCSV(typedIngredients.map((ing: IngredientRow) => ({
- name: ing.name,
- category: ing.category ??"",
- unit: ing.unit,
- stockQuantity: ing.stockQuantity ?? 0,
- reorderThreshold: ing.reorderThreshold,
- status: ing.status,
- })),"inventory.csv");
- }
- }}
- className="px-3 py-2 text-sm rounded-xl"
- >
- Export CSV
- </button>
+ <div className="flex flex-wrap gap-2 self-start md:self-auto">
+ <ExportButton queryRef={api.exports.exportIngredients} filenameBase="ingredients" label="Export Ingredients" />
+ <ExportButton queryRef={api.exports.exportInventory} filenameBase="inventory" label="Export Inventory" />
  {session.role ==="owner" && (
  <>
  <button

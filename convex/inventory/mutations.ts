@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { requireAuth, requireRole } from "../lib/auth";
 import { logAuditEntry } from "../audit/helpers";
 import { Id } from "../_generated/dataModel";
+import { generateUniqueSku } from "../menu/skuHelpers";
 
 const ALLOWED_UNITS = new Set(["g", "kg", "ml", "L", "pcs"]);
 
@@ -13,15 +14,34 @@ export const createIngredient = mutation({
     unit: v.string(),
     category: v.optional(v.string()),
     reorderThreshold: v.number(),
+    sku: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
     requireRole(session, ["owner"]);
 
+    // SKU: honor explicit (and reject duplicates) or auto-generate using the
+    // {catLetter}{nameLetter}{NNN} format. Caller can leave blank.
+    let sku = args.sku?.trim() || undefined;
+    const allIngredients = await ctx.db
+      .query("ingredients")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", session.tenantId))
+      .collect();
+    if (sku) {
+      if (allIngredients.some((i) => i.sku === sku)) {
+        throw new Error(`SKU already exists: ${sku}`);
+      }
+    } else {
+      const used = new Set<string>();
+      for (const ing of allIngredients) if (ing.sku) used.add(ing.sku);
+      sku = generateUniqueSku(args.name, used, args.category ?? "Ingredient");
+    }
+
     const now = Date.now();
     const ingredientId = await ctx.db.insert("ingredients", {
       tenantId: session.tenantId,
       name: args.name,
+      sku,
       unit: args.unit,
       category: args.category,
       reorderThreshold: args.reorderThreshold,
@@ -36,7 +56,7 @@ export const createIngredient = mutation({
       "ingredient_created",
       "ingredients",
       ingredientId,
-      { name: args.name, unit: args.unit, category: args.category }
+      { name: args.name, sku, unit: args.unit, category: args.category }
     );
 
     return ingredientId;

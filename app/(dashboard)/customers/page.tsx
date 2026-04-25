@@ -8,6 +8,7 @@ import { Id } from"../../../convex/_generated/dataModel";
 import { formatCurrency } from"@/lib/currency";
 import { LoyaltyCard } from"@/components/customers/loyalty-card";
 import { Pagination, usePagination } from"@/components/ui/pagination";
+import { ExportButton } from"@/components/ui/export-button";
 
 type PointsLedgerEntry = {
  _id: string;
@@ -196,6 +197,8 @@ export default function CustomersPage() {
  Manage your customer database and loyalty program
  </p>
  </div>
+ <div className="flex flex-wrap gap-2 items-start">
+ <ExportButton queryRef={api.exports.exportCustomers} filenameBase="customers" />
  <button
  onClick={() => {
  setShowAddForm(true);
@@ -208,6 +211,7 @@ export default function CustomersPage() {
  >
  + Add Customer
  </button>
+ </div>
  </div>
 
  {/* Add / Edit Form */}

@@ -346,6 +346,7 @@ export default defineSchema({
   ingredients: defineTable({
     tenantId: v.id("tenants"),
     name: v.string(),
+    sku: v.optional(v.string()), // unique per tenant; format {catLetter}{nameLetter}{NNN}
     unit: v.string(), // "g", "ml", "pcs", "kg", "L"
     category: v.optional(v.string()), // "Coffee", "Dairy", "Supplies", etc.
     reorderThreshold: v.number(), // alert when stock falls below this
@@ -353,7 +354,8 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_tenant", ["tenantId"])
-    .index("by_tenant_status", ["tenantId", "status"]),
+    .index("by_tenant_status", ["tenantId", "status"])
+    .index("by_tenant_sku", ["tenantId", "sku"]),
 
   ingredientStock: defineTable({
     ingredientId: v.id("ingredients"),

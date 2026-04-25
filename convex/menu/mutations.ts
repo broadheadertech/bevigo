@@ -199,7 +199,7 @@ export const createItem = mutation({
       for (const it of allItems) {
         if (it.sku) used.add(it.sku);
       }
-      sku = generateUniqueSku(args.name, used);
+      sku = generateUniqueSku(args.name, used, category.name);
     }
 
     const now = Date.now();

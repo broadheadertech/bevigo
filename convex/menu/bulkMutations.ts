@@ -300,10 +300,8 @@ export const bulkImportItems = mutation({
           continue;
         }
       } else {
-        // Auto-generate from the product name. Format: first-3-letters of
-        // up to three words, joined by dashes, with a numeric suffix only
-        // appended when needed to avoid collision.
-        sku = generateUniqueSku(name, usedSkus);
+        // Auto-generate using the {catLetter}{nameLetter}{NNN} format.
+        sku = generateUniqueSku(name, usedSkus, categoryName);
       }
       usedSkus.add(sku);
 

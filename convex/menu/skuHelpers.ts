@@ -1,28 +1,37 @@
 /**
- * Build a readable SKU from a product name and ensure it doesn't collide
- * with anything in `used`. "Iced Caffe Latte" -> "ICE-CAF-LAT".
- * On collision, appends "-2", "-3" etc. until a free slot is found.
+ * SKU format: {firstLetterOfCategory}{firstLetterOfName}{NNN}
+ *
+ * Examples:
+ *   category="Iced Coffee Series", name="Caffe Latte"  -> IC000
+ *   category="Iced Coffee Series", name="Caramel Macchiato" -> IC001
+ *   category="Hot Coffee Series", name="Americano" -> HA000
+ *
+ * The 3-digit counter is per (categoryLetter + nameLetter) prefix, padded to
+ * 3 digits and starting at 000. Caller passes the existing SKUs for that
+ * tenant so we can find the next free slot without colliding.
  */
-export function generateUniqueSku(name: string, used: Set<string>): string {
-  const tokens = name
-    .toUpperCase()
-    .replace(/[^A-Z0-9 ]/g, "")
-    .split(/\s+/)
-    .filter(Boolean);
+export function generateUniqueSku(
+  name: string,
+  used: Set<string>,
+  categoryName?: string
+): string {
+  const catLetter = firstAlphaUpper(categoryName ?? "X");
+  const nameLetter = firstAlphaUpper(name);
+  const prefix = `${catLetter}${nameLetter}`;
 
-  let base: string;
-  if (tokens.length === 0) {
-    base = "ITEM";
-  } else if (tokens.length === 1) {
-    base = tokens[0].slice(0, 6);
-  } else {
-    base = tokens.slice(0, 3).map((t) => t.slice(0, 3)).join("-");
-  }
-
-  if (!used.has(base)) return base;
-  for (let n = 2; n < 10000; n++) {
-    const candidate = `${base}-${n}`;
+  for (let n = 0; n < 1000; n++) {
+    const candidate = `${prefix}${String(n).padStart(3, "0")}`;
     if (!used.has(candidate)) return candidate;
   }
-  return `${base}-${Date.now()}`;
+  // Astronomically unlikely overflow guard — fall back to a longer suffix.
+  for (let n = 1000; n < 100000; n++) {
+    const candidate = `${prefix}${n}`;
+    if (!used.has(candidate)) return candidate;
+  }
+  return `${prefix}${Date.now()}`;
+}
+
+function firstAlphaUpper(input: string): string {
+  const cleaned = input.toUpperCase().replace(/[^A-Z]/g, "");
+  return cleaned.length > 0 ? cleaned.charAt(0) : "X";
 }
