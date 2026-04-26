@@ -93,6 +93,9 @@ export function StickerView({ orderId, token, onClose }: StickerViewProps) {
   const [thermalStatus, setThermalStatus] = useState<string | null>(null);
   const [thermalError, setThermalError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Default ON: each Niimbot tap prints the next selected sticker so the
+  // operator can tear / verify between labels and avoid B1 gap-detection
+  // drift on long runs. Toggle off to fire the whole batch in one tap.
   const [oneByOne, setOneByOne] = useState(true);
   const [nextSelectedPos, setNextSelectedPos] = useState(0);
   // Indexes (into the expanded sticker list) the operator wants to print.
