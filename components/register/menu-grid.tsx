@@ -43,15 +43,79 @@ export function MenuGrid({ categories, items, onItemTap, onCustomizeTap }: MenuG
  ];
 
  const [activeTab, setActiveTab] = useState(allTabs[0]?.id ??"");
+ const [search, setSearch] = useState("");
 
- const displayItems =
- activeTab ==="__featured__"
+ // When the search box has text we ignore the category tabs and search the
+ // entire menu by name / SKU. Empty search falls back to the active tab.
+ const trimmedSearch = search.trim().toLowerCase();
+ const displayItems = trimmedSearch
+ ? items.filter(
+ (i) =>
+ i.name.toLowerCase().includes(trimmedSearch) ||
+ (i.sku && i.sku.toLowerCase().includes(trimmedSearch))
+ )
+ : activeTab ==="__featured__"
  ? featured
  : items.filter((i) => i.categoryId === activeTab);
 
  return (
  <div className="flex flex-col h-full overflow-hidden">
- {/* Category tabs */}
+ {/* Search bar */}
+ <div className="px-3 pt-2 pb-1 shrink-0">
+ <div className="relative">
+ <svg
+ className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+ fill="none"
+ viewBox="0 0 24 24"
+ stroke="currentColor"
+ strokeWidth={2}
+ style={{ color:"var(--muted-fg)" }}
+ >
+ <path
+ strokeLinecap="round"
+ strokeLinejoin="round"
+ d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"
+ />
+ </svg>
+ <input
+ type="search"
+ value={search}
+ onChange={(e) => setSearch(e.target.value)}
+ placeholder="Search menu by name or SKU…"
+ className="w-full pl-9 pr-9 py-2.5 rounded-2xl text-sm outline-none transition-colors"
+ style={{
+ backgroundColor:"var(--muted)",
+ color:"var(--fg)",
+ border:"1px solid var(--border-color)",
+ }}
+ />
+ {search && (
+ <button
+ onClick={() => setSearch("")}
+ aria-label="Clear search"
+ className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-xl"
+ style={{ color:"var(--muted-fg)" }}
+ >
+ <svg
+ className="w-4 h-4"
+ fill="none"
+ viewBox="0 0 24 24"
+ stroke="currentColor"
+ strokeWidth={2}
+ >
+ <path
+ strokeLinecap="round"
+ strokeLinejoin="round"
+ d="M6 18L18 6M6 6l12 12"
+ />
+ </svg>
+ </button>
+ )}
+ </div>
+ </div>
+
+ {/* Category tabs — hidden while searching to keep focus on results */}
+ {!trimmedSearch && (
  <div
  className="flex gap-1 px-3 py-2 overflow-x-auto shrink-0"
  style={{ borderBottom:"1px solid var(--border-color)" }}
@@ -76,6 +140,7 @@ export function MenuGrid({ categories, items, onItemTap, onCustomizeTap }: MenuG
  </button>
  ))}
  </div>
+ )}
 
  {/* Items grid — fills remaining space, no scroll */}
  <div className="flex-1 p-3 overflow-y-auto">
@@ -149,7 +214,9 @@ export function MenuGrid({ categories, items, onItemTap, onCustomizeTap }: MenuG
  ) : (
  <div className="flex items-center justify-center h-full">
  <p style={{ color:"var(--muted-fg)" }} className="text-sm">
- No items in this category
+ {trimmedSearch
+ ? `No items match "${search.trim()}"`
+ : "No items in this category"}
  </p>
  </div>
  )}
