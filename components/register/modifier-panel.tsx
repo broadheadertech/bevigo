@@ -150,6 +150,11 @@ export function ModifierPanel({
  (mod: Modifier): number => {
  const overrides = mod.priceOverrides ?? [];
  for (const o of overrides) {
+ // Self-referential overrides (variantKey === own name) would always
+ // fire as soon as the option is clicked, zeroing-out a legitimate
+ // priceAdjustment. They're meaningless anyway — an option's price
+ // for itself is just its priceAdjustment — so ignore them.
+ if (o.variantKey === mod.name) continue;
  if (chosenNames.has(o.variantKey)) return o.priceAdjustment;
  }
  return mod.priceAdjustment;

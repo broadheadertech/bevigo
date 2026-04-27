@@ -104,7 +104,13 @@ export const getItemModifierGroups = query({
               .collect();
             const priceOverrides = recipeRows
               .filter(
-                (r) => r.variantKey && r.priceAdjustment !== undefined
+                (r) =>
+                  r.variantKey &&
+                  r.priceAdjustment !== undefined &&
+                  // Strip self-referential rows: an option's "Only when"
+                  // pointing at its own name would zero-out the option's
+                  // own price the moment it's selected.
+                  r.variantKey !== m.name
               )
               .map((r) => ({
                 variantKey: r.variantKey as string,
