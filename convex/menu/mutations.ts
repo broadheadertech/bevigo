@@ -166,6 +166,7 @@ export const createItem = mutation({
     sku: v.optional(v.string()),
     isFeatured: v.optional(v.boolean()),
     sortOrder: v.number(),
+    defaultSupplierId: v.optional(v.id("suppliers")),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -202,6 +203,13 @@ export const createItem = mutation({
       sku = generateUniqueSku(args.name, used, category.name);
     }
 
+    if (args.defaultSupplierId) {
+      const sup = await ctx.db.get(args.defaultSupplierId);
+      if (!sup || sup.tenantId !== session.tenantId) {
+        throw new Error("Supplier not found");
+      }
+    }
+
     const now = Date.now();
     const itemId = await ctx.db.insert("menuItems", {
       tenantId: session.tenantId,
@@ -212,6 +220,7 @@ export const createItem = mutation({
       sku,
       isFeatured: args.isFeatured ?? false,
       sortOrder: args.sortOrder,
+      defaultSupplierId: args.defaultSupplierId,
       status: "active",
       updatedAt: now,
     });
@@ -249,6 +258,9 @@ export const updateItem = mutation({
     status: v.optional(
       v.union(v.literal("active"), v.literal("inactive"), v.literal("archived"))
     ),
+    /** Pass an Id to set, omit to leave unchanged. Pass clearSupplier:true to detach. */
+    defaultSupplierId: v.optional(v.id("suppliers")),
+    clearSupplier: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -276,6 +288,15 @@ export const updateItem = mutation({
     if (args.isFeatured !== undefined) updates.isFeatured = args.isFeatured;
     if (args.sortOrder !== undefined) updates.sortOrder = args.sortOrder;
     if (args.status !== undefined) updates.status = args.status;
+    if (args.clearSupplier) {
+      updates.defaultSupplierId = undefined;
+    } else if (args.defaultSupplierId !== undefined) {
+      const sup = await ctx.db.get(args.defaultSupplierId);
+      if (!sup || sup.tenantId !== session.tenantId) {
+        throw new Error("Supplier not found");
+      }
+      updates.defaultSupplierId = args.defaultSupplierId;
+    }
 
     await ctx.db.patch(args.itemId, updates);
 

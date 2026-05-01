@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from"react";
-import { useMutation } from"convex/react";
+import { useMutation, useQuery } from"convex/react";
 import { api } from"../../convex/_generated/api";
 import { useAuth } from"@/lib/auth-context";
 import { Id } from"../../convex/_generated/dataModel";
 import { ImageUpload } from"./image-upload";
+
+type SupplierOption = { _id: Id<"suppliers">; name: string; status: "active" | "inactive" };
 
 type Category = {
  _id: Id<"categories">;
@@ -23,6 +25,7 @@ type ItemFormProps = {
  categoryId: Id<"categories">;
  isFeatured: boolean;
  sortOrder: number;
+ defaultSupplierId?: Id<"suppliers"> | null;
  } | null;
  defaultCategoryId?: Id<"categories">;
  onClose: () => void;
@@ -53,8 +56,17 @@ export function ItemForm({
  editingItem?.isFeatured ?? false
  );
  const [sortOrder, setSortOrder] = useState(editingItem?.sortOrder ?? 0);
+ const [supplierId, setSupplierId] = useState<string>(
+ editingItem?.defaultSupplierId ?? ""
+ );
  const [isSubmitting, setIsSubmitting] = useState(false);
  const [error, setError] = useState<string | null>(null);
+
+ const suppliers = useQuery(
+ api.suppliers.queries.list,
+ token ? { token } : "skip"
+ ) as SupplierOption[] | undefined;
+ const activeSuppliers = (suppliers ?? []).filter((s) => s.status === "active");
 
  const handleSubmit = async (e: React.FormEvent) => {
  e.preventDefault();
@@ -83,6 +95,9 @@ export function ItemForm({
  categoryId: categoryId as Id<"categories">,
  isFeatured,
  sortOrder,
+ ...(supplierId
+ ? { defaultSupplierId: supplierId as Id<"suppliers"> }
+ : { clearSupplier: true }),
  });
  } else {
  await createItem({
@@ -94,6 +109,9 @@ export function ItemForm({
  sku: sku || undefined,
  isFeatured,
  sortOrder,
+ defaultSupplierId: supplierId
+ ? (supplierId as Id<"suppliers">)
+ : undefined,
  });
  }
  onClose();
@@ -206,6 +224,26 @@ export function ItemForm({
  onChange={(e) => setSortOrder(Number(e.target.value))}
  className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors" style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
  />
+ </div>
+
+ <div>
+ <label className="block text-sm font-medium mb-1" style={{ color: 'var(--muted-fg)' }}>
+ Supplier (optional)
+ </label>
+ <select
+ value={supplierId}
+ onChange={(e) => setSupplierId(e.target.value)}
+ className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+ style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
+ >
+ <option value="">— None —</option>
+ {activeSuppliers.map((s) => (
+ <option key={s._id} value={s._id}>{s.name}</option>
+ ))}
+ </select>
+ <p className="text-xs mt-1" style={{ color: 'var(--muted-fg)' }}>
+ Use for finished goods bought from a third party (cookies, bottled drinks). Leave blank for in-house items.
+ </p>
  </div>
 
  <div className="flex items-center gap-2">

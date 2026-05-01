@@ -15,6 +15,7 @@ export const createIngredient = mutation({
     category: v.optional(v.string()),
     reorderThreshold: v.number(),
     sku: v.optional(v.string()),
+    defaultSupplierId: v.optional(v.id("suppliers")),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -37,6 +38,13 @@ export const createIngredient = mutation({
       sku = generateUniqueSku(args.name, used, args.category ?? "Ingredient");
     }
 
+    if (args.defaultSupplierId) {
+      const sup = await ctx.db.get(args.defaultSupplierId);
+      if (!sup || sup.tenantId !== session.tenantId) {
+        throw new Error("Supplier not found");
+      }
+    }
+
     const now = Date.now();
     const ingredientId = await ctx.db.insert("ingredients", {
       tenantId: session.tenantId,
@@ -45,6 +53,7 @@ export const createIngredient = mutation({
       unit: args.unit,
       category: args.category,
       reorderThreshold: args.reorderThreshold,
+      defaultSupplierId: args.defaultSupplierId,
       status: "active",
       updatedAt: now,
     });
@@ -143,6 +152,9 @@ export const updateIngredient = mutation({
     category: v.optional(v.string()),
     reorderThreshold: v.optional(v.number()),
     status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
+    /** Pass an Id to set, omit to leave unchanged. Pass clearSupplier:true to detach. */
+    defaultSupplierId: v.optional(v.id("suppliers")),
+    clearSupplier: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -160,6 +172,15 @@ export const updateIngredient = mutation({
     if (args.reorderThreshold !== undefined)
       updates.reorderThreshold = args.reorderThreshold;
     if (args.status !== undefined) updates.status = args.status;
+    if (args.clearSupplier) {
+      updates.defaultSupplierId = undefined;
+    } else if (args.defaultSupplierId !== undefined) {
+      const sup = await ctx.db.get(args.defaultSupplierId);
+      if (!sup || sup.tenantId !== session.tenantId) {
+        throw new Error("Supplier not found");
+      }
+      updates.defaultSupplierId = args.defaultSupplierId;
+    }
 
     await ctx.db.patch(args.ingredientId, updates);
 

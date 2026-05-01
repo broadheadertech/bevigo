@@ -210,6 +210,9 @@ export default defineSchema({
     imageId: v.optional(v.id("_storage")),
     isFeatured: v.boolean(),
     sortOrder: v.number(),
+    /** Optional default supplier — for finished goods bought from a third
+     *  party (e.g. cookies, bottled drinks). Left blank for in-house items. */
+    defaultSupplierId: v.optional(v.id("suppliers")),
     status: v.union(
       v.literal("active"),
       v.literal("inactive"),
@@ -221,7 +224,8 @@ export default defineSchema({
     .index("by_tenant_category", ["tenantId", "categoryId"])
     .index("by_tenant_featured", ["tenantId", "isFeatured"])
     .index("by_tenant_status", ["tenantId", "status"])
-    .index("by_tenant_sku", ["tenantId", "sku"]),
+    .index("by_tenant_sku", ["tenantId", "sku"])
+    .index("by_supplier", ["defaultSupplierId"]),
 
   modifierGroups: defineTable({
     tenantId: v.id("tenants"),
@@ -350,12 +354,16 @@ export default defineSchema({
     unit: v.string(), // "g", "ml", "pcs", "kg", "L"
     category: v.optional(v.string()), // "Coffee", "Dairy", "Supplies", etc.
     reorderThreshold: v.number(), // alert when stock falls below this
+    /** Optional default supplier — leave blank for items you don't track via
+     *  a supplier (in-house, mixed sources, etc.). */
+    defaultSupplierId: v.optional(v.id("suppliers")),
     status: v.union(v.literal("active"), v.literal("inactive")),
     updatedAt: v.number(),
   })
     .index("by_tenant", ["tenantId"])
     .index("by_tenant_status", ["tenantId", "status"])
-    .index("by_tenant_sku", ["tenantId", "sku"]),
+    .index("by_tenant_sku", ["tenantId", "sku"])
+    .index("by_supplier", ["defaultSupplierId"]),
 
   ingredientStock: defineTable({
     ingredientId: v.id("ingredients"),
@@ -418,6 +426,26 @@ export default defineSchema({
     .index("by_modifier", ["modifierId"])
     .index("by_ingredient", ["ingredientId"])
     .index("by_tenant", ["tenantId"]),
+
+  /**
+   * Supplier directory — third-party vendors that ingredients or finished
+   * products can be ordered from. Pure reference data: assigning one to a
+   * row is optional, deleting a supplier is blocked while anything still
+   * references it.
+   */
+  suppliers: defineTable({
+    tenantId: v.id("tenants"),
+    name: v.string(),
+    contactName: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    email: v.optional(v.string()),
+    address: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    updatedAt: v.number(),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_tenant_status", ["tenantId", "status"]),
 
   purchaseOrders: defineTable({
     tenantId: v.id("tenants"),
