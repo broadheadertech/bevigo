@@ -42,10 +42,12 @@ export const insertStaff = internalMutation({
       throw new Error("Email is required to set a password");
     }
 
+    const normalizedEmail = args.email?.trim().toLowerCase() || undefined;
+
     const userId = await ctx.db.insert("users", {
       tenantId: session.tenantId,
       name: args.name,
-      email: args.email,
+      email: normalizedEmail,
       googleId: undefined,
       role: args.role,
       quickPinHash: args.quickPinHash,

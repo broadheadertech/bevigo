@@ -428,6 +428,36 @@ export default defineSchema({
     .index("by_tenant", ["tenantId"]),
 
   /**
+   * Cross-tenant platform admins ("IT Admin"). NOT regular users — they
+   * exist outside any tenant and can impersonate any tenant by picking one
+   * from a switcher. Use sparingly; every action they take while
+   * impersonating is logged with platformAdminId for traceability.
+   */
+  platformAdmins: defineTable({
+    email: v.string(), // unique, lowercased
+    name: v.string(),
+    passwordHash: v.string(),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_email", ["email"]),
+
+  /**
+   * Session for a logged-in platform admin. `currentTenantId` tracks the
+   * tenant they're presently impersonating; null means they're on the
+   * platform-only screens (tenant picker). Short-lived by design.
+   */
+  platformSessions: defineTable({
+    platformAdminId: v.id("platformAdmins"),
+    token: v.string(),
+    expiresAt: v.number(),
+    currentTenantId: v.optional(v.id("tenants")),
+    deviceInfo: v.optional(v.string()),
+  })
+    .index("by_token", ["token"])
+    .index("by_admin", ["platformAdminId"]),
+
+  /**
    * Supplier directory — third-party vendors that ingredients or finished
    * products can be ordered from. Pure reference data: assigning one to a
    * row is optional, deleting a supplier is blocked while anything still

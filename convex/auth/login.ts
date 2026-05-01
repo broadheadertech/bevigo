@@ -12,9 +12,10 @@ export const login = action({
     password: v.string(),
   },
   handler: async (ctx, args) => {
+    const email = args.email.trim().toLowerCase();
     const user = await ctx.runQuery(
       internal.auth.loginHelpers.findUserByEmail,
-      { email: args.email }
+      { email }
     );
 
     if (!user || !user.passwordHash) {
@@ -58,9 +59,10 @@ export const register = action({
       throw new Error("Password must be at least 6 characters");
     }
 
+    const email = args.email.trim().toLowerCase();
     const existing = await ctx.runQuery(
       internal.auth.loginHelpers.findUserByEmail,
-      { email: args.email }
+      { email }
     );
     if (existing) {
       throw new Error("An account with this email already exists");
@@ -71,7 +73,7 @@ export const register = action({
     const result = await ctx.runMutation(
       internal.auth.loginHelpers.createOwnerWithTenant,
       {
-        email: args.email,
+        email,
         name: args.name,
         shopName: args.shopName,
         passwordHash,

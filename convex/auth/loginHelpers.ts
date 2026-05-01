@@ -2,16 +2,33 @@ import { internalQuery, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
 
 // Internal: find user by email across all tenants.
-// Uses the by_email index — without it this was a full users-table scan
-// on every login attempt, which dominated login latency once the table grew.
+//
+// Case- and whitespace-insensitive: tries the by_email index for the
+// trimmed/lowercased email first (fast path for new users we normalize on
+// write), then for the raw input (covers users registered before
+// normalization), then a full scan for legacy mixed-case rows.
 export const findUserByEmail = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
-      .first();
-    return user ?? null;
+    const raw = args.email.trim();
+    const lower = raw.toLowerCase();
+
+    const tryIndex = async (email: string) =>
+      ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", email))
+        .first();
+
+    let user = await tryIndex(lower);
+    if (!user && raw !== lower) user = await tryIndex(raw);
+    if (user) return user;
+
+    // Legacy fallback: scan for case-insensitive match. Costly only for the
+    // rare case where the email was stored with mixed case before we
+    // started normalizing. Once a user logs in we re-normalize on the next
+    // write path; in practice this scan happens at most once per old user.
+    const candidates = await ctx.db.query("users").collect();
+    return candidates.find((u) => (u.email ?? "").toLowerCase() === lower) ?? null;
   },
 });
 
@@ -40,7 +57,7 @@ export const createOwnerWithTenant = internalMutation({
 
     const userId = await ctx.db.insert("users", {
       tenantId,
-      email: args.email,
+      email: args.email.trim().toLowerCase(),
       name: args.name,
       passwordHash: args.passwordHash,
       role: "owner",

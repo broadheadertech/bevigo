@@ -6,6 +6,7 @@ import { SearchCommand } from"@/components/search/search-command";
 import { BrandingProvider, useBranding } from"@/components/providers/branding-provider";
 import { ThemeToggle } from"@/components/ui/theme-toggle";
 import { ConfirmProvider } from"@/lib/confirm-context";
+import { ImpersonationBanner } from"@/components/platform/impersonation-banner";
 
 function DashboardNav({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClose: () => void }) {
  const { session, logout } = useAuth();
@@ -134,6 +135,7 @@ export function DashboardShell({
  <BrandingProvider>
  <ConfirmProvider>
  <div className="flex flex-col min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
+ <ImpersonationBanner />
  <MobileTopBar onOpen={handleOpen} />
  <div className="flex flex-1">
  <DashboardNav sidebarOpen={sidebarOpen} onClose={handleClose} />
