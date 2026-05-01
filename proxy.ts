@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const publicPaths = ["/login", "/auth/google/callback", "/menu"];
+// Cookieless paths. Platform admin login lives outside the tenant cookie
+// gate so an IT operator with no session can still reach the sign-in form
+// and the tenant picker bounces them back to /platform/login on its own.
+const publicPaths = [
+  "/login",
+  "/auth/google/callback",
+  "/menu",
+  "/platform/login",
+  "/platform/tenants",
+];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
