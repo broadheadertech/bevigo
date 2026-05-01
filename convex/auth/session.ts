@@ -11,35 +11,76 @@ export const validateSession = query({
       role: v.string(),
       userName: v.string(),
       locationIds: v.array(v.id("locations")),
+      isPlatformAdmin: v.optional(v.boolean()),
     }),
     v.null()
   ),
   handler: async (ctx, { token }) => {
+    // 1. Tenant-scoped session (regular user).
     const session = await ctx.db
       .query("sessions")
       .withIndex("by_token", (q) => q.eq("token", token))
       .unique();
 
-    if (!session || session.expiresAt < Date.now()) {
+    if (session && session.expiresAt >= Date.now()) {
+      const user = await ctx.db.get(session.userId);
+      if (!user || user.status !== "active") return null;
+
+      const userLocations = await ctx.db
+        .query("userLocations")
+        .withIndex("by_user", (q) => q.eq("userId", session.userId))
+        .collect();
+
+      return {
+        userId: session.userId,
+        tenantId: session.tenantId,
+        role: user.role,
+        userName: user.name,
+        locationIds: userLocations.map((ul) => ul.locationId),
+      };
+    }
+
+    // 2. Platform-admin session impersonating a tenant. Synthesise a
+    //    session shape matching what the dashboard expects so AuthProvider
+    //    sees the user as an owner of the picked tenant.
+    const platform = await ctx.db
+      .query("platformSessions")
+      .withIndex("by_token", (q) => q.eq("token", token))
+      .unique();
+
+    if (
+      !platform ||
+      platform.expiresAt < Date.now() ||
+      !platform.currentTenantId
+    ) {
       return null;
     }
 
-    const user = await ctx.db.get(session.userId);
-    if (!user || user.status !== "active") {
-      return null;
-    }
+    const admin = await ctx.db.get(platform.platformAdminId);
+    if (!admin || admin.status !== "active") return null;
 
-    const userLocations = await ctx.db
-      .query("userLocations")
-      .withIndex("by_user", (q) => q.eq("userId", session.userId))
+    const tenant = await ctx.db.get(platform.currentTenantId);
+    if (!tenant) return null;
+
+    const tenantUsers = await ctx.db
+      .query("users")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenant._id))
+      .collect();
+    const stand = tenantUsers.find((u) => u.role === "owner") ?? tenantUsers[0];
+    if (!stand) return null;
+
+    const locations = await ctx.db
+      .query("locations")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenant._id))
       .collect();
 
     return {
-      userId: session.userId,
-      tenantId: session.tenantId,
-      role: user.role,
-      userName: user.name,
-      locationIds: userLocations.map((ul) => ul.locationId),
+      userId: stand._id,
+      tenantId: tenant._id,
+      role: "owner",
+      userName: `${admin.name} (IT Admin)`,
+      locationIds: locations.map((l) => l._id),
+      isPlatformAdmin: true,
     };
   },
 });
