@@ -212,32 +212,11 @@ export default function ReportsPage() {
  transactionCount: h.transactionCount,
  revenue: h.revenue,
  })),"hourly-volume.csv");
- } else if (activeTab ==="ledger" && ledger) {
- exportToCSV(ledger.map((o: LedgerRow) => ({
-"Date/Time": new Date(o.completedAt).toLocaleString(),
-"Order #": o.orderNumber,
-"Status": o.status === "voided"?"Voided" : o.refundedAt?"Refunded" :"Completed",
-"Cashier": o.baristaName,
-"Customer / Table": o.customerName ?? o.tableName ?? "",
-"Items": o.itemCount,
-"Gross": (o.subtotal / 100).toFixed(2),
-"Discount": ((o.discountAmount ?? 0) / 100).toFixed(2),
-"Tax": ((o.total - o.subtotal + (o.discountAmount ?? 0)) / 100).toFixed(2),
-"Refund": ((o.refundAmount ?? 0) / 100).toFixed(2),
-"Net": (((o.status === "voided" ? 0 : o.total) - (o.refundAmount ?? 0)) / 100).toFixed(2),
-"Payment": o.paymentType,
- })),"sales-ledger.csv");
- }
- }}
- className="px-3 py-2 text-sm rounded-xl"
- >
- Export CSV
- </button>
- {activeTab ==="ledger" && (
- <button
- disabled={exportingItems || !token}
- onClick={async () => {
- if (!token) return;
+ } else if (activeTab ==="ledger" && token) {
+ // Sales Ledger export = one row per ITEM (with order context repeated
+ // on each row) so the CSV captures exactly what was rung up. Pulled
+ // on demand instead of from the table cache so we get every line
+ // even if the on-screen ledger is paginated.
  setExportingItems(true);
  try {
  const rows = await convex.query(
@@ -286,21 +265,20 @@ export default function ReportsPage() {
 "Payment": r.paymentType,
 "Order Total": (r.orderTotal / 100).toFixed(2),
  })),
-"sales-ledger-line-items.csv"
+"sales-ledger.csv"
  );
  } catch (err) {
  alert(err instanceof Error ? err.message :"Export failed");
  } finally {
  setExportingItems(false);
  }
+ }
  }}
- className="px-3 py-2 text-sm rounded-xl"
- style={{ border: '1px solid var(--border-color)', color: 'var(--fg)' }}
- title="Export each transaction's items as separate rows"
+ disabled={exportingItems}
+ className="px-3 py-2 text-sm rounded-xl disabled:opacity-50"
  >
- {exportingItems ?"Preparing…" :"Export Items CSV"}
+ {activeTab ==="ledger" && exportingItems ?"Preparing…" :"Export CSV"}
  </button>
- )}
  <button
  onClick={() => {
  if (activeTab ==="daily" && dailySummary) {
