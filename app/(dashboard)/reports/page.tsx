@@ -3,7 +3,7 @@
 import { useConvex, useQuery } from"convex/react";
 import { api } from"../../../convex/_generated/api";
 import { useAuth } from"@/lib/auth-context";
-import { useState, useMemo } from"react";
+import { useEffect, useState, useMemo } from"react";
 import { Id } from"../../../convex/_generated/dataModel";
 import { exportToCSV } from"@/lib/export";
 import { exportReportPDF } from"@/lib/export-pdf";
@@ -12,6 +12,27 @@ import { OrderDetailModal } from"@/components/orders/order-detail-modal";
 import { Pagination, usePagination } from"@/components/ui/pagination";
 
 type Tab ="daily" |"product" |"hourly" |"ledger";
+
+type LineRow = {
+ orderId: Id<"orders">;
+ orderNumber: string;
+ completedAt: number;
+ status: string;
+ isRefunded: boolean;
+ paymentType: string;
+ baristaName: string;
+ customerName: string | null;
+ tableName: string | null;
+ itemName: string;
+ modifiers: string;
+ quantity: number;
+ unitPrice: number; // base item price per unit (cents)
+ lineSubtotal: number; // (base + modifier) * qty (cents)
+ orderSubtotal: number;
+ orderDiscount: number;
+ orderTax: number;
+ orderTotal: number;
+};
 
 type LedgerRow = {
  _id: Id<"orders">;
@@ -237,6 +258,22 @@ export default function ReportsPage() {
  }
  :"skip"
  ) as LedgerRow[] | undefined;
+
+ // Live per-line view used by both the on-screen table AND the CSV.
+ // Subscribed only on the ledger tab so we don't pull thousands of
+ // rows for users browsing other tabs.
+ const ledgerLines = useQuery(
+ api.orders.historyQueries.listOrderHistoryLineItems,
+ token && activeTab ==="ledger" && (session?.role ==="owner" || session?.role ==="manager")
+ ? {
+ token,
+ locationId,
+ startDate,
+ endDate,
+ limit: 5000,
+ }
+ :"skip"
+ ) as LineRow[] | undefined;
 
  if (!token || !session) {
  return (
@@ -571,7 +608,7 @@ export default function ReportsPage() {
 
  {/* Tab Content */}
  {activeTab ==="ledger" && (
- <LedgerTab data={ledger} onView={(id) => setViewOrderId(id)} filterQuery={filterQuery} />
+ <LedgerTab lines={ledgerLines} ledger={ledger} onView={(id) => setViewOrderId(id)} filterQuery={filterQuery} />
  )}
  {activeTab ==="daily" && (
  <DailySummaryTab data={dailySummary} digest={dailyDigest} hasLocation={!!locationId} />
@@ -594,219 +631,570 @@ export default function ReportsPage() {
  );
 }
 
+type ColId =
+ | "datetime"
+ | "orderNumber"
+ | "status"
+ | "cashier"
+ | "customer"
+ | "item"
+ | "basePrice"
+ | "modifier"
+ | "modifierPrice"
+ | "qty"
+ | "unitPrice"
+ | "discount"
+ | "total"
+ | "tax"
+ | "payment";
+
+type ColDef = {
+ id: ColId;
+ label: string;
+ align: "left" | "right";
+ width?: string;
+};
+
+const DEFAULT_COLS: ColDef[] = [
+ { id: "datetime", label: "Date / Time", align: "left", width: "170px" },
+ { id: "orderNumber", label: "Order #", align: "left" },
+ { id: "status", label: "Status", align: "left" },
+ { id: "cashier", label: "Cashier", align: "left" },
+ { id: "customer", label: "Customer / Table", align: "left" },
+ { id: "item", label: "Item", align: "left" },
+ { id: "basePrice", label: "Base Price", align: "right" },
+ { id: "modifier", label: "Modifier", align: "left" },
+ { id: "modifierPrice", label: "Modifier Price", align: "right" },
+ { id: "qty", label: "Qty", align: "right" },
+ { id: "unitPrice", label: "Unit Price", align: "right" },
+ { id: "discount", label: "Discount", align: "right" },
+ { id: "total", label: "Total", align: "right" },
+ { id: "tax", label: "Tax", align: "right" },
+ { id: "payment", label: "Payment Method", align: "left" },
+];
+
+type ColPref = { id: ColId; visible: boolean };
+const PREF_KEY = "bevigo:reports:ledger-cols";
+
+function loadColPrefs(): ColPref[] {
+ if (typeof window === "undefined") return DEFAULT_COLS.map((c) => ({ id: c.id, visible: true }));
+ try {
+ const raw = localStorage.getItem(PREF_KEY);
+ if (!raw) return DEFAULT_COLS.map((c) => ({ id: c.id, visible: true }));
+ const saved = JSON.parse(raw) as ColPref[];
+ // Merge: keep saved order/visibility for known cols, append any new cols.
+ const known = new Set(saved.map((p) => p.id));
+ const merged: ColPref[] = saved.filter((p) =>
+ DEFAULT_COLS.some((c) => c.id === p.id)
+ );
+ for (const c of DEFAULT_COLS) {
+ if (!known.has(c.id)) merged.push({ id: c.id, visible: true });
+ }
+ return merged;
+ } catch {
+ return DEFAULT_COLS.map((c) => ({ id: c.id, visible: true }));
+ }
+}
+
 function LedgerTab({
- data,
+ lines,
+ ledger,
  onView,
  filterQuery,
 }: {
- data: LedgerRow[] | undefined;
+ lines: LineRow[] | undefined;
+ ledger: LedgerRow[] | undefined;
  onView: (orderId: Id<"orders">) => void;
  filterQuery: string;
 }) {
- if (!data) {
+ const [colPrefs, setColPrefs] = useState<ColPref[]>(() => loadColPrefs());
+ const [showColsPopover, setShowColsPopover] = useState(false);
+
+ useEffect(() => {
+ if (typeof window === "undefined") return;
+ try {
+ localStorage.setItem(PREF_KEY, JSON.stringify(colPrefs));
+ } catch {
+ /* ignore */
+ }
+ }, [colPrefs]);
+
+ const colDefById = useMemo(() => new Map(DEFAULT_COLS.map((c) => [c.id, c])), []);
+ const visibleCols = colPrefs
+ .filter((p) => p.visible)
+ .map((p) => colDefById.get(p.id))
+ .filter((c): c is ColDef => Boolean(c));
+
+ if (!lines) {
  return (
- <div className="text-center py-12" style={{ color: 'var(--muted-fg)' }}>
- Loading sales ledger...
+ <div className="text-center py-12" style={{ color: "var(--muted-fg)" }}>
+ Loading sales ledger…
  </div>
  );
  }
 
- // Client-side filter: order #, cashier, customer, table, or payment.
- // Comma-separated terms are OR'd, so "cash, ewallet" matches rows
- // whose payment is either. Totals below are recomputed off the
- // FILTERED set so the summary strip always matches what's on screen.
+ // Filter: comma-separated tokens OR'd. Match anywhere meaningful.
  const trimmed = filterQuery.trim().toLowerCase();
  const tokens = trimmed
  ? trimmed.split(",").map((t) => t.trim()).filter(Boolean)
  : [];
- const matchRow = (o: LedgerRow, t: string) => {
- if (o.orderNumber.toLowerCase().includes(t)) return true;
- if (o.baristaName.toLowerCase().includes(t)) return true;
- if ((o.customerName ?? "").toLowerCase().includes(t)) return true;
- if ((o.tableName ?? "").toLowerCase().includes(t)) return true;
- if (o.paymentType.toLowerCase().includes(t)) return true;
- // Convenience aliases so "ewallet" and "e-wallet" both work.
+ const matchLine = (l: LineRow, t: string) => {
+ if (l.orderNumber.toLowerCase().includes(t)) return true;
+ if (l.baristaName.toLowerCase().includes(t)) return true;
+ if ((l.customerName ?? "").toLowerCase().includes(t)) return true;
+ if ((l.tableName ?? "").toLowerCase().includes(t)) return true;
+ if (l.itemName.toLowerCase().includes(t)) return true;
+ if (l.modifiers.toLowerCase().includes(t)) return true;
+ if (l.paymentType.toLowerCase().includes(t)) return true;
  const alias = t.replace(/[-\s]/g, "");
- if (o.paymentType.toLowerCase().replace(/[-\s]/g, "").includes(alias)) return true;
+ if (l.paymentType.toLowerCase().replace(/[-\s]/g, "").includes(alias))
+ return true;
  return false;
  };
- const filteredData = tokens.length
- ? data.filter((o: LedgerRow) => tokens.some((t) => matchRow(o, t)))
- : data;
+ const filtered = tokens.length
+ ? lines.filter((l) => tokens.some((t) => matchLine(l, t)))
+ : lines;
 
- if (filteredData.length === 0) {
+ const ledgerById = new Map<string, LedgerRow>();
+ for (const r of ledger ?? []) ledgerById.set(r._id, r);
+
+ // Build per-line render rows with derived per-line discount + total.
+ const renderRows = filtered
+ .slice()
+ .sort((a, b) => b.completedAt - a.completedAt)
+ .map((l) => {
+ const fromLedger = ledgerById.get(l.orderId);
+ const orderDiscount =
+ fromLedger?.discountAmount ??
+ (Number.isFinite(l.orderDiscount) ? l.orderDiscount : 0);
+ const orderSubtotal = fromLedger?.subtotal ?? l.orderSubtotal ?? 0;
+ const orderTotal = fromLedger?.total ?? l.orderTotal ?? 0;
+ const derivedTax = orderTotal - orderSubtotal + (orderDiscount ?? 0);
+ const tax = Number.isFinite(fromLedger?.taxAmount as number)
+ ? (fromLedger?.taxAmount as number)
+ : Number.isFinite(l.orderTax)
+ ? l.orderTax
+ : Number.isFinite(derivedTax)
+ ? derivedTax
+ : 0;
+ const lineDiscount =
+ orderSubtotal > 0
+ ? Math.round(((orderDiscount ?? 0) * l.lineSubtotal) / orderSubtotal)
+ : 0;
+ const modPerUnit =
+ (l.lineSubtotal - l.unitPrice * l.quantity) / Math.max(1, l.quantity);
+ return {
+ ...l,
+ lineDiscount,
+ lineTotalAfterDiscount: l.lineSubtotal - lineDiscount,
+ modPerUnit,
+ tax,
+ };
+ });
+
+ const totals = renderRows.reduce(
+ (acc, r) => ({
+ unitPriceSum: acc.unitPriceSum + r.lineSubtotal,
+ discountSum: acc.discountSum + r.lineDiscount,
+ totalSum: acc.totalSum + r.lineTotalAfterDiscount,
+ qtySum: acc.qtySum + r.quantity,
+ }),
+ { unitPriceSum: 0, discountSum: 0, totalSum: 0, qtySum: 0 }
+ );
+
+ if (renderRows.length === 0) {
  return (
- <div className="text-center py-12 rounded-2xl" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)', color: 'var(--muted-fg)' }}>
+ <div className="space-y-4">
+ <LedgerToolbar
+ colPrefs={colPrefs}
+ setColPrefs={setColPrefs}
+ showPopover={showColsPopover}
+ setShowPopover={setShowColsPopover}
+ />
+ <div
+ className="text-center py-12 rounded-2xl"
+ style={{
+ backgroundColor: "var(--card)",
+ border: "1px solid var(--border-color)",
+ color: "var(--muted-fg)",
+ }}
+ >
  {trimmed
- ? `No orders match "${filterQuery.trim()}" in this date range.`
- : "No orders in this date range."}
+ ? `No items match "${filterQuery.trim()}" in this date range.`
+ : "No items in this date range."}
+ </div>
  </div>
  );
  }
 
- const totals = filteredData.reduce(
- (acc, o) => {
- const isVoided = o.status === "voided";
- const isRefunded = !!o.refundedAt;
- const discount = o.discountAmount ?? 0;
- const refund = o.refundAmount ?? 0;
- // Prefer the authoritative taxAmount the order was rung up with.
- // Fall back to the derived calc only if it's missing — and clamp
- // to 0 if either input is non-numeric so the cell never reads NaN.
- const derivedTax = (o.total ?? 0) - (o.subtotal ?? 0) + discount;
- const tax = Number.isFinite(o.taxAmount as number)
- ? (o.taxAmount as number)
- : Number.isFinite(derivedTax)
- ? derivedTax
- : 0;
- const net = (isVoided ? 0 : (o.total ?? 0)) - refund;
- return {
- gross: acc.gross + (isVoided ? 0 : o.subtotal),
- discount: acc.discount + (isVoided ? 0 : discount),
- tax: acc.tax + (isVoided ? 0 : tax),
- refund: acc.refund + refund,
- net: acc.net + net,
- completed: acc.completed + (isVoided ? 0 : 1),
- voided: acc.voided + (isVoided ? 1 : 0),
- refunded: acc.refunded + (isRefunded && !isVoided ? 1 : 0),
- };
- },
- { gross: 0, discount: 0, tax: 0, refund: 0, net: 0, completed: 0, voided: 0, refunded: 0 }
- );
-
+ const renderCell = (col: ColDef, r: (typeof renderRows)[number]) => {
+ switch (col.id) {
+ case "datetime":
  return (
- <div className="space-y-4">
- {/* Summary cards */}
- <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
- <SummaryCard label="Orders" value={`${totals.completed}`} sub={`${totals.refunded} refunded · ${totals.voided} voided`} />
- <SummaryCard label="Gross" value={formatCurrency(totals.gross)} />
- <SummaryCard label="Discounts" value={`− ${formatCurrency(totals.discount)}`} />
- <SummaryCard label="Tax" value={formatCurrency(totals.tax)} />
- <SummaryCard label="Net Total" value={formatCurrency(totals.net)} highlight />
- </div>
-
- {/* Ledger table */}
- <div className="rounded-2xl shadow-lg overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
- <table className="w-full text-xs min-w-[1000px]">
- <thead>
- <tr style={{ backgroundColor: 'var(--muted)', borderBottom: '1px solid var(--border-color)' }}>
- <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Date / Time</th>
- <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Order #</th>
- <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Cashier</th>
- <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Customer / Table</th>
- <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Items</th>
- <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Gross</th>
- <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Discount</th>
- <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Tax</th>
- <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Refund</th>
- <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Payment</th>
- <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Total</th>
- <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Status</th>
- </tr>
- </thead>
- <tbody>
- {filteredData.map((o: LedgerRow) => {
- const isVoided = o.status === "voided";
- const isRefunded = !!o.refundedAt;
- const discount = o.discountAmount ?? 0;
- const refund = o.refundAmount ?? 0;
- const derivedTax = (o.total ?? 0) - (o.subtotal ?? 0) + discount;
- const tax = Number.isFinite(o.taxAmount as number)
- ? (o.taxAmount as number)
- : Number.isFinite(derivedTax)
- ? derivedTax
- : 0;
- const net = (isVoided ? 0 : (o.total ?? 0)) - refund;
- return (
- <tr
- key={o._id}
- style={{
- borderBottom: '1px solid var(--border-color)',
- opacity: isVoided ? 0.5 : 1,
- }}
- >
- <td className="px-3 py-2 whitespace-nowrap" style={{ color: 'var(--muted-fg)' }}>
- {new Date(o.completedAt).toLocaleString(undefined, {
- month: 'short', day: 'numeric', year: 'numeric',
- hour: 'numeric', minute: '2-digit', hour12: true,
+ <span style={{ color: "var(--muted-fg)" }}>
+ {new Date(r.completedAt).toLocaleString(undefined, {
+ month: "short",
+ day: "numeric",
+ hour: "numeric",
+ minute: "2-digit",
+ hour12: true,
  })}
- </td>
- <td className="px-3 py-2 font-mono">
+ </span>
+ );
+ case "orderNumber":
+ return (
  <button
- onClick={() => onView(o._id)}
- className="font-mono underline hover:opacity-80 active:opacity-60 transition-opacity"
- style={{ color: 'var(--accent-color)' }}
- title="View items in this order"
+ onClick={() => onView(r.orderId)}
+ className="font-mono underline hover:opacity-80 active:opacity-60"
+ style={{ color: "var(--accent-color)" }}
  >
- {o.orderNumber}
+ {r.orderNumber}
  </button>
- </td>
- <td className="px-3 py-2" style={{ color: 'var(--fg)' }}>{o.baristaName}</td>
- <td className="px-3 py-2" style={{ color: 'var(--muted-fg)' }}>{o.customerName ?? o.tableName ?? '—'}</td>
- <td className="px-3 py-2 text-right font-mono">{o.itemCount}</td>
- <td className="px-3 py-2 text-right font-mono">{formatCurrency(o.subtotal)}</td>
- <td className="px-3 py-2 text-right font-mono" style={{ color: discount > 0 ? '#ef4444' : 'var(--muted-fg)' }}>
- {discount > 0 ? `− ${formatCurrency(discount)}` : '—'}
- </td>
- <td className="px-3 py-2 text-right font-mono">{formatCurrency(tax)}</td>
- <td className="px-3 py-2 text-right font-mono" style={{ color: refund > 0 ? '#ef4444' : 'var(--muted-fg)' }}>
- {refund > 0 ? `− ${formatCurrency(refund)}` : '—'}
- </td>
- <td className="px-3 py-2 capitalize" style={{ color: 'var(--muted-fg)' }}>
- {o.paymentType === 'ewallet' ? 'E-Wallet' : o.paymentType === 'split' ? 'Split' : o.paymentType}
- </td>
- <td className="px-3 py-2 text-right font-mono font-semibold" style={{ color: 'var(--fg)' }}>
- {formatCurrency(net)}
- </td>
- <td className="px-3 py-2">
+ );
+ case "status":
+ return (
  <span
  className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium"
  style={
- isVoided
- ? { backgroundColor: 'rgba(239,68,68,0.15)', color: '#ef4444' }
- : isRefunded
- ? { backgroundColor: 'rgba(245,158,11,0.15)', color: '#d97706' }
- : { backgroundColor: 'rgba(16,185,129,0.15)', color: '#059669' }
+ r.status === "voided"
+ ? { backgroundColor: "rgba(239,68,68,0.15)", color: "#ef4444" }
+ : r.isRefunded
+ ? { backgroundColor: "rgba(245,158,11,0.15)", color: "#d97706" }
+ : { backgroundColor: "rgba(16,185,129,0.15)", color: "#059669" }
  }
  >
- {isVoided ? 'Voided' : isRefunded ? 'Refunded' : 'Completed'}
+ {r.status === "voided" ? "Voided" : r.isRefunded ? "Refunded" : "Completed"}
  </span>
- </td>
- </tr>
  );
- })}
+ case "cashier":
+ return <span style={{ color: "var(--fg)" }}>{r.baristaName}</span>;
+ case "customer":
+ return (
+ <span style={{ color: "var(--muted-fg)" }}>
+ {r.customerName ?? r.tableName ?? "—"}
+ </span>
+ );
+ case "item":
+ return <span style={{ color: "var(--fg)" }}>{r.itemName}</span>;
+ case "basePrice":
+ return <span className="font-mono">{formatCurrency(r.unitPrice)}</span>;
+ case "modifier":
+ return (
+ <span style={{ color: "var(--muted-fg)" }}>{r.modifiers || "—"}</span>
+ );
+ case "modifierPrice":
+ return (
+ <span className="font-mono">
+ {r.modPerUnit !== 0 ? formatCurrency(Math.round(r.modPerUnit)) : "—"}
+ </span>
+ );
+ case "qty":
+ return <span className="font-mono">{r.quantity}</span>;
+ case "unitPrice":
+ return <span className="font-mono">{formatCurrency(r.lineSubtotal)}</span>;
+ case "discount":
+ return (
+ <span
+ className="font-mono"
+ style={{
+ color: r.lineDiscount > 0 ? "#ef4444" : "var(--muted-fg)",
+ }}
+ >
+ {r.lineDiscount > 0 ? `− ${formatCurrency(r.lineDiscount)}` : "—"}
+ </span>
+ );
+ case "total":
+ return (
+ <span className="font-mono font-semibold" style={{ color: "var(--fg)" }}>
+ {formatCurrency(r.lineTotalAfterDiscount)}
+ </span>
+ );
+ case "tax":
+ return <span className="font-mono">{formatCurrency(r.tax)}</span>;
+ case "payment":
+ return (
+ <span className="capitalize" style={{ color: "var(--muted-fg)" }}>
+ {r.paymentType === "ewallet"
+ ? "E-Wallet"
+ : r.paymentType === "split"
+ ? "Split"
+ : r.paymentType}
+ </span>
+ );
+ default:
+ return null;
+ }
+ };
+
+ return (
+ <div className="space-y-4">
+ <LedgerToolbar
+ colPrefs={colPrefs}
+ setColPrefs={setColPrefs}
+ showPopover={showColsPopover}
+ setShowPopover={setShowColsPopover}
+ />
+
+ <div
+ className="rounded-2xl shadow-lg overflow-hidden overflow-x-auto"
+ style={{
+ backgroundColor: "var(--card)",
+ border: "1px solid var(--border-color)",
+ }}
+ >
+ <table className="w-full text-xs">
+ <thead>
+ <tr
+ style={{
+ backgroundColor: "var(--muted)",
+ borderBottom: "1px solid var(--border-color)",
+ }}
+ >
+ {visibleCols.map((c) => (
+ <th
+ key={c.id}
+ className={`px-3 py-2 text-[10px] font-semibold uppercase tracking-widest whitespace-nowrap ${c.align === "right" ? "text-right" : "text-left"}`}
+ style={{ color: "var(--muted-fg)", width: c.width }}
+ >
+ {c.label}
+ </th>
+ ))}
+ </tr>
+ </thead>
+ <tbody>
+ {renderRows.map((r, i) => (
+ <tr
+ key={`${r.orderId}-${i}`}
+ style={{
+ borderBottom: "1px solid var(--border-color)",
+ opacity: r.status === "voided" ? 0.5 : 1,
+ }}
+ >
+ {visibleCols.map((c) => (
+ <td
+ key={c.id}
+ className={`px-3 py-2 whitespace-nowrap ${c.align === "right" ? "text-right" : "text-left"}`}
+ >
+ {renderCell(c, r)}
+ </td>
+ ))}
+ </tr>
+ ))}
  </tbody>
  <tfoot>
- <tr style={{ backgroundColor: 'var(--muted)', borderTop: '1px solid var(--border-color)' }}>
- <td colSpan={4} className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Totals</td>
- <td className="px-3 py-2.5 text-right font-mono font-semibold" style={{ color: 'var(--fg)' }}>
- {data.reduce((s, o) => s + o.itemCount, 0)}
+ <tr
+ style={{
+ backgroundColor: "var(--muted)",
+ borderTop: "1px solid var(--border-color)",
+ }}
+ >
+ {visibleCols.map((c, idx) => {
+ if (idx === 0) {
+ return (
+ <td
+ key={c.id}
+ colSpan={1}
+ className="px-3 py-2.5 text-xs uppercase tracking-widest font-semibold"
+ style={{ color: "var(--muted-fg)" }}
+ >
+ Totals · {renderRows.length} line
+ {renderRows.length === 1 ? "" : "s"}
  </td>
- <td className="px-3 py-2.5 text-right font-mono font-semibold" style={{ color: 'var(--fg)' }}>
- {formatCurrency(totals.gross)}
+ );
+ }
+ if (c.id === "qty") {
+ return (
+ <td key={c.id} className="px-3 py-2.5 text-right font-mono font-semibold">
+ {totals.qtySum}
  </td>
- <td className="px-3 py-2.5 text-right font-mono font-semibold" style={{ color: totals.discount > 0 ? '#ef4444' : 'var(--muted-fg)' }}>
- − {formatCurrency(totals.discount)}
+ );
+ }
+ if (c.id === "unitPrice") {
+ return (
+ <td key={c.id} className="px-3 py-2.5 text-right font-mono font-semibold">
+ {formatCurrency(totals.unitPriceSum)}
  </td>
- <td className="px-3 py-2.5 text-right font-mono font-semibold" style={{ color: 'var(--fg)' }}>
- {formatCurrency(totals.tax)}
+ );
+ }
+ if (c.id === "discount") {
+ return (
+ <td
+ key={c.id}
+ className="px-3 py-2.5 text-right font-mono font-semibold"
+ style={{
+ color: totals.discountSum > 0 ? "#ef4444" : "var(--muted-fg)",
+ }}
+ >
+ − {formatCurrency(totals.discountSum)}
  </td>
- <td className="px-3 py-2.5 text-right font-mono font-semibold" style={{ color: totals.refund > 0 ? '#ef4444' : 'var(--muted-fg)' }}>
- − {formatCurrency(totals.refund)}
+ );
+ }
+ if (c.id === "total") {
+ return (
+ <td
+ key={c.id}
+ className="px-3 py-2.5 text-right font-mono font-bold"
+ style={{ color: "var(--accent-color)" }}
+ >
+ {formatCurrency(totals.totalSum)}
  </td>
- <td></td>
- <td className="px-3 py-2.5 text-right font-mono font-bold" style={{ color: 'var(--accent-color)' }}>
- {formatCurrency(totals.net)}
- </td>
- <td></td>
+ );
+ }
+ return <td key={c.id}></td>;
+ })}
  </tr>
  </tfoot>
  </table>
  </div>
 
- <p className="text-xs" style={{ color: 'var(--muted-fg)' }}>
- Net = Gross − Discount + Tax − Refund. Voided orders do not contribute to Net.
+ <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
+ One row per item. Discount is allocated per line (line ÷ order subtotal × order discount).
+ Total = Unit Price − Discount.
  </p>
+ </div>
+ );
+}
+
+/**
+ * Toolbar above the ledger with the "Columns" button and its popover.
+ * Reorder is via up/down chevrons (tablet-friendly — no native HTML5
+ * drag, which isn't reliable on touch devices).
+ */
+function LedgerToolbar({
+ colPrefs,
+ setColPrefs,
+ showPopover,
+ setShowPopover,
+}: {
+ colPrefs: ColPref[];
+ setColPrefs: (p: ColPref[]) => void;
+ showPopover: boolean;
+ setShowPopover: (v: boolean) => void;
+}) {
+ const colDefById = useMemo(
+ () => new Map(DEFAULT_COLS.map((c) => [c.id, c])),
+ []
+ );
+ const move = (idx: number, dir: -1 | 1) => {
+ const next = [...colPrefs];
+ const swap = idx + dir;
+ if (swap < 0 || swap >= next.length) return;
+ [next[idx], next[swap]] = [next[swap], next[idx]];
+ setColPrefs(next);
+ };
+ const toggle = (idx: number) => {
+ const next = [...colPrefs];
+ next[idx] = { ...next[idx], visible: !next[idx].visible };
+ setColPrefs(next);
+ };
+ const reset = () => {
+ setColPrefs(DEFAULT_COLS.map((c) => ({ id: c.id, visible: true })));
+ };
+ const visibleCount = colPrefs.filter((p) => p.visible).length;
+
+ return (
+ <div className="flex items-center justify-end relative">
+ <button
+ onClick={() => setShowPopover(!showPopover)}
+ className="px-3 py-2 text-xs font-semibold rounded-xl transition-colors active:scale-95 inline-flex items-center gap-1.5"
+ style={{
+ backgroundColor: "var(--muted)",
+ color: "var(--fg)",
+ border: "1px solid var(--border-color)",
+ }}
+ >
+ <svg
+ className="w-3.5 h-3.5"
+ fill="none"
+ viewBox="0 0 24 24"
+ stroke="currentColor"
+ strokeWidth={2}
+ >
+ <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+ </svg>
+ Columns ({visibleCount})
+ </button>
+
+ {showPopover && (
+ <>
+ {/* Click-away */}
+ <div
+ className="fixed inset-0 z-40"
+ onClick={() => setShowPopover(false)}
+ />
+ <div
+ className="absolute right-0 top-full mt-2 z-50 rounded-2xl shadow-2xl w-80 max-h-[70vh] overflow-y-auto"
+ style={{
+ backgroundColor: "var(--card)",
+ border: "1px solid var(--border-color)",
+ }}
+ >
+ <div
+ className="px-4 py-3 flex items-center justify-between"
+ style={{ borderBottom: "1px solid var(--border-color)" }}
+ >
+ <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--muted-fg)" }}>
+ Columns
+ </p>
+ <button
+ onClick={reset}
+ className="text-xs underline"
+ style={{ color: "var(--muted-fg)" }}
+ >
+ Reset
+ </button>
+ </div>
+ <ul className="p-2 space-y-1">
+ {colPrefs.map((p, idx) => {
+ const def = colDefById.get(p.id);
+ if (!def) return null;
+ return (
+ <li
+ key={p.id}
+ className="flex items-center gap-2 px-2 py-1.5 rounded-xl"
+ style={{ backgroundColor: "var(--muted)" }}
+ >
+ <input
+ type="checkbox"
+ checked={p.visible}
+ onChange={() => toggle(idx)}
+ className="w-4 h-4 accent-amber-500"
+ />
+ <span className="flex-1 text-sm" style={{ color: "var(--fg)" }}>
+ {def.label}
+ </span>
+ <button
+ onClick={() => move(idx, -1)}
+ disabled={idx === 0}
+ aria-label="Move up"
+ className="w-7 h-7 rounded-lg flex items-center justify-center disabled:opacity-30 active:scale-95"
+ style={{ backgroundColor: "var(--card)", border: "1px solid var(--border-color)" }}
+ >
+ <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+ <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+ </svg>
+ </button>
+ <button
+ onClick={() => move(idx, 1)}
+ disabled={idx === colPrefs.length - 1}
+ aria-label="Move down"
+ className="w-7 h-7 rounded-lg flex items-center justify-center disabled:opacity-30 active:scale-95"
+ style={{ backgroundColor: "var(--card)", border: "1px solid var(--border-color)" }}
+ >
+ <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+ <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+ </svg>
+ </button>
+ </li>
+ );
+ })}
+ </ul>
+ <p className="px-4 py-2 text-[10px]" style={{ color: "var(--muted-fg)" }}>
+ Saved per device.
+ </p>
+ </div>
+ </>
+ )}
  </div>
  );
 }
