@@ -281,21 +281,7 @@ function AdminDashboard({ digest }: { digest: AdminDigest | undefined }) {
               No sales yet today.
             </p>
           ) : (
-            <div className="space-y-2">
-              {digest.products.topSellers.map((p) => (
-                <div key={p.name} className="flex items-center justify-between text-sm">
-                  <span style={{ color: "var(--fg)" }}>
-                    {p.name}{" "}
-                    <span className="text-xs" style={{ color: "var(--muted-fg)" }}>
-                      × {p.qty}
-                    </span>
-                  </span>
-                  <span className="font-semibold" style={{ color: "var(--fg)" }}>
-                    {formatCurrency(p.revenue)}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <TopSellers items={digest.products.topSellers} />
           )}
         </Section>
 
@@ -308,32 +294,7 @@ function AdminDashboard({ digest }: { digest: AdminDigest | undefined }) {
             </p>
           ) : (
             <div className="space-y-2">
-              {digest.lowStock.map((r) => (
-                <div
-                  key={r.ingredientId + r.locationName}
-                  className="flex items-center justify-between text-sm"
-                >
-                  <div className="min-w-0">
-                    <div className="truncate" style={{ color: "var(--fg)" }}>
-                      {r.name}
-                    </div>
-                    <div className="text-[10px]" style={{ color: "var(--muted-fg)" }}>
-                      {r.locationName}
-                    </div>
-                  </div>
-                  <span
-                    className="font-mono font-semibold ml-3 text-right shrink-0"
-                    style={{ color: r.isOut ? "#ef4444" : "#f59e0b" }}
-                  >
-                    {r.onHand.toFixed(1)}
-                    {r.unit}
-                    <span className="ml-1 text-[10px] font-normal" style={{ color: "var(--muted-fg)" }}>
-                      / {r.reorderThreshold}
-                      {r.unit}
-                    </span>
-                  </span>
-                </div>
-              ))}
+              <LowStockList rows={digest.lowStock} />
               <Link
                 href="/inventory"
                 className="text-xs font-semibold inline-block mt-2 underline"
@@ -399,27 +360,10 @@ function BaristaDashboard({ digest }: { digest: BaristaDigest | undefined }) {
         <Section
           title={`Stock to flag (${digest.lowStockCount}${digest.outOfStockCount > 0 ? ` · ${digest.outOfStockCount} out` : ""})`}
         >
-          <p className="text-[11px] mb-2" style={{ color: "var(--muted-fg)" }}>
+          <p className="text-[11px] mb-3" style={{ color: "var(--muted-fg)" }}>
             Mention these to your manager — they&apos;re below the reorder threshold.
           </p>
-          <div className="space-y-2">
-            {digest.lowStock.map((r) => (
-              <div key={r.name} className="flex items-center justify-between text-sm">
-                <span style={{ color: "var(--fg)" }}>{r.name}</span>
-                <span
-                  className="font-mono font-semibold"
-                  style={{ color: r.isOut ? "#ef4444" : "#f59e0b" }}
-                >
-                  {r.onHand.toFixed(1)}
-                  {r.unit}
-                  <span className="ml-1 text-[10px] font-normal" style={{ color: "var(--muted-fg)" }}>
-                    / {r.reorderThreshold}
-                    {r.unit}
-                  </span>
-                </span>
-              </div>
-            ))}
-          </div>
+          <LowStockList rows={digest.lowStock.map((r) => ({ ...r, ingredientId: r.name, locationName: "" }))} />
         </Section>
       )}
     </div>
@@ -528,5 +472,165 @@ function ReminderCard({
     </Link>
   ) : (
     inner
+  );
+}
+
+/**
+ * Top sellers list with rank chips and a relative-revenue progress bar.
+ * Bar width is normalised to the #1 item so the eye picks up which one
+ * is actually carrying the day.
+ */
+function TopSellers({
+  items,
+}: {
+  items: Array<{ name: string; qty: number; revenue: number }>;
+}) {
+  const max = Math.max(...items.map((i) => i.revenue), 1);
+  return (
+    <ol className="space-y-2">
+      {items.map((p, idx) => {
+        const widthPct = Math.max(8, (p.revenue / max) * 100);
+        const isTop = idx === 0;
+        return (
+          <li
+            key={p.name}
+            className="rounded-2xl px-3 py-2.5 relative overflow-hidden"
+            style={{
+              backgroundColor: "var(--muted)",
+              border: "1px solid var(--border-color)",
+            }}
+          >
+            <div
+              aria-hidden
+              className="absolute inset-y-0 left-0 pointer-events-none"
+              style={{
+                width: `${widthPct}%`,
+                backgroundColor: isTop
+                  ? "var(--accent-color)"
+                  : "var(--accent-color)",
+                opacity: isTop ? 0.18 : 0.08,
+              }}
+            />
+            <div className="relative flex items-center gap-3">
+              <span
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                style={{
+                  backgroundColor: isTop ? "var(--accent-color)" : "var(--card)",
+                  color: isTop ? "white" : "var(--fg)",
+                  border: isTop ? "none" : "1px solid var(--border-color)",
+                }}
+              >
+                {idx + 1}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm truncate" style={{ color: "var(--fg)" }}>
+                  {p.name}
+                </div>
+                <div className="text-[11px]" style={{ color: "var(--muted-fg)" }}>
+                  {p.qty} sold
+                </div>
+              </div>
+              <div className="font-bold text-sm shrink-0" style={{ color: "var(--fg)" }}>
+                {formatCurrency(p.revenue)}
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/**
+ * Low-stock list — out-of-stock items get a red OUT chip; below-threshold
+ * items show a tiny progress bar of on-hand vs threshold (clamped 0–100%
+ * so an over-consumed negative value doesn't render as confusing -ml).
+ * Sorted internally so OUT comes before LOW.
+ */
+function LowStockList({
+  rows,
+}: {
+  rows: Array<{
+    ingredientId: string;
+    name: string;
+    unit: string;
+    onHand: number;
+    reorderThreshold: number;
+    isOut: boolean;
+    locationName?: string;
+  }>;
+}) {
+  const sorted = [...rows].sort((a, b) => {
+    if (a.isOut !== b.isOut) return a.isOut ? -1 : 1;
+    return a.onHand - b.onHand;
+  });
+  return (
+    <ul className="space-y-2">
+      {sorted.map((r) => {
+        // Clamp to >=0 for display so a negative on-hand doesn't read like
+        // "-13350.0ml". The reality is "out" — show 0 + the OUT chip.
+        const displayQty = Math.max(0, r.onHand);
+        const pct = r.reorderThreshold > 0
+          ? Math.min(100, Math.max(0, (displayQty / r.reorderThreshold) * 100))
+          : 0;
+        const accent = r.isOut ? "#ef4444" : "#f59e0b";
+        return (
+          <li
+            key={r.ingredientId + (r.locationName ?? "")}
+            className="rounded-2xl px-3 py-2.5"
+            style={{
+              backgroundColor: "var(--muted)",
+              border: "1px solid var(--border-color)",
+              borderLeft: `4px solid ${accent}`,
+            }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-sm truncate" style={{ color: "var(--fg)" }}>
+                    {r.name}
+                  </span>
+                  <span
+                    className="text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full shrink-0"
+                    style={{
+                      backgroundColor: accent,
+                      color: "white",
+                    }}
+                  >
+                    {r.isOut ? "Out" : "Low"}
+                  </span>
+                </div>
+                {r.locationName && (
+                  <div className="text-[11px] mt-0.5" style={{ color: "var(--muted-fg)" }}>
+                    {r.locationName}
+                  </div>
+                )}
+              </div>
+              <div className="text-right shrink-0">
+                <div className="font-mono font-bold text-sm" style={{ color: accent }}>
+                  {displayQty.toFixed(1)}
+                  <span className="ml-0.5 text-[11px] font-normal" style={{ color: "var(--muted-fg)" }}>
+                    {r.unit}
+                  </span>
+                </div>
+                <div className="text-[10px]" style={{ color: "var(--muted-fg)" }}>
+                  reorder at {r.reorderThreshold}{r.unit}
+                </div>
+              </div>
+            </div>
+            {/* Progress bar: how close on-hand is to threshold. */}
+            <div
+              className="h-1.5 rounded-full mt-2 overflow-hidden"
+              style={{ backgroundColor: "var(--card)" }}
+            >
+              <div
+                className="h-full transition-all"
+                style={{ width: `${pct}%`, backgroundColor: accent }}
+              />
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
