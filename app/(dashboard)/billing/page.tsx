@@ -246,7 +246,7 @@ export default function BillingPage() {
  </button>
  <button
  onClick={() => setShowCancelConfirm(false)}
- className="px-4 py-2 text-sm rounded-xl transition-colors"
+ className="btn-ghost px-4 py-2 text-sm rounded-xl"
  >
  Keep Plan
  </button>

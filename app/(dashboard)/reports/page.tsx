@@ -45,6 +45,56 @@ type DailySummaryResult = {
  taxCollected: number;
 };
 
+type DailyDigestResult = {
+ date: number;
+ locationName: string;
+ generatedAt: number;
+ sales: {
+ revenue: number;
+ net: number;
+ tax: number;
+ avgTicket: number;
+ orderCount: number;
+ voidCount: number;
+ refundCount: number;
+ refundAmount: number;
+ };
+ tender: { cash: number; card: number; ewallet: number };
+ products: {
+ totalUnits: number;
+ distinctItems: number;
+ mix: Array<{
+ name: string;
+ qty: number;
+ revenue: number;
+ percentageOfRevenue: number;
+ }>;
+ };
+ ingredients: {
+ consumedCount: number;
+ belowThresholdCount: number;
+ outCount: number;
+ rows: Array<{
+ ingredientId: string;
+ name: string;
+ unit: string;
+ category: string | null;
+ openingStock: number;
+ consumed: number;
+ adjustment: number;
+ closingStock: number;
+ reorderThreshold: number;
+ belowThreshold: boolean;
+ isOut: boolean;
+ }>;
+ };
+ operations: {
+ peakHour: number;
+ peakHourOrders: number;
+ shiftCount: number;
+ };
+};
+
 type ProductMixItem = {
  itemName: string;
  quantitySold: number;
@@ -138,6 +188,15 @@ export default function ReportsPage() {
  :"skip"
  ) as DailySummaryResult | undefined;
 
+ // Rich daily digest (the "what happened today" report). Requires a
+ // specific location because opening/closing stock is per-location.
+ const dailyDigest = useQuery(
+ api.reports.dailyDigest.dailyDigest,
+ token && activeTab ==="daily" && locationId
+ ? { token, date: dateToTimestamp(startDateStr), locationId }
+ :"skip"
+ ) as DailyDigestResult | undefined;
+
  const productMix = useQuery(
  api.reports.queries.productMix,
  token && activeTab ==="product"
@@ -193,12 +252,19 @@ export default function ReportsPage() {
  <button
  onClick={async () => {
  if (activeTab ==="daily" && dailySummary) {
+ // If a single location is picked, export the FULL digest as a
+ // multi-section CSV (sales / product mix / ingredients). Otherwise
+ // fall back to the 4-stat summary.
+ if (dailyDigest) {
+ exportDailyDigestCSV(dailyDigest);
+ } else {
  exportToCSV([{
  totalRevenue: dailySummary.totalRevenue,
  transactionCount: dailySummary.transactionCount,
  averageOrderValue: dailySummary.averageOrderValue,
  taxCollected: dailySummary.taxCollected,
  }],"daily-summary.csv");
+ }
  } else if (activeTab ==="product" && productMix) {
  exportToCSV(productMix.map((item: ProductMixItem) => ({
  itemName: item.itemName,
@@ -275,7 +341,7 @@ export default function ReportsPage() {
  }
  }}
  disabled={exportingItems}
- className="px-3 py-2 text-sm rounded-xl disabled:opacity-50"
+ className="btn-ghost px-3 py-2 text-sm rounded-xl"
  >
  {activeTab ==="ledger" && exportingItems ?"Preparing…" :"Export CSV"}
  </button>
@@ -333,7 +399,7 @@ export default function ReportsPage() {
  );
  }
  }}
- className="px-3 py-2 text-sm rounded-xl"
+ className="btn-ghost px-3 py-2 text-sm rounded-xl"
  >
  Export PDF
  </button>
@@ -403,7 +469,7 @@ export default function ReportsPage() {
  <LedgerTab data={ledger} onView={(id) => setViewOrderId(id)} />
  )}
  {activeTab ==="daily" && (
- <DailySummaryTab data={dailySummary} />
+ <DailySummaryTab data={dailySummary} digest={dailyDigest} hasLocation={!!locationId} />
  )}
  {activeTab ==="product" && (
  <ProductMixTab data={productMix} />
@@ -625,31 +691,35 @@ function SummaryCard({
  );
 }
 
-function DailySummaryTab({ data }: { data: DailySummaryResult | undefined }) {
+function DailySummaryTab({
+ data,
+ digest,
+ hasLocation,
+}: {
+ data: DailySummaryResult | undefined;
+ digest: DailyDigestResult | undefined;
+ hasLocation: boolean;
+}) {
  if (!data) {
- return (
- <div className="text-center py-12">
- Loading summary...
- </div>
- );
+ return <div className="text-center py-12">Loading summary…</div>;
  }
 
+ // Top KPI strip works whether or not a location is picked.
  const cards: Array<{ label: string; value: string }> = [
  { label:"Total Revenue", value: formatCurrency(data.totalRevenue) },
  { label:"Transactions", value: String(data.transactionCount) },
- {
- label:"Avg Order Value",
- value: formatCurrency(data.averageOrderValue),
- },
+ { label:"Avg Order Value", value: formatCurrency(data.averageOrderValue) },
  { label:"Tax Collected", value: formatCurrency(data.taxCollected) },
  ];
 
  return (
+ <div className="space-y-6">
  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
- {cards.map((card: { label: string; value: string }) => (
+ {cards.map((card) => (
  <div
  key={card.label}
- className="rounded-2xl border shadow-lg p-6" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}
+ className="rounded-2xl border shadow-lg p-6"
+ style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}
  >
  <p className="text-xs font-medium uppercase tracking-wide mb-2">
  {card.label}
@@ -657,6 +727,218 @@ function DailySummaryTab({ data }: { data: DailySummaryResult | undefined }) {
  <p className="text-2xl font-bold">{card.value}</p>
  </div>
  ))}
+ </div>
+
+ {!hasLocation ? (
+ <DigestEmpty
+ msg="Pick a single location above to see the full daily digest (product mix, ingredients consumed, opening/closing stock)."
+ />
+ ) : !digest ? (
+ <div className="text-center py-12" style={{ color: "var(--muted-fg)" }}>
+ Loading daily digest…
+ </div>
+ ) : (
+ <DigestSections digest={digest} />
+ )}
+ </div>
+ );
+}
+
+function DigestEmpty({ msg }: { msg: string }) {
+ return (
+ <div
+ className="rounded-3xl p-8 text-center text-sm"
+ style={{
+ backgroundColor: 'var(--card)',
+ border: '1px solid var(--border-color)',
+ color: 'var(--muted-fg)',
+ }}
+ >
+ {msg}
+ </div>
+ );
+}
+
+function DigestSections({ digest }: { digest: DailyDigestResult }) {
+ const tenderTotal =
+ digest.tender.cash + digest.tender.card + digest.tender.ewallet;
+ const tenderPct = (n: number) =>
+ tenderTotal > 0 ? `${((n / tenderTotal) * 100).toFixed(0)}%` : "—";
+ const fmtHour = (h: number) => `${h}:00–${h + 1}:00`;
+
+ return (
+ <>
+ {/* Sales / Operations strip */}
+ <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+ <DigestCard label="Net" value={formatCurrency(digest.sales.net)} />
+ <DigestCard label="Tax" value={formatCurrency(digest.sales.tax)} />
+ <DigestCard
+ label="Refunds"
+ value={`${digest.sales.refundCount} · ${formatCurrency(digest.sales.refundAmount)}`}
+ />
+ <DigestCard
+ label="Voids"
+ value={String(digest.sales.voidCount)}
+ sub={`${digest.operations.shiftCount} shift${digest.operations.shiftCount === 1 ? "" : "s"}`}
+ />
+ </div>
+
+ <div className="grid md:grid-cols-2 gap-4">
+ <DigestPanel title={`Tender mix · peak ${fmtHour(digest.operations.peakHour)} (${digest.operations.peakHourOrders} orders)`}>
+ <div className="space-y-2">
+ <RowKV label={`Cash (${tenderPct(digest.tender.cash)})`} value={formatCurrency(digest.tender.cash)} />
+ <RowKV label={`Card (${tenderPct(digest.tender.card)})`} value={formatCurrency(digest.tender.card)} />
+ <RowKV label={`E-Wallet (${tenderPct(digest.tender.ewallet)})`} value={formatCurrency(digest.tender.ewallet)} />
+ </div>
+ </DigestPanel>
+
+ <DigestPanel title="Products sold today">
+ <div className="space-y-2">
+ <RowKV label="Total units" value={String(digest.products.totalUnits)} />
+ <RowKV label="Distinct items" value={String(digest.products.distinctItems)} />
+ <RowKV
+ label="Ingredients consumed"
+ value={`${digest.ingredients.consumedCount} of ${digest.ingredients.rows.length}`}
+ />
+ <RowKV
+ label="Below reorder threshold"
+ value={`${digest.ingredients.belowThresholdCount}${digest.ingredients.outCount > 0 ? ` (${digest.ingredients.outCount} out of stock)` : ""}`}
+ />
+ </div>
+ </DigestPanel>
+ </div>
+
+ {/* Product mix table */}
+ <DigestPanel title={`Product mix (${digest.products.mix.length} item${digest.products.mix.length === 1 ? "" : "s"})`}>
+ {digest.products.mix.length === 0 ? (
+ <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
+ No items sold today.
+ </p>
+ ) : (
+ <div className="overflow-x-auto">
+ <table className="w-full text-xs min-w-[500px]">
+ <thead>
+ <tr style={{ color: "var(--muted-fg)" }} className="text-[10px] uppercase tracking-widest">
+ <th className="text-left py-2">Item</th>
+ <th className="text-right py-2">Qty</th>
+ <th className="text-right py-2">Revenue</th>
+ <th className="text-right py-2">% of revenue</th>
+ </tr>
+ </thead>
+ <tbody>
+ {digest.products.mix.map((p) => (
+ <tr key={p.name} style={{ borderTop: "1px solid var(--border-color)" }}>
+ <td className="py-2" style={{ color: "var(--fg)" }}>{p.name}</td>
+ <td className="py-2 text-right font-mono">{p.qty}</td>
+ <td className="py-2 text-right font-mono">{formatCurrency(p.revenue)}</td>
+ <td className="py-2 text-right font-mono" style={{ color: "var(--muted-fg)" }}>
+ {p.percentageOfRevenue.toFixed(1)}%
+ </td>
+ </tr>
+ ))}
+ </tbody>
+ </table>
+ </div>
+ )}
+ </DigestPanel>
+
+ {/* Ingredient open/close + consumption table */}
+ <DigestPanel title="Ingredient stock (opening, consumed, adjustments, closing)">
+ <p className="text-[11px] mb-2" style={{ color: "var(--muted-fg)" }}>
+ Opening stock is reconstructed from today&apos;s consumption + adjustments —
+ best treated as approximate; a real stocktake still wins.
+ </p>
+ <div className="overflow-x-auto">
+ <table className="w-full text-xs min-w-[640px]">
+ <thead>
+ <tr style={{ color: "var(--muted-fg)" }} className="text-[10px] uppercase tracking-widest">
+ <th className="text-left py-2">Ingredient</th>
+ <th className="text-right py-2">Opening</th>
+ <th className="text-right py-2">Consumed</th>
+ <th className="text-right py-2">Adjustments</th>
+ <th className="text-right py-2">Closing</th>
+ <th className="text-right py-2">Threshold</th>
+ </tr>
+ </thead>
+ <tbody>
+ {digest.ingredients.rows.map((r) => {
+ const closingColor = r.isOut
+ ? "#ef4444"
+ : r.belowThreshold
+ ? "#f59e0b"
+ : "var(--fg)";
+ return (
+ <tr key={r.ingredientId} style={{ borderTop: "1px solid var(--border-color)" }}>
+ <td className="py-2" style={{ color: "var(--fg)" }}>
+ {r.name}
+ {r.category && (
+ <span className="ml-2 text-[10px]" style={{ color: "var(--muted-fg)" }}>
+ {r.category}
+ </span>
+ )}
+ </td>
+ <td className="py-2 text-right font-mono">
+ {r.openingStock.toFixed(1)}{r.unit}
+ </td>
+ <td className="py-2 text-right font-mono" style={{ color: r.consumed > 0 ? "var(--accent-color)" : "var(--muted-fg)" }}>
+ {r.consumed > 0 ? `−${r.consumed.toFixed(1)}${r.unit}` : "—"}
+ </td>
+ <td className="py-2 text-right font-mono" style={{ color: "var(--muted-fg)" }}>
+ {r.adjustment === 0 ? "—" : `${r.adjustment > 0 ? "+" : ""}${r.adjustment.toFixed(1)}${r.unit}`}
+ </td>
+ <td className="py-2 text-right font-mono font-semibold" style={{ color: closingColor }}>
+ {r.closingStock.toFixed(1)}{r.unit}
+ </td>
+ <td className="py-2 text-right font-mono" style={{ color: "var(--muted-fg)" }}>
+ {r.reorderThreshold}{r.unit}
+ </td>
+ </tr>
+ );
+ })}
+ </tbody>
+ </table>
+ </div>
+ </DigestPanel>
+ </>
+ );
+}
+
+function DigestCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+ return (
+ <div
+ className="rounded-2xl p-5"
+ style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}
+ >
+ <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--muted-fg)' }}>
+ {label}
+ </p>
+ <p className="text-xl font-bold" style={{ color: 'var(--fg)' }}>{value}</p>
+ {sub && (
+ <p className="text-[10px] mt-1" style={{ color: 'var(--muted-fg)' }}>{sub}</p>
+ )}
+ </div>
+ );
+}
+
+function DigestPanel({ title, children }: { title: string; children: React.ReactNode }) {
+ return (
+ <div
+ className="rounded-3xl p-5"
+ style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}
+ >
+ <h3 className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--muted-fg)' }}>
+ {title}
+ </h3>
+ {children}
+ </div>
+ );
+}
+
+function RowKV({ label, value }: { label: string; value: string }) {
+ return (
+ <div className="flex justify-between text-sm">
+ <span style={{ color: 'var(--muted-fg)' }}>{label}</span>
+ <span className="font-medium" style={{ color: 'var(--fg)' }}>{value}</span>
  </div>
  );
 }
@@ -816,4 +1098,94 @@ function formatHourShort(hour: number): string {
  if (hour < 12) return `${hour}a`;
  if (hour === 12) return"12p";
  return `${hour - 12}p`;
+}
+
+/**
+ * Daily digest export = a multi-section CSV (Sales / Tender / Products /
+ * Ingredient stock). exportToCSV writes one table at a time; we stitch the
+ * sections together manually with section headers + blank lines so it
+ * opens cleanly in Excel/Sheets/Numbers.
+ */
+function exportDailyDigestCSV(d: DailyDigestResult) {
+ const dayStr = new Date(d.date).toISOString().slice(0, 10);
+ const filename = `daily-digest-${d.locationName.replace(/[^a-z0-9]+/gi,"-").toLowerCase()}-${dayStr}.csv`;
+ const lines: string[] = [];
+ const esc = (s: string | number) => {
+ const v = String(s);
+ return /[",\r\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v;
+ };
+ const row = (...cols: Array<string | number>) =>
+ lines.push(cols.map(esc).join(","));
+
+ row("Daily Digest", d.locationName);
+ row("Date", new Date(d.date).toLocaleDateString());
+ row("Generated", new Date(d.generatedAt).toLocaleString());
+ row("");
+
+ row("SALES");
+ row("Metric","Value");
+ row("Gross revenue", (d.sales.revenue / 100).toFixed(2));
+ row("Net (excl. tax)", (d.sales.net / 100).toFixed(2));
+ row("Tax", (d.sales.tax / 100).toFixed(2));
+ row("Avg ticket", (d.sales.avgTicket / 100).toFixed(2));
+ row("Orders", d.sales.orderCount);
+ row("Refunds", `${d.sales.refundCount} (${(d.sales.refundAmount / 100).toFixed(2)})`);
+ row("Voids", d.sales.voidCount);
+ row("Shifts", d.operations.shiftCount);
+ row("Peak hour", `${d.operations.peakHour}:00–${d.operations.peakHour + 1}:00 (${d.operations.peakHourOrders} orders)`);
+ row("");
+
+ row("TENDER MIX");
+ row("Method","Amount");
+ row("Cash", (d.tender.cash / 100).toFixed(2));
+ row("Card", (d.tender.card / 100).toFixed(2));
+ row("E-Wallet", (d.tender.ewallet / 100).toFixed(2));
+ row("");
+
+ row("PRODUCT MIX");
+ row("Item","Qty","Revenue","% of revenue");
+ for (const p of d.products.mix) {
+ row(p.name, p.qty, (p.revenue / 100).toFixed(2), p.percentageOfRevenue.toFixed(1) + "%");
+ }
+ row("Total units", d.products.totalUnits);
+ row("");
+
+ row("INGREDIENT STOCK");
+ row(
+"Ingredient",
+"Category",
+"Unit",
+"Opening",
+"Consumed",
+"Adjustments",
+"Closing",
+"Reorder threshold",
+"Below threshold?",
+"Out of stock?"
+ );
+ for (const r of d.ingredients.rows) {
+ row(
+ r.name,
+ r.category ?? "",
+ r.unit,
+ r.openingStock.toFixed(2),
+ r.consumed.toFixed(2),
+ r.adjustment.toFixed(2),
+ r.closingStock.toFixed(2),
+ r.reorderThreshold,
+ r.belowThreshold ? "yes" : "no",
+ r.isOut ? "yes" : "no"
+ );
+ }
+
+ const csv = "﻿" + lines.join("\r\n");
+ const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement("a");
+ a.href = url;
+ a.download = filename;
+ document.body.appendChild(a);
+ a.click();
+ document.body.removeChild(a);
+ setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

@@ -142,7 +142,8 @@ export function DiscountDialog({
             <h2 className="text-lg font-bold" style={{ color: 'var(--fg)' }}>Add Discount</h2>
             <button
               onClick={onClose}
-              className="text-stone-400 hover:text-stone-300 text-xl leading-none p-1"
+              className="text-xl leading-none p-1 hover:opacity-80"
+ style={{ color: 'var(--muted-fg)' }}
             >
               &#10005;
             </button>

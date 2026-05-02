@@ -179,7 +179,7 @@ export default function MenuPage() {
  setEditingCategory(null);
  setShowCategoryForm(true);
  }}
- className="px-4 py-2.5 text-sm font-medium rounded-xl transition-colors"
+ className="btn-ghost px-4 py-2.5 text-sm font-medium rounded-xl"
  >
  + Add Category
  </button>

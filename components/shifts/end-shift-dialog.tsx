@@ -178,7 +178,7 @@ export function EndShiftDialog({
  <button
  type="button"
  onClick={onClose}
- className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+ className="btn-ghost px-4 py-2.5 rounded-xl text-sm font-medium"
  >
  Cancel
  </button>

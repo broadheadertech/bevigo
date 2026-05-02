@@ -190,7 +190,7 @@ export default function COGSPage() {
 "cogs-report.csv"
  );
  }}
- className="px-3 py-2 text-sm rounded-xl"
+ className="btn-ghost px-3 py-2 text-sm rounded-xl"
  >
  Export CSV
  </button>
@@ -223,7 +223,7 @@ export default function COGSPage() {
  }
  );
  }}
- className="px-3 py-2 text-sm rounded-xl"
+ className="btn-ghost px-3 py-2 text-sm rounded-xl"
  >
  Export PDF
  </button>

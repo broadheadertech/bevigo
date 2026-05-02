@@ -151,7 +151,8 @@ export function PrinterSettings() {
  <button
  type="button"
  onClick={() => setShowPanel(false)}
- className="text-stone-400 text-lg leading-none"
+ className="text-lg leading-none p-1 hover:opacity-80"
+ style={{ color: 'var(--muted-fg)' }}
  >
  &#10005;
  </button>

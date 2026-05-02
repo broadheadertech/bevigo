@@ -141,6 +141,36 @@ html, body {
   }
 }
 
+/*
+ * Themed button defaults. Use .btn-ghost on any button that previously had
+ * no background or text-color set — guarantees the button renders as a
+ * visible chip in BOTH light and dark mode using the theme variables. Add
+ * .btn-primary for the accent-colored CTA variant.
+ *
+ * Required because plenty of dashboard buttons were declared with just
+ * "px-... py-... rounded-xl" and inherited their color from the page,
+ * which produced invisible white-on-white buttons in light mode.
+ */
+.btn-ghost {
+  background-color: var(--muted);
+  color: var(--fg);
+  border: 1px solid var(--border-color);
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+.btn-ghost:hover { background-color: var(--card); }
+.btn-ghost:active { transform: scale(0.98); }
+.btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary {
+  background-color: var(--accent-color);
+  color: white;
+  border: 1px solid var(--accent-color);
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+.btn-primary:hover { filter: brightness(1.05); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* Animations */
 @keyframes shake {
   0%, 100% { transform: translateX(0); }

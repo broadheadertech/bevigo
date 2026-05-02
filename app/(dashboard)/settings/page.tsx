@@ -317,7 +317,7 @@ export default function SettingsPage() {
  </p>
  <button
  onClick={() => setShowCloneDialog(true)}
- className="px-4 py-2.5 text-sm font-medium rounded-xl transition-colors"
+ className="btn-ghost px-4 py-2.5 text-sm font-medium rounded-xl"
  >
  Clone Configuration
  </button>

@@ -112,7 +112,8 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  <div className="flex justify-end px-4 pt-3 shrink-0 print:hidden">
  <button
  onClick={onClose}
- className="text-stone-400 text-xl leading-none p-1"
+ className="text-xl leading-none p-1 hover:opacity-80"
+ style={{ color: 'var(--muted-fg)' }}
  >
  &#10005;
  </button>
