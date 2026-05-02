@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import { formatCurrency } from "@/lib/currency";
 import { Id } from "../../convex/_generated/dataModel";
 import Link from "next/link";
-import { Pagination, usePagination } from "@/components/ui/pagination";
+import { usePagination } from "@/components/ui/pagination";
 
 type LocationOption = {
   _id: Id<"locations">;
@@ -495,63 +495,67 @@ function TopSellers({
   const offset = (currentPage - 1) * 5;
   return (
     <>
-    <ol className="space-y-2">
-      {paginatedItems.map((p, idx) => {
-        const absoluteIdx = offset + idx;
-        const widthPct = Math.max(8, (p.revenue / max) * 100);
-        const isTop = absoluteIdx === 0;
-        return (
-          <li
-            key={p.name}
-            className="rounded-2xl px-3 py-2.5 relative overflow-hidden"
-            style={{
-              backgroundColor: "var(--muted)",
-              border: "1px solid var(--border-color)",
-            }}
-          >
-            <div
-              aria-hidden
-              className="absolute inset-y-0 left-0 pointer-events-none"
+      <ol className="space-y-2">
+        {paginatedItems.map((p, idx) => {
+          const absoluteIdx = offset + idx;
+          const widthPct = Math.max(6, (p.revenue / max) * 100);
+          const isTop = absoluteIdx === 0;
+          return (
+            <li
+              key={p.name}
+              className="rounded-2xl px-3 py-2.5"
               style={{
-                width: `${widthPct}%`,
-                backgroundColor: isTop
-                  ? "var(--accent-color)"
-                  : "var(--accent-color)",
-                opacity: isTop ? 0.18 : 0.08,
+                backgroundColor: "var(--muted)",
+                border: "1px solid var(--border-color)",
               }}
-            />
-            <div className="relative flex items-center gap-3">
-              <span
-                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                style={{
-                  backgroundColor: isTop ? "var(--accent-color)" : "var(--card)",
-                  color: isTop ? "white" : "var(--fg)",
-                  border: isTop ? "none" : "1px solid var(--border-color)",
-                }}
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                  style={{
+                    backgroundColor: isTop ? "var(--accent-color)" : "var(--card)",
+                    color: isTop ? "white" : "var(--fg)",
+                    border: isTop ? "none" : "1px solid var(--border-color)",
+                  }}
+                >
+                  {absoluteIdx + 1}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm truncate" style={{ color: "var(--fg)" }}>
+                    {p.name}
+                  </div>
+                  <div className="text-[11px]" style={{ color: "var(--muted-fg)" }}>
+                    {p.qty} sold
+                  </div>
+                </div>
+                <div className="font-bold text-sm shrink-0" style={{ color: "var(--fg)" }}>
+                  {formatCurrency(p.revenue)}
+                </div>
+              </div>
+              {/* Bottom progress strip — share-of-#1 revenue. Same shape
+                  as the LowStockList so the two panels feel consistent. */}
+              <div
+                className="h-1 rounded-full mt-2 overflow-hidden"
+                style={{ backgroundColor: "var(--card)" }}
               >
-                {absoluteIdx + 1}
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-sm truncate" style={{ color: "var(--fg)" }}>
-                  {p.name}
-                </div>
-                <div className="text-[11px]" style={{ color: "var(--muted-fg)" }}>
-                  {p.qty} sold
-                </div>
+                <div
+                  className="h-full transition-all"
+                  style={{
+                    width: `${widthPct}%`,
+                    backgroundColor: "var(--accent-color)",
+                    opacity: isTop ? 1 : 0.5,
+                  }}
+                />
               </div>
-              <div className="font-bold text-sm shrink-0" style={{ color: "var(--fg)" }}>
-                {formatCurrency(p.revenue)}
-              </div>
-            </div>
-          </li>
-        );
-      })}
-    </ol>
-    <Pagination
-      currentPage={currentPage}
-      totalPages={totalPages}
-      onPageChange={setCurrentPage}
-    />
+            </li>
+          );
+        })}
+      </ol>
+      <CompactPager
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
     </>
   );
 }
@@ -653,11 +657,70 @@ function LowStockList({
         );
       })}
     </ul>
-    <Pagination
+    <CompactPager
       currentPage={currentPage}
       totalPages={totalPages}
       onPageChange={setCurrentPage}
     />
     </>
+  );
+}
+
+/**
+ * Lightweight pager for the dashboard panels — single line with prev/next
+ * chevrons and a page counter. Avoids the full table-style "Previous /
+ * 1 / 2 / ... / 7 / Next" footer which dominates a small card.
+ */
+function CompactPager({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <div
+      className="flex items-center justify-between mt-3 pt-3"
+      style={{ borderTop: "1px solid var(--border-color)" }}
+    >
+      <span className="text-[11px]" style={{ color: "var(--muted-fg)" }}>
+        Page {currentPage} / {totalPages}
+      </span>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage <= 1}
+          aria-label="Previous page"
+          className="w-7 h-7 rounded-lg flex items-center justify-center disabled:opacity-30 active:scale-95 transition-all"
+          style={{
+            backgroundColor: "var(--muted)",
+            color: "var(--fg)",
+            border: "1px solid var(--border-color)",
+          }}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage >= totalPages}
+          aria-label="Next page"
+          className="w-7 h-7 rounded-lg flex items-center justify-center disabled:opacity-30 active:scale-95 transition-all"
+          style={{
+            backgroundColor: "var(--muted)",
+            color: "var(--fg)",
+            border: "1px solid var(--border-color)",
+          }}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+    </div>
   );
 }
