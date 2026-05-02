@@ -192,3 +192,138 @@ function getLocationScope(
   }
   return session.locationIds;
 }
+
+/**
+ * Same scope as listOrderHistory but flattened to one row per ORDER ITEM,
+ * with the order context (date, order #, cashier, customer, status,
+ * payment) repeated on each row. Used by the Sales Ledger export so the
+ * CSV captures the exact items rung up in each transaction. Modifiers for
+ * each line are joined into a single string for spreadsheet readability.
+ */
+export const listOrderHistoryLineItems = query({
+  args: {
+    token: v.string(),
+    locationId: v.optional(v.id("locations")),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    limit: v.optional(v.number()),
+    paymentType: v.optional(
+      v.union(v.literal("cash"), v.literal("card"), v.literal("ewallet"))
+    ),
+    mineOnly: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner", "manager"]);
+
+    const restrictToSelf =
+      session.role === "barista" || args.mineOnly === true;
+    const locationIds = getLocationScope(session, args.locationId);
+    const limit = args.limit ?? 500;
+
+    type Row = {
+      orderId: Id<"orders">;
+      orderNumber: string;
+      completedAt: number;
+      status: string;
+      isRefunded: boolean;
+      paymentType: string;
+      baristaName: string;
+      customerName: string | null;
+      tableName: string | null;
+      itemName: string;
+      modifiers: string;
+      quantity: number;
+      unitPrice: number;
+      lineSubtotal: number;
+      orderTotal: number;
+    };
+
+    const rows: Row[] = [];
+
+    for (const locId of locationIds) {
+      const completed = await ctx.db
+        .query("orders")
+        .withIndex("by_tenant_location_status", (q: any) =>
+          q
+            .eq("tenantId", session.tenantId)
+            .eq("locationId", locId)
+            .eq("status", "completed")
+        )
+        .collect();
+      const voided = await ctx.db
+        .query("orders")
+        .withIndex("by_tenant_location_status", (q: any) =>
+          q
+            .eq("tenantId", session.tenantId)
+            .eq("locationId", locId)
+            .eq("status", "voided")
+        )
+        .collect();
+
+      const all = [...completed, ...voided];
+
+      for (const order of all) {
+        const t = order.completedAt ?? order._creationTime;
+        if (restrictToSelf && order.userId !== session.userId) continue;
+        if (args.startDate != null && t < args.startDate) continue;
+        if (args.endDate != null && t > args.endDate) continue;
+        if (args.paymentType && order.paymentType !== args.paymentType) continue;
+
+        const items = await ctx.db
+          .query("orderItems")
+          .withIndex("by_order", (q: any) => q.eq("orderId", order._id))
+          .collect();
+
+        const user = await ctx.db.get(order.userId);
+        let customerName: string | null = null;
+        if (order.customerId) {
+          const customer = await ctx.db.get(order.customerId);
+          customerName = customer?.name ?? null;
+        }
+
+        for (const it of items) {
+          const mods = await ctx.db
+            .query("orderItemModifiers")
+            .withIndex("by_order_item", (q: any) => q.eq("orderItemId", it._id))
+            .collect();
+          const modString = mods
+            .map((m) =>
+              m.priceAdjustment > 0
+                ? `${m.modifierName} (+${(m.priceAdjustment / 100).toFixed(2)})`
+                : m.modifierName
+            )
+            .join("; ");
+
+          const unitPrice = it.basePrice;
+          const lineSubtotal = it.subtotal;
+
+          rows.push({
+            orderId: order._id,
+            orderNumber: order.orderNumber ?? "",
+            completedAt: t,
+            status: order.status,
+            isRefunded: !!order.refundedAt,
+            paymentType: order.paymentType ?? "",
+            baristaName: user?.name ?? "Unknown",
+            customerName,
+            tableName: order.tableName ?? null,
+            itemName: it.itemName,
+            modifiers: modString,
+            quantity: it.quantity,
+            unitPrice,
+            lineSubtotal,
+            orderTotal: order.total,
+          });
+        }
+      }
+    }
+
+    rows.sort(
+      (a, b) =>
+        b.completedAt - a.completedAt ||
+        a.orderNumber.localeCompare(b.orderNumber)
+    );
+    return rows.slice(0, limit);
+  },
+});

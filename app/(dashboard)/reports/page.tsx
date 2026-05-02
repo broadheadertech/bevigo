@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from"convex/react";
+import { useConvex, useQuery } from"convex/react";
 import { api } from"../../../convex/_generated/api";
 import { useAuth } from"@/lib/auth-context";
 import { useState, useMemo } from"react";
@@ -8,6 +8,7 @@ import { Id } from"../../../convex/_generated/dataModel";
 import { exportToCSV } from"@/lib/export";
 import { exportReportPDF } from"@/lib/export-pdf";
 import { formatCurrency } from"@/lib/currency";
+import { OrderDetailModal } from"@/components/orders/order-detail-modal";
 
 type Tab ="daily" |"product" |"hourly" |"ledger";
 
@@ -87,6 +88,9 @@ function timestampToDateStr(ts: number): string {
 
 export default function ReportsPage() {
  const { session, token } = useAuth();
+ const convex = useConvex();
+ const [viewOrderId, setViewOrderId] = useState<Id<"orders"> | null>(null);
+ const [exportingItems, setExportingItems] = useState(false);
 
  const defaultStart = useMemo(() => todayStart(), []);
  const defaultEnd = useMemo(() => todayEnd(), []);
@@ -229,6 +233,74 @@ export default function ReportsPage() {
  >
  Export CSV
  </button>
+ {activeTab ==="ledger" && (
+ <button
+ disabled={exportingItems || !token}
+ onClick={async () => {
+ if (!token) return;
+ setExportingItems(true);
+ try {
+ const rows = await convex.query(
+ api.orders.historyQueries.listOrderHistoryLineItems,
+ {
+ token,
+ locationId,
+ startDate,
+ endDate,
+ limit: 5000,
+ }
+ );
+ if (!rows || rows.length === 0) {
+ alert("No items to export in this date range.");
+ return;
+ }
+ type LineRow = {
+ orderId: string;
+ orderNumber: string;
+ completedAt: number;
+ status: string;
+ isRefunded: boolean;
+ paymentType: string;
+ baristaName: string;
+ customerName: string | null;
+ tableName: string | null;
+ itemName: string;
+ modifiers: string;
+ quantity: number;
+ unitPrice: number;
+ lineSubtotal: number;
+ orderTotal: number;
+ };
+ exportToCSV(
+ (rows as LineRow[]).map((r) => ({
+"Date/Time": new Date(r.completedAt).toLocaleString(),
+"Order #": r.orderNumber,
+"Status": r.status === "voided" ?"Voided" : r.isRefunded ?"Refunded" :"Completed",
+"Cashier": r.baristaName,
+"Customer / Table": r.customerName ?? r.tableName ?? "",
+"Item": r.itemName,
+"Modifiers": r.modifiers,
+"Qty": r.quantity,
+"Unit Price": (r.unitPrice / 100).toFixed(2),
+"Line Total": (r.lineSubtotal / 100).toFixed(2),
+"Payment": r.paymentType,
+"Order Total": (r.orderTotal / 100).toFixed(2),
+ })),
+"sales-ledger-line-items.csv"
+ );
+ } catch (err) {
+ alert(err instanceof Error ? err.message :"Export failed");
+ } finally {
+ setExportingItems(false);
+ }
+ }}
+ className="px-3 py-2 text-sm rounded-xl"
+ style={{ border: '1px solid var(--border-color)', color: 'var(--fg)' }}
+ title="Export each transaction's items as separate rows"
+ >
+ {exportingItems ?"Preparing…" :"Export Items CSV"}
+ </button>
+ )}
  <button
  onClick={() => {
  if (activeTab ==="daily" && dailySummary) {
@@ -350,7 +422,7 @@ export default function ReportsPage() {
 
  {/* Tab Content */}
  {activeTab ==="ledger" && (
- <LedgerTab data={ledger} />
+ <LedgerTab data={ledger} onView={(id) => setViewOrderId(id)} />
  )}
  {activeTab ==="daily" && (
  <DailySummaryTab data={dailySummary} />
@@ -361,11 +433,25 @@ export default function ReportsPage() {
  {activeTab ==="hourly" && (
  <HourlyVolumeTab data={hourlyVolume} />
  )}
+
+ {viewOrderId && (
+ <OrderDetailModal
+ orderId={viewOrderId}
+ onClose={() => setViewOrderId(null)}
+ canRefund={false}
+ />
+ )}
  </div>
  );
 }
 
-function LedgerTab({ data }: { data: LedgerRow[] | undefined }) {
+function LedgerTab({
+ data,
+ onView,
+}: {
+ data: LedgerRow[] | undefined;
+ onView: (orderId: Id<"orders">) => void;
+}) {
  if (!data) {
  return (
  <div className="text-center py-12" style={{ color: 'var(--muted-fg)' }}>
@@ -456,7 +542,16 @@ function LedgerTab({ data }: { data: LedgerRow[] | undefined }) {
  hour: 'numeric', minute: '2-digit', hour12: true,
  })}
  </td>
- <td className="px-3 py-2 font-mono" style={{ color: 'var(--fg)' }}>{o.orderNumber}</td>
+ <td className="px-3 py-2 font-mono">
+ <button
+ onClick={() => onView(o._id)}
+ className="font-mono underline hover:opacity-80 active:opacity-60 transition-opacity"
+ style={{ color: 'var(--accent-color)' }}
+ title="View items in this order"
+ >
+ {o.orderNumber}
+ </button>
+ </td>
  <td className="px-3 py-2" style={{ color: 'var(--fg)' }}>{o.baristaName}</td>
  <td className="px-3 py-2" style={{ color: 'var(--muted-fg)' }}>{o.customerName ?? o.tableName ?? '—'}</td>
  <td className="px-3 py-2 text-right font-mono">{o.itemCount}</td>
