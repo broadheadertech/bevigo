@@ -417,9 +417,10 @@ export default function ReportsPage() {
 "Customer / Table": o.customerName ?? o.tableName ?? "",
 "Items": buildItemsCell(o.lines),
 "Item Count": itemCount,
-"Discount": o.orderDiscount > 0 ? (o.orderDiscount / 100).toFixed(2) : "0.00",
-"Tax": (o.orderTax / 100).toFixed(2),
-"Payment": `${fmtPay(o.paymentType)} · ₱${(o.orderTotal / 100).toFixed(2)}`,
+"Discount": ((o.orderDiscount ?? 0) > 0 ? (o.orderDiscount / 100).toFixed(2) : "0.00"),
+"Tax": (Number.isFinite(o.orderTax) ? o.orderTax / 100 : 0).toFixed(2),
+"Payment Method": fmtPay(o.paymentType),
+"Total": (Number.isFinite(o.orderTotal) ? o.orderTotal / 100 : 0).toFixed(2),
  };
  }),
 "sales-ledger.csv"
@@ -647,8 +648,16 @@ function LedgerTab({
  const isRefunded = !!o.refundedAt;
  const discount = o.discountAmount ?? 0;
  const refund = o.refundAmount ?? 0;
- const tax = o.total - o.subtotal + discount;
- const net = (isVoided ? 0 : o.total) - refund;
+ // Prefer the authoritative taxAmount the order was rung up with.
+ // Fall back to the derived calc only if it's missing — and clamp
+ // to 0 if either input is non-numeric so the cell never reads NaN.
+ const derivedTax = (o.total ?? 0) - (o.subtotal ?? 0) + discount;
+ const tax = Number.isFinite(o.taxAmount as number)
+ ? (o.taxAmount as number)
+ : Number.isFinite(derivedTax)
+ ? derivedTax
+ : 0;
+ const net = (isVoided ? 0 : (o.total ?? 0)) - refund;
  return {
  gross: acc.gross + (isVoided ? 0 : o.subtotal),
  discount: acc.discount + (isVoided ? 0 : discount),
@@ -688,7 +697,8 @@ function LedgerTab({
  <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Discount</th>
  <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Tax</th>
  <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Refund</th>
- <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Payment</th>
+ <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Payment</th>
+ <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Total</th>
  <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Status</th>
  </tr>
  </thead>
@@ -698,8 +708,13 @@ function LedgerTab({
  const isRefunded = !!o.refundedAt;
  const discount = o.discountAmount ?? 0;
  const refund = o.refundAmount ?? 0;
- const tax = o.total - o.subtotal + discount;
- const net = (isVoided ? 0 : o.total) - refund;
+ const derivedTax = (o.total ?? 0) - (o.subtotal ?? 0) + discount;
+ const tax = Number.isFinite(o.taxAmount as number)
+ ? (o.taxAmount as number)
+ : Number.isFinite(derivedTax)
+ ? derivedTax
+ : 0;
+ const net = (isVoided ? 0 : (o.total ?? 0)) - refund;
  return (
  <tr
  key={o._id}
@@ -735,14 +750,11 @@ function LedgerTab({
  <td className="px-3 py-2 text-right font-mono" style={{ color: refund > 0 ? '#ef4444' : 'var(--muted-fg)' }}>
  {refund > 0 ? `− ${formatCurrency(refund)}` : '—'}
  </td>
- {/* Payment cell — method on top, net total below: balance look */}
- <td className="px-3 py-2 text-right">
- <div className="font-mono font-bold text-sm" style={{ color: 'var(--fg)' }}>
- {formatCurrency(net)}
- </div>
- <div className="text-[10px] uppercase tracking-widest mt-0.5" style={{ color: 'var(--muted-fg)' }}>
+ <td className="px-3 py-2 capitalize" style={{ color: 'var(--muted-fg)' }}>
  {o.paymentType === 'ewallet' ? 'E-Wallet' : o.paymentType === 'split' ? 'Split' : o.paymentType}
- </div>
+ </td>
+ <td className="px-3 py-2 text-right font-mono font-semibold" style={{ color: 'var(--fg)' }}>
+ {formatCurrency(net)}
  </td>
  <td className="px-3 py-2">
  <span
@@ -780,6 +792,7 @@ function LedgerTab({
  <td className="px-3 py-2.5 text-right font-mono font-semibold" style={{ color: totals.refund > 0 ? '#ef4444' : 'var(--muted-fg)' }}>
  − {formatCurrency(totals.refund)}
  </td>
+ <td></td>
  <td className="px-3 py-2.5 text-right font-mono font-bold" style={{ color: 'var(--accent-color)' }}>
  {formatCurrency(totals.net)}
  </td>
