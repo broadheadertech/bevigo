@@ -28,6 +28,10 @@ type LedgerRow = {
  discountAmount: number | null;
  discountType: string | null;
  discountValue: number | null;
+ discountReason: string | null;
+ taxAmount?: number;
+ taxRate?: number;
+ taxLabel?: string;
  refundedAt: number | null;
  refundAmount: number | null;
 };
@@ -289,10 +293,10 @@ export default function ReportsPage() {
  revenue: h.revenue,
  })),"hourly-volume.csv");
  } else if (activeTab ==="ledger" && token) {
- // Sales Ledger export = one row per ITEM (with order context repeated
- // on each row) so the CSV captures exactly what was rung up. Pulled
- // on demand instead of from the table cache so we get every line
- // even if the on-screen ledger is paginated.
+ // Sales Ledger export = ONE ROW PER ORDER, with every item + its
+ // modifiers consolidated into a single readable cell, and payment +
+ // total combined. Pulled on demand so we capture every line even if
+ // the on-screen ledger is paginated.
  setExportingItems(true);
  try {
  const rows = await convex.query(
@@ -324,23 +328,100 @@ export default function ReportsPage() {
  quantity: number;
  unitPrice: number;
  lineSubtotal: number;
+ orderSubtotal: number;
+ orderDiscount: number;
+ orderTax: number;
  orderTotal: number;
  };
+
+ // Group line items by orderId, keeping the original sort (newest
+ // first) by tracking the order in which orderIds first appear.
+ type Grouped = {
+ orderId: string;
+ orderNumber: string;
+ completedAt: number;
+ status: string;
+ isRefunded: boolean;
+ paymentType: string;
+ baristaName: string;
+ customerName: string | null;
+ tableName: string | null;
+ orderSubtotal: number;
+ orderDiscount: number;
+ orderTax: number;
+ orderTotal: number;
+ lines: LineRow[];
+ };
+ const byOrder = new Map<string, Grouped>();
+ for (const r of rows as LineRow[]) {
+ const k = r.orderId;
+ if (!byOrder.has(k)) {
+ byOrder.set(k, {
+ orderId: r.orderId,
+ orderNumber: r.orderNumber,
+ completedAt: r.completedAt,
+ status: r.status,
+ isRefunded: r.isRefunded,
+ paymentType: r.paymentType,
+ baristaName: r.baristaName,
+ customerName: r.customerName,
+ tableName: r.tableName,
+ orderSubtotal: r.orderSubtotal,
+ orderDiscount: r.orderDiscount,
+ orderTax: r.orderTax,
+ orderTotal: r.orderTotal,
+ lines: [],
+ });
+ }
+ byOrder.get(k)!.lines.push(r);
+ }
+
+ const fmtPay = (p: string) => {
+ if (!p) return "—";
+ if (p === "ewallet") return "E-Wallet";
+ if (p === "split") return "Split";
+ return p.charAt(0).toUpperCase() + p.slice(1);
+ };
+
+ // Build the items cell: one line per item, modifiers in brackets,
+ // qty prefix when > 1. Newlines inside CSV cells are RFC-4180
+ // legal as long as the cell is quoted (exportToCSV handles that).
+ const buildItemsCell = (lines: LineRow[]) =>
+ lines
+ .map((l) => {
+ const qty = l.quantity > 1 ? `${l.quantity}× ` : "";
+ const mods = l.modifiers ? ` [${l.modifiers}]` : "";
+ const total = `₱${(l.lineSubtotal / 100).toFixed(2)}`;
+ return `${qty}${l.itemName}${mods} — ${total}`;
+ })
+ .join("\n");
+
+ const sortedOrders = [...byOrder.values()].sort(
+ (a, b) => b.completedAt - a.completedAt
+ );
+
  exportToCSV(
- (rows as LineRow[]).map((r) => ({
-"Date/Time": new Date(r.completedAt).toLocaleString(),
-"Order #": r.orderNumber,
-"Status": r.status === "voided" ?"Voided" : r.isRefunded ?"Refunded" :"Completed",
-"Cashier": r.baristaName,
-"Customer / Table": r.customerName ?? r.tableName ?? "",
-"Item": r.itemName,
-"Modifiers": r.modifiers,
-"Qty": r.quantity,
-"Unit Price": (r.unitPrice / 100).toFixed(2),
-"Line Total": (r.lineSubtotal / 100).toFixed(2),
-"Payment": r.paymentType,
-"Order Total": (r.orderTotal / 100).toFixed(2),
- })),
+ sortedOrders.map((o) => {
+ const itemCount = o.lines.reduce((s, l) => s + l.quantity, 0);
+ const status =
+ o.status === "voided"
+ ? "Voided"
+ : o.isRefunded
+ ? "Refunded"
+ : "Completed";
+ return {
+"Date/Time": new Date(o.completedAt).toLocaleString(),
+"Order #": o.orderNumber,
+"Status": status,
+"Cashier": o.baristaName,
+"Customer / Table": o.customerName ?? o.tableName ?? "",
+"Items": buildItemsCell(o.lines),
+"Item Count": itemCount,
+"Discount": o.orderDiscount > 0 ? (o.orderDiscount / 100).toFixed(2) : "0.00",
+"Tax": (o.orderTax / 100).toFixed(2),
+"Payment": `${fmtPay(o.paymentType)} · ₱${(o.orderTotal / 100).toFixed(2)}`,
+ };
+ }),
 "sales-ledger.csv"
  );
  } catch (err) {
@@ -607,8 +688,7 @@ function LedgerTab({
  <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Discount</th>
  <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Tax</th>
  <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Refund</th>
- <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Net</th>
- <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Payment</th>
+ <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Payment</th>
  <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-fg)' }}>Status</th>
  </tr>
  </thead>
@@ -655,11 +735,14 @@ function LedgerTab({
  <td className="px-3 py-2 text-right font-mono" style={{ color: refund > 0 ? '#ef4444' : 'var(--muted-fg)' }}>
  {refund > 0 ? `− ${formatCurrency(refund)}` : '—'}
  </td>
- <td className="px-3 py-2 text-right font-mono font-semibold" style={{ color: 'var(--fg)' }}>
+ {/* Payment cell — method on top, net total below: balance look */}
+ <td className="px-3 py-2 text-right">
+ <div className="font-mono font-bold text-sm" style={{ color: 'var(--fg)' }}>
  {formatCurrency(net)}
- </td>
- <td className="px-3 py-2 capitalize" style={{ color: 'var(--muted-fg)' }}>
- {o.paymentType === 'ewallet' ? 'E-Wallet' : o.paymentType}
+ </div>
+ <div className="text-[10px] uppercase tracking-widest mt-0.5" style={{ color: 'var(--muted-fg)' }}>
+ {o.paymentType === 'ewallet' ? 'E-Wallet' : o.paymentType === 'split' ? 'Split' : o.paymentType}
+ </div>
  </td>
  <td className="px-3 py-2">
  <span
@@ -700,7 +783,7 @@ function LedgerTab({
  <td className="px-3 py-2.5 text-right font-mono font-bold" style={{ color: 'var(--accent-color)' }}>
  {formatCurrency(totals.net)}
  </td>
- <td colSpan={2}></td>
+ <td></td>
  </tr>
  </tfoot>
  </table>
@@ -1178,6 +1261,7 @@ function HourlyVolumeTab({
  </div>
  );
 }
+
 
 function formatHour(hour: number): string {
  if (hour === 0) return"12 AM";

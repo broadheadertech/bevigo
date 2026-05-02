@@ -50,6 +50,9 @@ export const listOrderHistory = query({
       discountReason: string | null;
       discountType: string | null;
       discountValue: number | null;
+      taxAmount: number;
+      taxRate: number;
+      taxLabel: string;
       refundedAt: number | null;
       refundedBy: Id<"users"> | null;
       refundedByName: string | null;
@@ -158,6 +161,9 @@ export const listOrderHistory = query({
           discountReason: order.discountReason ?? null,
           discountType: order.discountType ?? null,
           discountValue: order.discountValue ?? null,
+          taxAmount: order.taxAmount,
+          taxRate: order.taxRate,
+          taxLabel: order.taxLabel,
           refundedAt: order.refundedAt ?? null,
           refundedBy: order.refundedBy ?? null,
           refundedByName,
@@ -236,6 +242,9 @@ export const listOrderHistoryLineItems = query({
       quantity: number;
       unitPrice: number;
       lineSubtotal: number;
+      orderSubtotal: number;
+      orderDiscount: number;
+      orderTax: number;
       orderTotal: number;
     };
 
@@ -313,6 +322,9 @@ export const listOrderHistoryLineItems = query({
             quantity: it.quantity,
             unitPrice,
             lineSubtotal,
+            orderSubtotal: order.subtotal,
+            orderDiscount: order.discountAmount ?? 0,
+            orderTax: order.taxAmount,
             orderTotal: order.total,
           });
         }
