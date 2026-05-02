@@ -28,6 +28,7 @@ export default function RecipesPage() {
  const [selectedItemId, setSelectedItemId] =
  useState<Id<"menuItems"> |"">("");
  const [showImportModal, setShowImportModal] = useState(false);
+ const [searchQuery, setSearchQuery] = useState("");
 
  const menuItems = useQuery(
  api.menu.queries.listItems,
@@ -53,9 +54,18 @@ export default function RecipesPage() {
  typedCategories.map((c: Category) => [c._id, c.name])
  );
 
- const activeItems = typedMenuItems.filter(
- (item: MenuItem) => item.status ==="active"
+ const trimmedSearch = searchQuery.trim().toLowerCase();
+ const activeItems = typedMenuItems
+ .filter((item: MenuItem) => item.status === "active")
+ .filter((item: MenuItem) => {
+ if (!trimmedSearch) return true;
+ const cat = (categoryMap.get(item.categoryId) ?? "").toLowerCase();
+ return (
+ item.name.toLowerCase().includes(trimmedSearch) ||
+ (item.sku ?? "").toLowerCase().includes(trimmedSearch) ||
+ cat.includes(trimmedSearch)
  );
+ });
 
  const selectedItem = activeItems.find(
  (item: MenuItem) => item._id === selectedItemId
@@ -97,11 +107,21 @@ export default function RecipesPage() {
  Menu Items
  </h2>
 
+ <div className="mb-3 px-1">
+ <input
+ type="search"
+ value={searchQuery}
+ onChange={(e) => setSearchQuery(e.target.value)}
+ placeholder="Search item, SKU, or category…"
+ className="w-full rounded-2xl px-3 py-2 text-sm focus:outline-none"
+ style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
+ />
+ </div>
  {menuItems === undefined ? (
  <p className="text-sm px-1">Loading...</p>
  ) : activeItems.length === 0 ? (
  <p className="text-sm px-1">
- No active menu items found.
+ {trimmedSearch ? `No items match "${searchQuery.trim()}"` : "No active menu items found."}
  </p>
  ) : (
  <div className="flex flex-col gap-3">

@@ -9,6 +9,7 @@ import { exportToCSV } from"@/lib/export";
 import { exportReportPDF } from"@/lib/export-pdf";
 import { formatCurrency } from"@/lib/currency";
 import { OrderDetailModal } from"@/components/orders/order-detail-modal";
+import { Pagination, usePagination } from"@/components/ui/pagination";
 
 type Tab ="daily" |"product" |"hourly" |"ledger";
 
@@ -108,11 +109,13 @@ type HourlyVolumeItem = {
  revenue: number;
 };
 
+// Use LOCAL time for the day boundaries so a Manila operator picking
+// "Apr 28" gets the Manila-Apr-28 window, not UTC-Apr-28. The previous
+// implementation used Date.UTC() which leaked early-morning local orders
+// into the wrong calendar day.
 function todayStart(): number {
  const now = new Date();
- return new Date(
- Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
- ).getTime();
+ return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 }
 
 function todayEnd(): number {
@@ -120,19 +123,21 @@ function todayEnd(): number {
 }
 
 function dateToTimestamp(dateStr: string): number {
+ // LOCAL midnight for the picked date — matches how the operator thinks
+ // about "today" in their wall clock (vs UTC, which silently shifts).
  const parts = dateStr.split("-");
- return Date.UTC(
+ return new Date(
  parseInt(parts[0], 10),
  parseInt(parts[1], 10) - 1,
  parseInt(parts[2], 10)
- );
+ ).getTime();
 }
 
 function timestampToDateStr(ts: number): string {
  const d = new Date(ts);
- const year = d.getUTCFullYear();
- const month = String(d.getUTCMonth() + 1).padStart(2,"0");
- const day = String(d.getUTCDate()).padStart(2,"0");
+ const year = d.getFullYear();
+ const month = String(d.getMonth() + 1).padStart(2,"0");
+ const day = String(d.getDate()).padStart(2,"0");
  return `${year}-${month}-${day}`;
 }
 
@@ -146,6 +151,11 @@ export default function ReportsPage() {
  const defaultEnd = useMemo(() => todayEnd(), []);
 
  const [activeTab, setActiveTab] = useState<Tab>("daily");
+ // Free-text filter applied client-side. Behaviour per tab:
+ //   - Product Mix : matches item name
+ //   - Sales Ledger: matches order #, cashier, customer, table, or payment
+ //   - Daily / Hourly: ignored (no obvious attribute to filter on)
+ const [filterQuery, setFilterQuery] = useState("");
  const [startDateStr, setStartDateStr] = useState(
  timestampToDateStr(defaultStart)
  );
@@ -444,6 +454,25 @@ export default function ReportsPage() {
  ))}
  </select>
  </div>
+ {(activeTab === "ledger" || activeTab === "product") && (
+ <div className="flex-1 min-w-50">
+ <label className="block text-xs font-medium uppercase tracking-wide mb-1.5" style={{ color: 'var(--muted-fg)' }}>
+ Filter
+ </label>
+ <input
+ type="search"
+ value={filterQuery}
+ onChange={(e) => setFilterQuery(e.target.value)}
+ placeholder={
+ activeTab === "product"
+ ? "Item name…"
+ : "Order #, customer, cashier, payment…"
+ }
+ className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
+ style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
+ />
+ </div>
+ )}
  </div>
  </div>
 
@@ -466,13 +495,13 @@ export default function ReportsPage() {
 
  {/* Tab Content */}
  {activeTab ==="ledger" && (
- <LedgerTab data={ledger} onView={(id) => setViewOrderId(id)} />
+ <LedgerTab data={ledger} onView={(id) => setViewOrderId(id)} filterQuery={filterQuery} />
  )}
  {activeTab ==="daily" && (
  <DailySummaryTab data={dailySummary} digest={dailyDigest} hasLocation={!!locationId} />
  )}
  {activeTab ==="product" && (
- <ProductMixTab data={productMix} />
+ <ProductMixTab data={productMix} filterQuery={filterQuery} />
  )}
  {activeTab ==="hourly" && (
  <HourlyVolumeTab data={hourlyVolume} />
@@ -492,9 +521,11 @@ export default function ReportsPage() {
 function LedgerTab({
  data,
  onView,
+ filterQuery,
 }: {
  data: LedgerRow[] | undefined;
  onView: (orderId: Id<"orders">) => void;
+ filterQuery: string;
 }) {
  if (!data) {
  return (
@@ -504,15 +535,32 @@ function LedgerTab({
  );
  }
 
- if (data.length === 0) {
+ // Client-side filter: order #, cashier, customer, table, or payment.
+ // Totals below are recomputed off the FILTERED set so the summary
+ // strip always matches what's on screen.
+ const trimmed = filterQuery.trim().toLowerCase();
+ const filteredData = trimmed
+ ? data.filter((o: LedgerRow) => {
+ if (o.orderNumber.toLowerCase().includes(trimmed)) return true;
+ if (o.baristaName.toLowerCase().includes(trimmed)) return true;
+ if ((o.customerName ?? "").toLowerCase().includes(trimmed)) return true;
+ if ((o.tableName ?? "").toLowerCase().includes(trimmed)) return true;
+ if (o.paymentType.toLowerCase().includes(trimmed)) return true;
+ return false;
+ })
+ : data;
+
+ if (filteredData.length === 0) {
  return (
  <div className="text-center py-12 rounded-2xl" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)', color: 'var(--muted-fg)' }}>
- No orders in this date range.
+ {trimmed
+ ? `No orders match "${filterQuery.trim()}" in this date range.`
+ : "No orders in this date range."}
  </div>
  );
  }
 
- const totals = data.reduce(
+ const totals = filteredData.reduce(
  (acc, o) => {
  const isVoided = o.status === "voided";
  const isRefunded = !!o.refundedAt;
@@ -565,7 +613,7 @@ function LedgerTab({
  </tr>
  </thead>
  <tbody>
- {data.map((o: LedgerRow) => {
+ {filteredData.map((o: LedgerRow) => {
  const isVoided = o.status === "voided";
  const isRefunded = !!o.refundedAt;
  const discount = o.discountAmount ?? 0;
@@ -809,12 +857,29 @@ function DigestSections({ digest }: { digest: DailyDigestResult }) {
  </div>
 
  {/* Product mix table */}
- <DigestPanel title={`Product mix (${digest.products.mix.length} item${digest.products.mix.length === 1 ? "" : "s"})`}>
- {digest.products.mix.length === 0 ? (
+ <ProductMixPanel rows={digest.products.mix} />
+
+ {/* Ingredient open/close + consumption table */}
+ <IngredientStockPanel rows={digest.ingredients.rows} />
+ </>
+ );
+}
+
+function ProductMixPanel({
+ rows,
+}: {
+ rows: DailyDigestResult["products"]["mix"];
+}) {
+ const { paginatedItems, currentPage, totalPages, setCurrentPage } =
+ usePagination(rows, 10);
+ return (
+ <DigestPanel title={`Product mix (${rows.length} item${rows.length === 1 ? "" : "s"})`}>
+ {rows.length === 0 ? (
  <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
  No items sold today.
  </p>
  ) : (
+ <>
  <div className="overflow-x-auto">
  <table className="w-full text-xs min-w-[500px]">
  <thead>
@@ -826,7 +891,7 @@ function DigestSections({ digest }: { digest: DailyDigestResult }) {
  </tr>
  </thead>
  <tbody>
- {digest.products.mix.map((p) => (
+ {paginatedItems.map((p) => (
  <tr key={p.name} style={{ borderTop: "1px solid var(--border-color)" }}>
  <td className="py-2" style={{ color: "var(--fg)" }}>{p.name}</td>
  <td className="py-2 text-right font-mono">{p.qty}</td>
@@ -839,10 +904,25 @@ function DigestSections({ digest }: { digest: DailyDigestResult }) {
  </tbody>
  </table>
  </div>
+ <Pagination
+ currentPage={currentPage}
+ totalPages={totalPages}
+ onPageChange={setCurrentPage}
+ />
+ </>
  )}
  </DigestPanel>
+ );
+}
 
- {/* Ingredient open/close + consumption table */}
+function IngredientStockPanel({
+ rows,
+}: {
+ rows: DailyDigestResult["ingredients"]["rows"];
+}) {
+ const { paginatedItems, currentPage, totalPages, setCurrentPage } =
+ usePagination(rows, 10);
+ return (
  <DigestPanel title="Ingredient stock (opening, consumed, adjustments, closing)">
  <p className="text-[11px] mb-2" style={{ color: "var(--muted-fg)" }}>
  Opening stock is reconstructed from today&apos;s consumption + adjustments —
@@ -861,7 +941,7 @@ function DigestSections({ digest }: { digest: DailyDigestResult }) {
  </tr>
  </thead>
  <tbody>
- {digest.ingredients.rows.map((r) => {
+ {paginatedItems.map((r) => {
  const closingColor = r.isOut
  ? "#ef4444"
  : r.belowThreshold
@@ -898,8 +978,12 @@ function DigestSections({ digest }: { digest: DailyDigestResult }) {
  </tbody>
  </table>
  </div>
+ <Pagination
+ currentPage={currentPage}
+ totalPages={totalPages}
+ onPageChange={setCurrentPage}
+ />
  </DigestPanel>
- </>
  );
 }
 
@@ -945,8 +1029,10 @@ function RowKV({ label, value }: { label: string; value: string }) {
 
 function ProductMixTab({
  data,
+ filterQuery,
 }: {
  data: ProductMixItem[] | undefined;
+ filterQuery: string;
 }) {
  if (!data) {
  return (
@@ -956,10 +1042,17 @@ function ProductMixTab({
  );
  }
 
- if (data.length === 0) {
+ const trimmed = filterQuery.trim().toLowerCase();
+ const filteredData = trimmed
+ ? data.filter((it) => it.itemName.toLowerCase().includes(trimmed))
+ : data;
+
+ if (filteredData.length === 0) {
  return (
- <div className="text-center py-12">
- No sales data for this period.
+ <div className="text-center py-12" style={{ color: 'var(--muted-fg)' }}>
+ {trimmed
+ ? `No items match "${filterQuery.trim()}".`
+ : "No sales data for this period."}
  </div>
  );
  }
@@ -984,7 +1077,7 @@ function ProductMixTab({
  </tr>
  </thead>
  <tbody>
- {data.map((item: ProductMixItem) => (
+ {filteredData.map((item: ProductMixItem) => (
  <tr
  key={item.itemName}
  className="transition-colors"

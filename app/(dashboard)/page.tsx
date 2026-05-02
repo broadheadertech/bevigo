@@ -15,18 +15,81 @@ type LocationOption = {
   status: string;
 };
 
-type DashboardMetrics = {
-  totalRevenue: number;
-  orderCount: number;
-  averageOrderValue: number;
-  taxCollected: number;
-  pendingOrders: number;
+type AdminDigest = {
+  generatedAt: number;
+  windowStart: number;
+  sales: {
+    revenue: number;
+    orderCount: number;
+    avgTicket: number;
+    refundCount: number;
+    voidCount: number;
+  };
+  products: {
+    topSellers: Array<{ name: string; qty: number; revenue: number }>;
+  };
+  operations: {
+    peakHour: number;
+    peakHourOrders: number;
+    parkedCount: number;
+    openShiftCount: number;
+  };
+  lowStock: Array<{
+    ingredientId: string;
+    name: string;
+    unit: string;
+    onHand: number;
+    reorderThreshold: number;
+    isOut: boolean;
+    locationName: string;
+  }>;
   lowStockCount: number;
+  outOfStockCount: number;
+  reminders: Array<{
+    severity: "high" | "medium" | "low";
+    title: string;
+    detail: string;
+    href?: string;
+  }>;
 };
+
+type BaristaDigest = {
+  generatedAt: number;
+  myOrderCount: number;
+  myItemsSold: number;
+  myParkedCount: number;
+  myActiveShiftId: Id<"shifts"> | null;
+  myActiveShiftStart: number | null;
+  lowStock: Array<{
+    name: string;
+    unit: string;
+    onHand: number;
+    reorderThreshold: number;
+    isOut: boolean;
+  }>;
+  lowStockCount: number;
+  outOfStockCount: number;
+  reminders: Array<{
+    severity: "high" | "medium" | "low";
+    title: string;
+    detail: string;
+    href?: string;
+  }>;
+};
+
+function fmtHour(h: number) {
+  return `${h}:00–${h + 1}:00`;
+}
+
+function severityColor(s: "high" | "medium" | "low") {
+  return s === "high" ? "#ef4444" : s === "medium" ? "#f59e0b" : "#10b981";
+}
+function severityLabel(s: "high" | "medium" | "low") {
+  return s === "high" ? "Now" : s === "medium" ? "Soon" : "FYI";
+}
 
 export default function DashboardPage() {
   const { session, token } = useAuth();
-
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
 
   const greeting = useMemo(() => {
@@ -42,104 +105,66 @@ export default function DashboardPage() {
 
   const locations = useQuery(
     api.settings.queries.listLocations,
-    token ? { token } : "skip"
+    token && session && (session.role === "owner" || session.role === "manager")
+      ? { token }
+      : "skip"
   ) as LocationOption[] | undefined;
 
-  const metrics = useQuery(
-    api.reports.dashboardQueries.getDashboardMetrics,
+  const adminDigest = useQuery(
+    api.reports.dashboardDigest.getDashboardDigest,
     token && session && (session.role === "owner" || session.role === "manager")
       ? { token, locationId }
       : "skip"
-  ) as DashboardMetrics | undefined;
+  ) as AdminDigest | undefined;
 
-  // Filter locations for managers
+  const baristaDigest = useQuery(
+    api.reports.dashboardDigest.getBaristaDigest,
+    token && session?.role === "barista" ? { token } : "skip"
+  ) as BaristaDigest | undefined;
+
   const availableLocations = useMemo(() => {
     if (!locations || !session) return [];
     if (session.role === "owner") return locations;
-    return locations.filter((loc: LocationOption) =>
-      session.locationIds.includes(loc._id)
-    );
+    return locations.filter((loc) => session.locationIds.includes(loc._id));
   }, [locations, session]);
-
-  const isOwnerOrManager =
-    session?.role === "owner" || session?.role === "manager";
 
   if (!token || !session) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p style={{ color: 'var(--muted-fg)' }}>Loading...</p>
+        <p style={{ color: "var(--muted-fg)" }}>Loading…</p>
       </div>
     );
   }
 
-  // Baristas get a simple welcome
-  if (!isOwnerOrManager) {
-    return (
-      <div>
-        <div className="mb-8">
-          <h1 className="text-xl font-bold" style={{ color: 'var(--fg)' }}>
-            {greeting}{session.userName ? `, ${session.userName}` : ""}
-          </h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-fg)' }}>
-            Welcome to <span className="italic">bevi&amp;go</span> POS
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Link
-            href="/order"
-            className="px-5 py-3 text-sm font-semibold rounded-2xl hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 shadow-lg"
-            style={{ backgroundColor: 'var(--accent-color)', color: 'white' }}
-          >
-            Open Register
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const metricCards: Array<{ label: string; value: string; accent?: boolean }> = [
-    {
-      label: "Total Revenue",
-      value: metrics ? formatCurrency(metrics.totalRevenue) : "--",
-      accent: true,
-    },
-    {
-      label: "Orders Today",
-      value: metrics ? String(metrics.orderCount) : "--",
-    },
-    {
-      label: "Average Order",
-      value: metrics ? formatCurrency(metrics.averageOrderValue) : "--",
-    },
-    {
-      label: "Pending Orders",
-      value: metrics ? String(metrics.pendingOrders) : "--",
-    },
-  ];
+  const isOwnerOrManager =
+    session.role === "owner" || session.role === "manager";
 
   return (
     <div>
-      {/* Greeting + Location Selector */}
-      <div className="flex items-start justify-between mb-8">
+      {/* Greeting + (admin) location selector */}
+      <div className="flex items-start justify-between mb-6 gap-3 flex-wrap">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: 'var(--fg)' }}>
-            {greeting}{session.userName ? `, ${session.userName}` : ""}
+          <h1 className="text-xl font-bold" style={{ color: "var(--fg)" }}>
+            {greeting}
+            {session.userName ? `, ${session.userName}` : ""}
           </h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-fg)' }}>
-            Welcome to <span className="italic">bevi&amp;go</span> POS
+          <p className="text-sm mt-0.5" style={{ color: "var(--muted-fg)" }}>
+            Here&apos;s what needs your attention today.
           </p>
         </div>
-        {availableLocations.length > 1 && (
+        {isOwnerOrManager && availableLocations.length > 1 && (
           <select
             value={selectedLocationId}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-              setSelectedLocationId(e.target.value)
-            }
-            className="rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-colors"
-            style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
+            onChange={(e) => setSelectedLocationId(e.target.value)}
+            className="rounded-2xl px-4 py-3 text-sm focus:outline-none transition-colors"
+            style={{
+              backgroundColor: "var(--muted)",
+              color: "var(--fg)",
+              border: "1px solid var(--border-color)",
+            }}
           >
             <option value="">All Locations</option>
-            {availableLocations.map((loc: LocationOption) => (
+            {availableLocations.map((loc) => (
               <option key={loc._id} value={loc._id}>
                 {loc.name}
               </option>
@@ -148,86 +173,360 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Low Stock Alert */}
-      {metrics && metrics.lowStockCount > 0 && (
-        <div className="mb-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl px-5 py-4 flex items-center gap-3">
-          <svg
-            className="w-5 h-5 text-amber-600 shrink-0"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-            />
-          </svg>
-          <div>
-            <p className="text-sm font-medium text-amber-400">
-              {metrics.lowStockCount} ingredient{metrics.lowStockCount !== 1 ? "s" : ""} below reorder threshold
-            </p>
-            <Link
-              href="/inventory"
-              className="text-sm text-amber-400 hover:text-amber-300 font-medium"
-            >
-              View Inventory
-            </Link>
-          </div>
-        </div>
+      {isOwnerOrManager ? (
+        <AdminDashboard digest={adminDigest} />
+      ) : (
+        <BaristaDashboard digest={baristaDigest} />
       )}
 
-      {/* Metric Cards */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        {metricCards.map((card: { label: string; value: string; accent?: boolean }) => (
-          <div
-            key={card.label}
-            className="rounded-3xl shadow-lg p-8"
-            style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}
-          >
-            <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-fg)' }}>
-              {card.label}
-            </p>
-            <p
-              className="text-2xl font-bold"
-              style={{ color: 'var(--fg)' }}
-            >
-              {card.value}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div>
-        <h2 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--muted-fg)' }}>
-          Quick Actions
+      {/* Quick Actions — same for everyone */}
+      <div className="mt-8">
+        <h2
+          className="text-xs font-semibold uppercase tracking-widest mb-3"
+          style={{ color: "var(--muted-fg)" }}
+        >
+          Quick actions
         </h2>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           <Link
             href="/order"
-            className="px-5 py-3.5 text-sm font-bold rounded-2xl hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 shadow-lg"
-            style={{ backgroundColor: 'var(--accent-color)', color: 'white' }}
+            className="px-5 py-3.5 text-sm font-bold rounded-2xl shadow-lg active:scale-95 transition-all"
+            style={{ backgroundColor: "var(--accent-color)", color: "white" }}
           >
             Open Register
           </Link>
-          <Link
-            href="/reports"
-            className="px-5 py-3 text-sm font-medium rounded-2xl transition-colors"
-            style={{ border: '1px solid var(--border-color)', color: 'var(--fg)' }}
-          >
-            View Reports
-          </Link>
-          <Link
-            href="/menu"
-            className="px-5 py-3 text-sm font-medium rounded-2xl transition-colors"
-            style={{ border: '1px solid var(--border-color)', color: 'var(--fg)' }}
-          >
-            Manage Menu
-          </Link>
+          {isOwnerOrManager && (
+            <>
+              <Link
+                href="/reports"
+                className="px-5 py-3 text-sm font-medium rounded-2xl"
+                style={{ border: "1px solid var(--border-color)", color: "var(--fg)" }}
+              >
+                Reports
+              </Link>
+              <Link
+                href="/inventory"
+                className="px-5 py-3 text-sm font-medium rounded-2xl"
+                style={{ border: "1px solid var(--border-color)", color: "var(--fg)" }}
+              >
+                Inventory
+              </Link>
+              <Link
+                href="/menu"
+                className="px-5 py-3 text-sm font-medium rounded-2xl"
+                style={{ border: "1px solid var(--border-color)", color: "var(--fg)" }}
+              >
+                Menu
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+function AdminDashboard({ digest }: { digest: AdminDigest | undefined }) {
+  if (!digest) {
+    return (
+      <div
+        className="rounded-3xl p-12 text-center text-sm"
+        style={{
+          backgroundColor: "var(--card)",
+          border: "1px solid var(--border-color)",
+          color: "var(--muted-fg)",
+        }}
+      >
+        Loading dashboard…
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Reminders */}
+      {digest.reminders.length > 0 && (
+        <Section title="Reminders">
+          <div className="space-y-2">
+            {digest.reminders.map((r, i) => (
+              <ReminderCard key={i} {...r} />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Today's snapshot */}
+      <Section title="Today's snapshot">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <KpiCard label="Revenue" value={formatCurrency(digest.sales.revenue)} accent />
+          <KpiCard
+            label="Orders"
+            value={String(digest.sales.orderCount)}
+            sub={`${digest.operations.openShiftCount} open shift${digest.operations.openShiftCount === 1 ? "" : "s"}`}
+          />
+          <KpiCard label="Avg ticket" value={formatCurrency(digest.sales.avgTicket)} />
+          <KpiCard
+            label="Peak hour"
+            value={fmtHour(digest.operations.peakHour)}
+            sub={`${digest.operations.peakHourOrders} orders`}
+          />
+        </div>
+      </Section>
+
+      {/* Top sellers + Low stock side by side */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <Section title={`Top sellers today (${digest.products.topSellers.length})`}>
+          {digest.products.topSellers.length === 0 ? (
+            <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
+              No sales yet today.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {digest.products.topSellers.map((p) => (
+                <div key={p.name} className="flex items-center justify-between text-sm">
+                  <span style={{ color: "var(--fg)" }}>
+                    {p.name}{" "}
+                    <span className="text-xs" style={{ color: "var(--muted-fg)" }}>
+                      × {p.qty}
+                    </span>
+                  </span>
+                  <span className="font-semibold" style={{ color: "var(--fg)" }}>
+                    {formatCurrency(p.revenue)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        <Section
+          title={`Low stock (${digest.lowStockCount}${digest.outOfStockCount > 0 ? ` · ${digest.outOfStockCount} out` : ""})`}
+        >
+          {digest.lowStock.length === 0 ? (
+            <p className="text-sm" style={{ color: "var(--muted-fg)" }}>
+              All ingredients above threshold.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {digest.lowStock.map((r) => (
+                <div
+                  key={r.ingredientId + r.locationName}
+                  className="flex items-center justify-between text-sm"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate" style={{ color: "var(--fg)" }}>
+                      {r.name}
+                    </div>
+                    <div className="text-[10px]" style={{ color: "var(--muted-fg)" }}>
+                      {r.locationName}
+                    </div>
+                  </div>
+                  <span
+                    className="font-mono font-semibold ml-3 text-right shrink-0"
+                    style={{ color: r.isOut ? "#ef4444" : "#f59e0b" }}
+                  >
+                    {r.onHand.toFixed(1)}
+                    {r.unit}
+                    <span className="ml-1 text-[10px] font-normal" style={{ color: "var(--muted-fg)" }}>
+                      / {r.reorderThreshold}
+                      {r.unit}
+                    </span>
+                  </span>
+                </div>
+              ))}
+              <Link
+                href="/inventory"
+                className="text-xs font-semibold inline-block mt-2 underline"
+                style={{ color: "var(--accent-color)" }}
+              >
+                Open Inventory →
+              </Link>
+            </div>
+          )}
+        </Section>
+      </div>
+    </div>
+  );
+}
+
+function BaristaDashboard({ digest }: { digest: BaristaDigest | undefined }) {
+  if (!digest) {
+    return (
+      <div
+        className="rounded-3xl p-12 text-center text-sm"
+        style={{
+          backgroundColor: "var(--card)",
+          border: "1px solid var(--border-color)",
+          color: "var(--muted-fg)",
+        }}
+      >
+        Loading…
+      </div>
+    );
+  }
+
+  const shiftStart = digest.myActiveShiftStart;
+  return (
+    <div className="space-y-6">
+      {digest.reminders.length > 0 && (
+        <Section title="Reminders">
+          <div className="space-y-2">
+            {digest.reminders.map((r, i) => (
+              <ReminderCard key={i} {...r} />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      <Section title="Your day so far">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <KpiCard label="My orders today" value={String(digest.myOrderCount)} accent />
+          <KpiCard label="Items rung up" value={String(digest.myItemsSold)} />
+          <KpiCard label="My parked orders" value={String(digest.myParkedCount)} />
+          <KpiCard
+            label="Shift status"
+            value={shiftStart ? "Active" : "Not started"}
+            sub={
+              shiftStart
+                ? `Since ${new Date(shiftStart).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
+                : "Open the register to start"
+            }
+          />
+        </div>
+      </Section>
+
+      {digest.lowStock.length > 0 && (
+        <Section
+          title={`Stock to flag (${digest.lowStockCount}${digest.outOfStockCount > 0 ? ` · ${digest.outOfStockCount} out` : ""})`}
+        >
+          <p className="text-[11px] mb-2" style={{ color: "var(--muted-fg)" }}>
+            Mention these to your manager — they&apos;re below the reorder threshold.
+          </p>
+          <div className="space-y-2">
+            {digest.lowStock.map((r) => (
+              <div key={r.name} className="flex items-center justify-between text-sm">
+                <span style={{ color: "var(--fg)" }}>{r.name}</span>
+                <span
+                  className="font-mono font-semibold"
+                  style={{ color: r.isOut ? "#ef4444" : "#f59e0b" }}
+                >
+                  {r.onHand.toFixed(1)}
+                  {r.unit}
+                  <span className="ml-1 text-[10px] font-normal" style={{ color: "var(--muted-fg)" }}>
+                    / {r.reorderThreshold}
+                    {r.unit}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h2
+        className="text-xs font-semibold uppercase tracking-widest mb-3"
+        style={{ color: "var(--muted-fg)" }}
+      >
+        {title}
+      </h2>
+      <div
+        className="rounded-3xl shadow-lg p-5"
+        style={{ backgroundColor: "var(--card)", border: "1px solid var(--border-color)" }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function KpiCard({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  accent?: boolean;
+}) {
+  return (
+    <div
+      className="rounded-2xl p-4"
+      style={{
+        backgroundColor: accent ? "var(--accent-color)" : "var(--muted)",
+        color: accent ? "white" : "var(--fg)",
+        border: accent ? "none" : "1px solid var(--border-color)",
+      }}
+    >
+      <p
+        className="text-[10px] font-semibold uppercase tracking-widest mb-1"
+        style={{ color: accent ? "rgba(255,255,255,0.8)" : "var(--muted-fg)" }}
+      >
+        {label}
+      </p>
+      <p className="text-xl font-bold">{value}</p>
+      {sub && (
+        <p
+          className="text-[10px] mt-1"
+          style={{ color: accent ? "rgba(255,255,255,0.7)" : "var(--muted-fg)" }}
+        >
+          {sub}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ReminderCard({
+  severity,
+  title,
+  detail,
+  href,
+}: {
+  severity: "high" | "medium" | "low";
+  title: string;
+  detail: string;
+  href?: string;
+}) {
+  const sev = severityColor(severity);
+  const lbl = severityLabel(severity);
+  const inner = (
+    <div
+      className="rounded-2xl p-4 flex gap-4 items-start transition-all active:scale-[0.99]"
+      style={{
+        backgroundColor: "var(--card)",
+        border: "1px solid var(--border-color)",
+        borderLeft: `4px solid ${sev}`,
+      }}
+    >
+      <span
+        className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest shrink-0"
+        style={{ backgroundColor: sev, color: "white" }}
+      >
+        {lbl}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold" style={{ color: "var(--fg)" }}>
+          {title}
+        </div>
+        <div className="text-sm mt-0.5 truncate" style={{ color: "var(--muted-fg)" }}>
+          {detail}
+        </div>
+      </div>
+    </div>
+  );
+  return href ? (
+    <Link href={href} className="block hover:opacity-95">
+      {inner}
+    </Link>
+  ) : (
+    inner
   );
 }

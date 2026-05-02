@@ -42,6 +42,7 @@ export default function ModifiersPage() {
  const [showGroupForm, setShowGroupForm] = useState(false);
  const [editingGroup, setEditingGroup] = useState<ModifierGroup | null>(null);
  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+ const [searchQuery, setSearchQuery] = useState("");
  const [confirmSeed, setConfirmSeed] = useState(false);
  const [seedResult, setSeedResult] = useState<string | null>(null);
  const seedSamples = useMutation(api.menu.modifierMutations.seedSampleModifiers);
@@ -73,6 +74,19 @@ export default function ModifiersPage() {
  };
 
  const typedGroups = groups ?? [];
+
+ // Filter groups OR their modifier options. A group matches when its name
+ // contains the query OR any of its modifier names do — that way searching
+ // for "oat milk" still surfaces the parent "Milk" group.
+ const trimmedSearch = searchQuery.trim().toLowerCase();
+ const filteredGroups = trimmedSearch
+ ? typedGroups.filter((g) => {
+ if (g.name.toLowerCase().includes(trimmedSearch)) return true;
+ return g.modifiers.some((m) =>
+ m.name.toLowerCase().includes(trimmedSearch)
+ );
+ })
+ : typedGroups;
 
  return (
  <div>
@@ -111,13 +125,24 @@ export default function ModifiersPage() {
  </div>
  )}
 
+ <div className="mb-4">
+ <input
+ type="search"
+ value={searchQuery}
+ onChange={(e) => setSearchQuery(e.target.value)}
+ placeholder="Search modifier group or option…"
+ className="w-full rounded-2xl px-4 py-2.5 text-sm focus:outline-none"
+ style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
+ />
+ </div>
+
  {groups === undefined ? (
  <div className="flex items-center justify-center h-48">
  <p style={{ color: 'var(--muted-fg)' }}>Loading modifier groups...</p>
  </div>
- ) : typedGroups.length > 0 ? (
+ ) : filteredGroups.length > 0 ? (
  <div className="flex flex-col gap-4">
- {typedGroups.map((group) => {
+ {filteredGroups.map((group) => {
  const isExpanded = expandedGroups.has(group._id);
  const activeModifiers = group.modifiers.filter(
  (m) => m.status ==="active"
@@ -216,7 +241,9 @@ export default function ModifiersPage() {
  ) : (
  <div className="flex items-center justify-center h-48">
  <p style={{ color: 'var(--muted-fg)' }}>
- No modifier groups yet. Create one to get started.
+ {trimmedSearch
+ ? `No modifier groups match "${searchQuery.trim()}"`
+ : "No modifier groups yet. Create one to get started."}
  </p>
  </div>
  )}

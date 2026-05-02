@@ -728,6 +728,11 @@ export const applyDiscount = mutation({
     discountType: v.union(v.literal("percentage"), v.literal("fixed")),
     discountValue: v.number(),
     discountReason: v.string(),
+    /** When the discount comes from a configured preset, the client passes
+     *  its id so the server uses that preset's `requiresAuth` flag as the
+     *  source of truth for whether a barista can apply it. Custom (free-
+     *  form) discounts still fall back to the per-role size cap below. */
+    presetId: v.optional(v.id("discountPresets")),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -760,12 +765,33 @@ export const applyDiscount = mutation({
       discountAmount = order.subtotal;
     }
 
-    // Authorization check: barista can only apply up to 20% or 20000 centavos (₱200)
-    const discountPercent = order.subtotal > 0
-      ? (discountAmount / order.subtotal) * 100
-      : 0;
-    if (session.role === "barista" && (discountPercent > 20 || discountAmount > 20000)) {
-      throw new Error("Discount exceeds barista limit. Manager authorization required.");
+    // Authorization:
+    //   - If a preset was used, honour its `requiresAuth` flag verbatim.
+    //     Owner/manager always pass; a barista is blocked when the preset
+    //     explicitly requires manager auth (regardless of size).
+    //   - If no preset (custom discount), fall back to the per-role size
+    //     cap so a barista can't hand out a 100% discount free-form.
+    if (session.role === "barista") {
+      if (args.presetId) {
+        const preset = await ctx.db.get(args.presetId);
+        if (!preset || preset.tenantId !== session.tenantId) {
+          throw new Error("Discount preset not found");
+        }
+        if (preset.requiresAuth) {
+          throw new Error("Manager authorization required for this discount");
+        }
+        // Preset is barista-approved → no extra size cap; admin already
+        // signed off on its value when they configured it.
+      } else {
+        const discountPercent = order.subtotal > 0
+          ? (discountAmount / order.subtotal) * 100
+          : 0;
+        if (discountPercent > 20 || discountAmount > 20000) {
+          throw new Error(
+            "Custom discount exceeds barista limit (20% or ₱200). Use a preset or get manager authorization."
+          );
+        }
+      }
     }
 
     // Recalculate total

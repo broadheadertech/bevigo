@@ -517,16 +517,26 @@ export default defineSchema({
       v.literal("wastage"),
       v.literal("correction"),
       v.literal("stocktake"),
-      v.literal("transfer")
+      v.literal("transfer"),
+      v.literal("restock") // goods received from a supplier — adds to stock
     ),
     quantity: v.number(), // negative for removal, positive for addition
     reason: v.string(),
+    /** Optional shared label that ties a batch of restock rows together
+     *  (e.g. a delivery slip number or "Apr-28 morning delivery"). */
+    batchLabel: v.optional(v.string()),
+    /** When the goods were physically received (may differ from createdAt
+     *  if the operator logs a delivery the day after it arrived). */
+    batchDate: v.optional(v.number()),
+    /** Optional supplier the restock came from. */
+    supplierId: v.optional(v.id("suppliers")),
     createdAt: v.number(),
   })
     .index("by_ingredient", ["ingredientId"])
     .index("by_location", ["locationId"])
     .index("by_tenant", ["tenantId"])
-    .index("by_tenant_type", ["tenantId", "type"]),
+    .index("by_tenant_type", ["tenantId", "type"])
+    .index("by_batch", ["tenantId", "batchLabel"]),
 
   shifts: defineTable({
     tenantId: v.id("tenants"),

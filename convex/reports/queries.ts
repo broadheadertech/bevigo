@@ -198,7 +198,10 @@ export const hourlyVolume = query({
           order.completedAt >= dayStart &&
           order.completedAt < dayEnd
         ) {
-          const hour = new Date(order.completedAt).getUTCHours();
+          // Use local hours — the dayStart/dayEnd from the client are
+          // already local midnight boundaries, so bucketing by UTC here
+          // would scatter early/late orders into the wrong slot.
+          const hour = new Date(order.completedAt).getHours();
           hourly[hour].transactionCount += 1;
           hourly[hour].revenue += order.total;
         }

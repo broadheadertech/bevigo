@@ -120,6 +120,9 @@ export function DiscountDialog({
         discountType,
         discountValue,
         discountReason: finalReason,
+        // Pass the preset id so the server respects its `requiresAuth`
+        // flag instead of falling back to the generic barista size cap.
+        presetId: selectedPresetId ?? undefined,
       });
       onApplied();
     } catch (err) {

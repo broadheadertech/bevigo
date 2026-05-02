@@ -7,6 +7,7 @@ import { useState } from"react";
 import { Id } from"../../../convex/_generated/dataModel";
 import { IngredientForm } from"@/components/inventory/ingredient-form";
 import { ImportIngredientsModal } from"@/components/inventory/import-ingredients-modal";
+import { AddStockBatchModal } from"@/components/inventory/add-stock-batch-modal";
 import { Pagination, usePagination } from"@/components/ui/pagination";
 import { useConfirm } from"@/lib/confirm-context";
 import { ExportButton } from "@/components/ui/export-button";
@@ -50,6 +51,7 @@ export default function InventoryPage() {
  useState<Id<"ingredients"> | null>(null);
  const [editingStockValue, setEditingStockValue] = useState(0);
  const [showImportModal, setShowImportModal] = useState(false);
+ const [showRestockModal, setShowRestockModal] = useState(false);
 
  const locations = useQuery(
  api.settings.queries.listLocations,
@@ -89,8 +91,20 @@ export default function InventoryPage() {
  const typedLocations = locations ?? [];
  const typedIngredients = ingredients ?? [];
 
- const { paginatedItems: paginatedIngredients, currentPage: ingPage, totalPages: ingTotalPages, setCurrentPage: setIngPage } = usePagination(typedIngredients);
- const { paginatedItems: paginatedLowStock, currentPage: lowPage, totalPages: lowTotalPages, setCurrentPage: setLowPage } = usePagination(lowStock ?? []);
+ const [searchQuery, setSearchQuery] = useState("");
+ const matchesSearch = (i: { name: string; category?: string }) => {
+ const q = searchQuery.trim().toLowerCase();
+ if (!q) return true;
+ return (
+ i.name.toLowerCase().includes(q) ||
+ (i.category ?? "").toLowerCase().includes(q)
+ );
+ };
+ const filteredIngredients = typedIngredients.filter(matchesSearch);
+ const filteredLowStock = (lowStock ?? []).filter(matchesSearch);
+
+ const { paginatedItems: paginatedIngredients, currentPage: ingPage, totalPages: ingTotalPages, setCurrentPage: setIngPage } = usePagination(filteredIngredients);
+ const { paginatedItems: paginatedLowStock, currentPage: lowPage, totalPages: lowTotalPages, setCurrentPage: setLowPage } = usePagination(filteredLowStock);
 
  if (!token || !session) {
  return (
@@ -138,6 +152,17 @@ export default function InventoryPage() {
  <div className="flex flex-wrap gap-2 self-start md:self-auto">
  <ExportButton queryRef={api.exports.exportIngredients} filenameBase="ingredients" label="Export Ingredients" />
  <ExportButton queryRef={api.exports.exportInventory} filenameBase="inventory" label="Export Inventory" />
+ {(session.role ==="owner" || session.role ==="manager") && (
+ <button
+ onClick={() => setShowRestockModal(true)}
+ disabled={!locationId}
+ className="px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors shadow-lg disabled:opacity-50"
+ style={{ backgroundColor: 'var(--accent-color)', color: 'white' }}
+ title={locationId ? "Log a delivery and bulk-add stock" : "Pick a location first"}
+ >
+ + Add Stock
+ </button>
+ )}
  {session.role ==="owner" && (
  <>
  <button
@@ -204,6 +229,18 @@ export default function InventoryPage() {
  ))}
  </select>
  </div>
+ </div>
+
+ {/* Search bar — applies to both tabs */}
+ <div className="mb-4">
+ <input
+ type="search"
+ value={searchQuery}
+ onChange={(e) => { setSearchQuery(e.target.value); setIngPage(1); setLowPage(1); }}
+ placeholder="Search by name or category…"
+ className="w-full rounded-2xl px-4 py-2.5 text-sm focus:outline-none"
+ style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
+ />
  </div>
 
  {/* Ingredients Tab */}
@@ -486,6 +523,14 @@ export default function InventoryPage() {
  {/* Import CSV Modal */}
  {showImportModal && (
  <ImportIngredientsModal onClose={() => setShowImportModal(false)} />
+ )}
+
+ {/* Add Stock (restock batch) Modal */}
+ {showRestockModal && locationId && (
+ <AddStockBatchModal
+ locationId={locationId as Id<"locations">}
+ onClose={() => setShowRestockModal(false)}
+ />
  )}
  </div>
  );

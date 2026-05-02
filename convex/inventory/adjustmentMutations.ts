@@ -4,6 +4,122 @@ import { requireAuth, requireRole } from "../lib/auth";
 import { logAuditEntry } from "../audit/helpers";
 import { Id } from "../_generated/dataModel";
 
+/**
+ * Restock helper — bulk-add many ingredients to stock in one shot, all
+ * sharing the same batch label + date so they show up grouped in the
+ * adjustment history. Use it when a delivery comes in: pick the items
+ * you received, type the qty, hit save.
+ */
+export const restockBatch = mutation({
+  args: {
+    token: v.string(),
+    locationId: v.id("locations"),
+    batchLabel: v.string(),
+    batchDate: v.number(),
+    supplierId: v.optional(v.id("suppliers")),
+    notes: v.optional(v.string()),
+    rows: v.array(
+      v.object({
+        ingredientId: v.id("ingredients"),
+        quantity: v.number(), // positive — quantity received
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    requireRole(session, ["owner", "manager"]);
+
+    const location = await ctx.db.get(args.locationId);
+    if (!location || location.tenantId !== session.tenantId) {
+      throw new Error("Location not found");
+    }
+    if (args.supplierId) {
+      const sup = await ctx.db.get(args.supplierId);
+      if (!sup || sup.tenantId !== session.tenantId) {
+        throw new Error("Supplier not found");
+      }
+    }
+    const batchLabel = args.batchLabel.trim();
+    if (!batchLabel) throw new Error("Batch label is required");
+    if (args.rows.length === 0) {
+      throw new Error("Add at least one ingredient to the batch");
+    }
+
+    const now = Date.now();
+    const reason =
+      args.notes?.trim() ||
+      `Restock · ${batchLabel}`;
+    const adjustmentIds: Id<"stockAdjustments">[] = [];
+
+    for (const row of args.rows) {
+      if (row.quantity <= 0) continue; // ignore blank lines silently
+
+      const ingredient = await ctx.db.get(row.ingredientId);
+      if (!ingredient || ingredient.tenantId !== session.tenantId) {
+        throw new Error(`Ingredient ${row.ingredientId} not found`);
+      }
+
+      const adjId = await ctx.db.insert("stockAdjustments", {
+        ingredientId: row.ingredientId,
+        locationId: args.locationId,
+        tenantId: session.tenantId,
+        userId: session.userId,
+        type: "restock",
+        quantity: row.quantity,
+        reason,
+        batchLabel,
+        batchDate: args.batchDate,
+        supplierId: args.supplierId,
+        createdAt: now,
+      });
+      adjustmentIds.push(adjId);
+
+      const existing = await ctx.db
+        .query("ingredientStock")
+        .withIndex("by_ingredient_location", (q: any) =>
+          q.eq("ingredientId", row.ingredientId).eq("locationId", args.locationId)
+        )
+        .unique();
+      if (existing) {
+        await ctx.db.patch(existing._id, {
+          quantity: existing.quantity + row.quantity,
+          updatedAt: now,
+        });
+      } else {
+        await ctx.db.insert("ingredientStock", {
+          ingredientId: row.ingredientId,
+          locationId: args.locationId,
+          tenantId: session.tenantId,
+          quantity: row.quantity,
+          updatedAt: now,
+        });
+      }
+    }
+
+    if (adjustmentIds.length === 0) {
+      throw new Error("Every row had zero quantity — nothing was restocked");
+    }
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      "stock_restock_batch",
+      "stockAdjustments",
+      adjustmentIds[0],
+      {
+        batchLabel,
+        batchDate: args.batchDate,
+        locationId: args.locationId,
+        supplierId: args.supplierId,
+        rowCount: adjustmentIds.length,
+      }
+    );
+
+    return { adjustmentIds, batchLabel };
+  },
+});
+
 export const logAdjustment = mutation({
   args: {
     token: v.string(),

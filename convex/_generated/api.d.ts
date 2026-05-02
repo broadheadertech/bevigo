@@ -71,6 +71,7 @@ import type * as points_mutations from "../points/mutations.js";
 import type * as points_queries from "../points/queries.js";
 import type * as reports_cron from "../reports/cron.js";
 import type * as reports_dailyDigest from "../reports/dailyDigest.js";
+import type * as reports_dashboardDigest from "../reports/dashboardDigest.js";
 import type * as reports_dashboardQueries from "../reports/dashboardQueries.js";
 import type * as reports_email from "../reports/email.js";
 import type * as reports_queries from "../reports/queries.js";
@@ -183,6 +184,7 @@ declare const fullApi: ApiFromModules<{
   "points/queries": typeof points_queries;
   "reports/cron": typeof reports_cron;
   "reports/dailyDigest": typeof reports_dailyDigest;
+  "reports/dashboardDigest": typeof reports_dashboardDigest;
   "reports/dashboardQueries": typeof reports_dashboardQueries;
   "reports/email": typeof reports_email;
   "reports/queries": typeof reports_queries;

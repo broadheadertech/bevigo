@@ -85,12 +85,27 @@ export default function MenuPage() {
  const typedCategories = categories ?? [];
  const typedItems = items ?? [];
 
- let filteredItems = selectedCategoryId
+ const [searchQuery, setSearchQuery] = useState("");
+ const trimmedSearch = searchQuery.trim().toLowerCase();
+
+ // When the operator types a search, ignore the category filter so they
+ // can find an item across the whole menu without first picking a tab.
+ let filteredItems = trimmedSearch
+ ? typedItems
+ : selectedCategoryId
  ? typedItems.filter((item) => item.categoryId === selectedCategoryId)
  : typedItems;
 
  if (showFeaturedOnly) {
  filteredItems = filteredItems.filter((item) => item.isFeatured);
+ }
+
+ if (trimmedSearch) {
+ filteredItems = filteredItems.filter(
+ (item) =>
+ item.name.toLowerCase().includes(trimmedSearch) ||
+ (item.sku ?? "").toLowerCase().includes(trimmedSearch)
+ );
  }
 
  const categoryMap = new Map(
@@ -327,6 +342,16 @@ export default function MenuPage() {
 
  {/* Items grid */}
  <div className="flex-1">
+ <div className="mb-4">
+ <input
+ type="search"
+ value={searchQuery}
+ onChange={(e) => setSearchQuery(e.target.value)}
+ placeholder="Search menu by name or SKU…"
+ className="w-full rounded-2xl px-4 py-2.5 text-sm focus:outline-none"
+ style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
+ />
+ </div>
  {items === undefined ? (
  <div className="flex items-center justify-center h-48">
  <p style={{ color: 'var(--muted-fg)' }}>Loading menu items...</p>
