@@ -371,14 +371,14 @@ export default function ReportsPage() {
  : r.isRefunded
  ? "Refunded"
  : "Completed";
- const modTotal = modifierTotal(r);
+ const modTotalPerUnit = modifierTotal(r) / r.quantity;
  const fromLedger = ledgerById.get(r.orderId);
- const discount =
+ const orderDiscount =
  fromLedger?.discountAmount ??
  (Number.isFinite(r.orderDiscount) ? r.orderDiscount : 0);
  const subtotal = fromLedger?.subtotal ?? r.orderSubtotal ?? 0;
  const orderTotal = fromLedger?.total ?? r.orderTotal ?? 0;
- const derivedTax = orderTotal - subtotal + (discount ?? 0);
+ const derivedTax = orderTotal - subtotal + (orderDiscount ?? 0);
  const tax = Number.isFinite(fromLedger?.taxAmount as number)
  ? (fromLedger?.taxAmount as number)
  : Number.isFinite(r.orderTax)
@@ -387,6 +387,18 @@ export default function ReportsPage() {
  ? derivedTax
  : 0;
 
+ // Per-line discount allocation: spread the order-level discount
+ // across each line proportionally to its share of the subtotal.
+ // r.lineSubtotal already includes modifiers, so rate × line is
+ // the line's share of the discount in pesos.
+ const lineDiscount =
+ subtotal > 0
+ ? Math.round(((orderDiscount ?? 0) * r.lineSubtotal) / subtotal)
+ : 0;
+
+ const unitPrice = r.lineSubtotal; // pre-discount line total
+ const lineTotalAfterDiscount = unitPrice - lineDiscount;
+
  return {
 "Date/Time": new Date(r.completedAt).toLocaleString(),
 "Order #": r.orderNumber,
@@ -394,15 +406,15 @@ export default function ReportsPage() {
 "Cashier": r.baristaName,
 "Customer / Table": r.customerName ?? r.tableName ?? "",
 "Item": r.itemName,
-"Item Price": (r.unitPrice / 100).toFixed(2),
+"Base Price": (r.unitPrice / 100).toFixed(2),
 "Modifier": r.modifiers || "",
-"Modifier Price": (modTotal / r.quantity / 100).toFixed(2),
+"Modifier Price": (modTotalPerUnit / 100).toFixed(2),
 "Qty": r.quantity,
-"Line Total": (r.lineSubtotal / 100).toFixed(2),
-"Discount": ((discount ?? 0) > 0 ? ((discount as number) / 100).toFixed(2) : "0.00"),
+"Unit Price": (unitPrice / 100).toFixed(2),
+"Discount": (lineDiscount / 100).toFixed(2),
+"Total": (lineTotalAfterDiscount / 100).toFixed(2),
 "Tax": (tax / 100).toFixed(2),
 "Payment Method": fmtPay(r.paymentType),
-"Total": (orderTotal / 100).toFixed(2),
  };
  }),
 "sales-ledger.csv"
