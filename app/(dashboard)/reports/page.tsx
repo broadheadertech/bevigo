@@ -334,48 +334,6 @@ export default function ReportsPage() {
  orderTotal: number;
  };
 
- // Group line items by orderId, keeping the original sort (newest
- // first) by tracking the order in which orderIds first appear.
- type Grouped = {
- orderId: string;
- orderNumber: string;
- completedAt: number;
- status: string;
- isRefunded: boolean;
- paymentType: string;
- baristaName: string;
- customerName: string | null;
- tableName: string | null;
- orderSubtotal: number;
- orderDiscount: number;
- orderTax: number;
- orderTotal: number;
- lines: LineRow[];
- };
- const byOrder = new Map<string, Grouped>();
- for (const r of rows as LineRow[]) {
- const k = r.orderId;
- if (!byOrder.has(k)) {
- byOrder.set(k, {
- orderId: r.orderId,
- orderNumber: r.orderNumber,
- completedAt: r.completedAt,
- status: r.status,
- isRefunded: r.isRefunded,
- paymentType: r.paymentType,
- baristaName: r.baristaName,
- customerName: r.customerName,
- tableName: r.tableName,
- orderSubtotal: r.orderSubtotal,
- orderDiscount: r.orderDiscount,
- orderTax: r.orderTax,
- orderTotal: r.orderTotal,
- lines: [],
- });
- }
- byOrder.get(k)!.lines.push(r);
- }
-
  const fmtPay = (p: string) => {
  if (!p) return "—";
  if (p === "ewallet") return "E-Wallet";
@@ -383,72 +341,67 @@ export default function ReportsPage() {
  return p.charAt(0).toUpperCase() + p.slice(1);
  };
 
- // Build the items cell: one line per item, modifiers in brackets,
- // qty prefix when > 1. Newlines inside CSV cells are RFC-4180
- // legal as long as the cell is quoted (exportToCSV handles that).
- const buildItemsCell = (lines: LineRow[]) =>
- lines
- .map((l) => {
- const qty = l.quantity > 1 ? `${l.quantity}× ` : "";
- const mods = l.modifiers ? ` [${l.modifiers}]` : "";
- const total = `₱${(l.lineSubtotal / 100).toFixed(2)}`;
- return `${qty}${l.itemName}${mods} — ${total}`;
- })
- .join("\n");
-
- const sortedOrders = [...byOrder.values()].sort(
- (a, b) => b.completedAt - a.completedAt
- );
-
- // Cross-reference the on-screen ledger (different query) so the CSV
+ // Cross-reference the on-screen ledger so the CSV's per-order
  // discount/tax/total values are correct even when the line-items
- // query response is missing the per-order totals (older deployment,
- // schema drift, etc). Ledger is the source of truth for those.
+ // query response is missing the canonical per-order fields.
  const ledgerById = new Map<string, LedgerRow>();
  for (const row of (ledger ?? []) as LedgerRow[]) {
  ledgerById.set(row._id, row);
  }
 
+ // Modifier price = lineSubtotal/qty − unit (base) price. The
+ // server's lineSubtotal already bakes in modifier adjustments, so
+ // subtracting the base unit price recovers the per-unit modifier
+ // contribution. Multiply by quantity for the line's modifier total.
+ const modifierTotal = (l: LineRow) => l.lineSubtotal - l.unitPrice * l.quantity;
+
+ // ONE ROW PER LINE ITEM. Order context (discount/tax/payment/total)
+ // repeats on every row of the same order — that's what the operator
+ // wants so they can pivot/group in their spreadsheet however they
+ // like.
+ const sortedRows = [...(rows as LineRow[])].sort(
+ (a, b) => b.completedAt - a.completedAt
+ );
+
  exportToCSV(
- sortedOrders.map((o) => {
- const itemCount = o.lines.reduce((s, l) => s + l.quantity, 0);
+ sortedRows.map((r) => {
  const status =
- o.status === "voided"
+ r.status === "voided"
  ? "Voided"
- : o.isRefunded
+ : r.isRefunded
  ? "Refunded"
  : "Completed";
-
- const fromLedger = ledgerById.get(o.orderId);
- // Prefer ledger fields, fall back to line-items aggregate, then 0.
+ const modTotal = modifierTotal(r);
+ const fromLedger = ledgerById.get(r.orderId);
  const discount =
  fromLedger?.discountAmount ??
- (Number.isFinite(o.orderDiscount) ? o.orderDiscount : 0);
- // Tax: prefer authoritative taxAmount, then derive (total − subtotal
- // + discount) since older orders may have been completed before the
- // taxAmount field was always populated.
- const subtotal = fromLedger?.subtotal ?? o.orderSubtotal ?? 0;
- const orderTotal = fromLedger?.total ?? o.orderTotal ?? 0;
+ (Number.isFinite(r.orderDiscount) ? r.orderDiscount : 0);
+ const subtotal = fromLedger?.subtotal ?? r.orderSubtotal ?? 0;
+ const orderTotal = fromLedger?.total ?? r.orderTotal ?? 0;
  const derivedTax = orderTotal - subtotal + (discount ?? 0);
  const tax = Number.isFinite(fromLedger?.taxAmount as number)
  ? (fromLedger?.taxAmount as number)
- : Number.isFinite(o.orderTax)
- ? o.orderTax
+ : Number.isFinite(r.orderTax)
+ ? r.orderTax
  : Number.isFinite(derivedTax)
  ? derivedTax
  : 0;
 
  return {
-"Date/Time": new Date(o.completedAt).toLocaleString(),
-"Order #": o.orderNumber,
+"Date/Time": new Date(r.completedAt).toLocaleString(),
+"Order #": r.orderNumber,
 "Status": status,
-"Cashier": o.baristaName,
-"Customer / Table": o.customerName ?? o.tableName ?? "",
-"Items": buildItemsCell(o.lines),
-"Item Count": itemCount,
+"Cashier": r.baristaName,
+"Customer / Table": r.customerName ?? r.tableName ?? "",
+"Item": r.itemName,
+"Item Price": (r.unitPrice / 100).toFixed(2),
+"Modifier": r.modifiers || "",
+"Modifier Price": (modTotal / r.quantity / 100).toFixed(2),
+"Qty": r.quantity,
+"Line Total": (r.lineSubtotal / 100).toFixed(2),
 "Discount": ((discount ?? 0) > 0 ? ((discount as number) / 100).toFixed(2) : "0.00"),
 "Tax": (tax / 100).toFixed(2),
-"Payment Method": fmtPay(o.paymentType),
+"Payment Method": fmtPay(r.paymentType),
 "Total": (orderTotal / 100).toFixed(2),
  };
  }),
