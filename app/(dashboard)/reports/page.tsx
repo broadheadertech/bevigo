@@ -3,7 +3,7 @@
 import { useConvex, useQuery } from"convex/react";
 import { api } from"../../../convex/_generated/api";
 import { useAuth } from"@/lib/auth-context";
-import { useEffect, useState, useMemo } from"react";
+import { useEffect, useLayoutEffect, useRef, useState, useMemo } from"react";
 import { Id } from"../../../convex/_generated/dataModel";
 import { exportToCSV } from"@/lib/export";
 import { exportReportPDF } from"@/lib/export-pdf";
@@ -725,6 +725,44 @@ function LedgerTab({
  .map((p) => colDefById.get(p.id))
  .filter((c): c is ColDef => Boolean(c));
 
+ // Dual scroll bar — wide ledger tables need a horizontal scrollbar at
+ // the top too, so the operator doesn't have to scroll all the way down
+ // to drag the bottom one. Refs sync the two scrollers in both
+ // directions; the top track's inner div is sized to match the actual
+ // table content width so the scrollbar thumbs stay proportional.
+ const topScrollRef = useRef<HTMLDivElement | null>(null);
+ const bottomScrollRef = useRef<HTMLDivElement | null>(null);
+ const topInnerRef = useRef<HTMLDivElement | null>(null);
+ const tableRef = useRef<HTMLTableElement | null>(null);
+ const syncFromTop = (e: React.UIEvent<HTMLDivElement>) => {
+ if (bottomScrollRef.current) {
+ bottomScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+ }
+ };
+ const syncFromBottom = (e: React.UIEvent<HTMLDivElement>) => {
+ if (topScrollRef.current) {
+ topScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+ }
+ };
+ useLayoutEffect(() => {
+ // Match the top inner spacer to the real table width so the top
+ // scrollbar thumb mirrors the bottom one. Re-runs on column changes
+ // and window resize.
+ const sync = () => {
+ if (topInnerRef.current && tableRef.current) {
+ topInnerRef.current.style.width = `${tableRef.current.scrollWidth}px`;
+ }
+ };
+ sync();
+ const ro = new ResizeObserver(sync);
+ if (tableRef.current) ro.observe(tableRef.current);
+ window.addEventListener("resize", sync);
+ return () => {
+ ro.disconnect();
+ window.removeEventListener("resize", sync);
+ };
+ }, [colPrefs]);
+
  if (!lines) {
  return (
  <div className="text-center py-12" style={{ color: "var(--muted-fg)" }}>
@@ -935,14 +973,35 @@ function LedgerTab({
  setShowPopover={setShowColsPopover}
  />
 
+ {/* Top scroll bar — synced with the bottom scroller below. The inner
+ spacer div has its width set in the layout effect above to match the
+ table's real scrollWidth so the thumb is proportional. */}
  <div
- className="rounded-2xl shadow-lg overflow-hidden overflow-x-auto"
+ ref={topScrollRef}
+ onScroll={syncFromTop}
+ className="overflow-x-auto"
+ style={{
+ height: 14,
+ backgroundColor: "var(--card)",
+ border: "1px solid var(--border-color)",
+ borderRadius: "0.75rem 0.75rem 0 0",
+ borderBottom: "none",
+ }}
+ >
+ <div ref={topInnerRef} style={{ height: 1 }} />
+ </div>
+
+ <div
+ ref={bottomScrollRef}
+ onScroll={syncFromBottom}
+ className="shadow-lg overflow-x-auto"
  style={{
  backgroundColor: "var(--card)",
  border: "1px solid var(--border-color)",
+ borderRadius: "0 0 1rem 1rem",
  }}
  >
- <table className="w-full text-xs">
+ <table ref={tableRef} className="w-full text-xs">
  <thead>
  <tr
  style={{
