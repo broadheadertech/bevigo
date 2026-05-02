@@ -191,7 +191,7 @@ export default function ReportsPage() {
  <div className="rounded-2xl border shadow-lg p-4 mb-6">
  <div className="flex flex-wrap gap-4 items-end">
  <button
- onClick={() => {
+ onClick={async () => {
  if (activeTab ==="daily" && dailySummary) {
  exportToCSV([{
  totalRevenue: dailySummary.totalRevenue,
