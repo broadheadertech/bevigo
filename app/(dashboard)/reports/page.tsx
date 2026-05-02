@@ -541,8 +541,8 @@ export default function ReportsPage() {
  onChange={(e) => setFilterQuery(e.target.value)}
  placeholder={
  activeTab === "product"
- ? "Item name…"
- : "Order #, customer, cashier, payment…"
+ ? "Item name… (comma-separate for multiple)"
+ : "Order #, customer, cashier, payment… (comma-separate for multiple)"
  }
  className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors"
  style={{ backgroundColor: 'var(--muted)', color: 'var(--fg)', border: '1px solid var(--border-color)' }}
@@ -612,18 +612,26 @@ function LedgerTab({
  }
 
  // Client-side filter: order #, cashier, customer, table, or payment.
- // Totals below are recomputed off the FILTERED set so the summary
- // strip always matches what's on screen.
+ // Comma-separated terms are OR'd, so "cash, ewallet" matches rows
+ // whose payment is either. Totals below are recomputed off the
+ // FILTERED set so the summary strip always matches what's on screen.
  const trimmed = filterQuery.trim().toLowerCase();
- const filteredData = trimmed
- ? data.filter((o: LedgerRow) => {
- if (o.orderNumber.toLowerCase().includes(trimmed)) return true;
- if (o.baristaName.toLowerCase().includes(trimmed)) return true;
- if ((o.customerName ?? "").toLowerCase().includes(trimmed)) return true;
- if ((o.tableName ?? "").toLowerCase().includes(trimmed)) return true;
- if (o.paymentType.toLowerCase().includes(trimmed)) return true;
+ const tokens = trimmed
+ ? trimmed.split(",").map((t) => t.trim()).filter(Boolean)
+ : [];
+ const matchRow = (o: LedgerRow, t: string) => {
+ if (o.orderNumber.toLowerCase().includes(t)) return true;
+ if (o.baristaName.toLowerCase().includes(t)) return true;
+ if ((o.customerName ?? "").toLowerCase().includes(t)) return true;
+ if ((o.tableName ?? "").toLowerCase().includes(t)) return true;
+ if (o.paymentType.toLowerCase().includes(t)) return true;
+ // Convenience aliases so "ewallet" and "e-wallet" both work.
+ const alias = t.replace(/[-\s]/g, "");
+ if (o.paymentType.toLowerCase().replace(/[-\s]/g, "").includes(alias)) return true;
  return false;
- })
+ };
+ const filteredData = tokens.length
+ ? data.filter((o: LedgerRow) => tokens.some((t) => matchRow(o, t)))
  : data;
 
  if (filteredData.length === 0) {
@@ -1133,8 +1141,13 @@ function ProductMixTab({
  }
 
  const trimmed = filterQuery.trim().toLowerCase();
- const filteredData = trimmed
- ? data.filter((it) => it.itemName.toLowerCase().includes(trimmed))
+ const tokens = trimmed
+ ? trimmed.split(",").map((t) => t.trim()).filter(Boolean)
+ : [];
+ const filteredData = tokens.length
+ ? data.filter((it) =>
+ tokens.some((t) => it.itemName.toLowerCase().includes(t))
+ )
  : data;
 
  if (filteredData.length === 0) {
