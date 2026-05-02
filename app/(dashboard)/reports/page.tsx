@@ -400,6 +400,15 @@ export default function ReportsPage() {
  (a, b) => b.completedAt - a.completedAt
  );
 
+ // Cross-reference the on-screen ledger (different query) so the CSV
+ // discount/tax/total values are correct even when the line-items
+ // query response is missing the per-order totals (older deployment,
+ // schema drift, etc). Ledger is the source of truth for those.
+ const ledgerById = new Map<string, LedgerRow>();
+ for (const row of (ledger ?? []) as LedgerRow[]) {
+ ledgerById.set(row._id, row);
+ }
+
  exportToCSV(
  sortedOrders.map((o) => {
  const itemCount = o.lines.reduce((s, l) => s + l.quantity, 0);
@@ -409,6 +418,26 @@ export default function ReportsPage() {
  : o.isRefunded
  ? "Refunded"
  : "Completed";
+
+ const fromLedger = ledgerById.get(o.orderId);
+ // Prefer ledger fields, fall back to line-items aggregate, then 0.
+ const discount =
+ fromLedger?.discountAmount ??
+ (Number.isFinite(o.orderDiscount) ? o.orderDiscount : 0);
+ // Tax: prefer authoritative taxAmount, then derive (total − subtotal
+ // + discount) since older orders may have been completed before the
+ // taxAmount field was always populated.
+ const subtotal = fromLedger?.subtotal ?? o.orderSubtotal ?? 0;
+ const orderTotal = fromLedger?.total ?? o.orderTotal ?? 0;
+ const derivedTax = orderTotal - subtotal + (discount ?? 0);
+ const tax = Number.isFinite(fromLedger?.taxAmount as number)
+ ? (fromLedger?.taxAmount as number)
+ : Number.isFinite(o.orderTax)
+ ? o.orderTax
+ : Number.isFinite(derivedTax)
+ ? derivedTax
+ : 0;
+
  return {
 "Date/Time": new Date(o.completedAt).toLocaleString(),
 "Order #": o.orderNumber,
@@ -417,10 +446,10 @@ export default function ReportsPage() {
 "Customer / Table": o.customerName ?? o.tableName ?? "",
 "Items": buildItemsCell(o.lines),
 "Item Count": itemCount,
-"Discount": ((o.orderDiscount ?? 0) > 0 ? (o.orderDiscount / 100).toFixed(2) : "0.00"),
-"Tax": (Number.isFinite(o.orderTax) ? o.orderTax / 100 : 0).toFixed(2),
+"Discount": ((discount ?? 0) > 0 ? ((discount as number) / 100).toFixed(2) : "0.00"),
+"Tax": (tax / 100).toFixed(2),
 "Payment Method": fmtPay(o.paymentType),
-"Total": (Number.isFinite(o.orderTotal) ? o.orderTotal / 100 : 0).toFixed(2),
+"Total": (orderTotal / 100).toFixed(2),
  };
  }),
 "sales-ledger.csv"
