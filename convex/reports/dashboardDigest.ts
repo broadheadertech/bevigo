@@ -119,9 +119,11 @@ export const getDashboardDigest = query({
       if (hourly[h].orders > hourly[peakHour].orders) peakHour = h;
     }
 
-    const topSellers = [...itemTotals.values()]
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5);
+    // Return the full ranked list — the dashboard paginates client-side
+    // so the operator can step through every item that sold today.
+    const topSellers = [...itemTotals.values()].sort(
+      (a, b) => b.revenue - a.revenue
+    );
 
     // ── Low / out-of-stock ingredients across selected locations ──
     const ingredients = await ctx.db
@@ -292,7 +294,7 @@ export const getDashboardDigest = query({
         parkedCount,
         openShiftCount,
       },
-      lowStock: lowStock.slice(0, 12),
+      lowStock,
       lowStockCount: lowStock.length,
       outOfStockCount: outCount,
       reminders,
@@ -481,7 +483,7 @@ export const getBaristaDigest = query({
       myParkedCount,
       myActiveShiftId,
       myActiveShiftStart,
-      lowStock: lowStock.slice(0, 8),
+      lowStock,
       lowStockCount: lowStock.length,
       outOfStockCount: outCount,
       reminders,

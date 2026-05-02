@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { formatCurrency } from "@/lib/currency";
 import { Id } from "../../convex/_generated/dataModel";
 import Link from "next/link";
+import { Pagination, usePagination } from "@/components/ui/pagination";
 
 type LocationOption = {
   _id: Id<"locations">;
@@ -486,11 +487,19 @@ function TopSellers({
   items: Array<{ name: string; qty: number; revenue: number }>;
 }) {
   const max = Math.max(...items.map((i) => i.revenue), 1);
+  // Paginate 5 per page so the dashboard panel stays compact even when
+  // every menu item sold today. Rank chip uses the absolute index so #6
+  // on page 2 is still labelled "6".
+  const { paginatedItems, currentPage, totalPages, setCurrentPage } =
+    usePagination(items, 5);
+  const offset = (currentPage - 1) * 5;
   return (
+    <>
     <ol className="space-y-2">
-      {items.map((p, idx) => {
+      {paginatedItems.map((p, idx) => {
+        const absoluteIdx = offset + idx;
         const widthPct = Math.max(8, (p.revenue / max) * 100);
-        const isTop = idx === 0;
+        const isTop = absoluteIdx === 0;
         return (
           <li
             key={p.name}
@@ -520,7 +529,7 @@ function TopSellers({
                   border: isTop ? "none" : "1px solid var(--border-color)",
                 }}
               >
-                {idx + 1}
+                {absoluteIdx + 1}
               </span>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-sm truncate" style={{ color: "var(--fg)" }}>
@@ -538,6 +547,12 @@ function TopSellers({
         );
       })}
     </ol>
+    <Pagination
+      currentPage={currentPage}
+      totalPages={totalPages}
+      onPageChange={setCurrentPage}
+    />
+    </>
   );
 }
 
@@ -564,9 +579,15 @@ function LowStockList({
     if (a.isOut !== b.isOut) return a.isOut ? -1 : 1;
     return a.onHand - b.onHand;
   });
+  // Paginate 5 per page so the panel matches the Top Sellers list height
+  // and the operator can step through every flagged item without an
+  // ever-growing card.
+  const { paginatedItems, currentPage, totalPages, setCurrentPage } =
+    usePagination(sorted, 5);
   return (
+    <>
     <ul className="space-y-2">
-      {sorted.map((r) => {
+      {paginatedItems.map((r) => {
         // Clamp to >=0 for display so a negative on-hand doesn't read like
         // "-13350.0ml". The reality is "out" — show 0 + the OUT chip.
         const displayQty = Math.max(0, r.onHand);
@@ -632,5 +653,11 @@ function LowStockList({
         );
       })}
     </ul>
+    <Pagination
+      currentPage={currentPage}
+      totalPages={totalPages}
+      onPageChange={setCurrentPage}
+    />
+    </>
   );
 }
