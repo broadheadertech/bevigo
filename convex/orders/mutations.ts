@@ -1083,18 +1083,30 @@ async function deductStockForOrder(
     );
 
     // 1. Pick base or variant recipe rows.
+    //    Per-INGREDIENT preference: if there's a variant-keyed row whose
+    //    key matches a chosen modifier (e.g. "500ml"), use that row for
+    //    THAT ingredient; for every other ingredient, fall back to its
+    //    base (no-variantKey) row. The old "all-or-nothing" filter
+    //    dropped ingredients like Pop Can / Cup that only had base rows
+    //    whenever ANY other ingredient had a 500ml variant.
     const allRecipes = await ctx.db
       .query("recipes")
       .withIndex("by_menu_item", (q: any) => q.eq("menuItemId", item.menuItemId))
       .collect();
 
-    const matchingVariants = allRecipes.filter(
+    const variantKeyed = allRecipes.filter(
       (r) => r.variantKey && chosenModifierNames.has(r.variantKey)
     );
-    const recipesToConsume =
-      matchingVariants.length > 0
-        ? matchingVariants
-        : allRecipes.filter((r) => r.variantKey === undefined);
+    const baseRows = allRecipes.filter((r) => r.variantKey === undefined);
+    const ingredientsCoveredByVariant = new Set(
+      variantKeyed.map((r) => String(r.ingredientId))
+    );
+    const recipesToConsume = [
+      ...variantKeyed,
+      ...baseRows.filter(
+        (r) => !ingredientsCoveredByVariant.has(String(r.ingredientId))
+      ),
+    ];
 
     // Build the per-line ingredient totals before applying modifier deltas.
     const totals = new Map<string, number>();
@@ -1127,16 +1139,25 @@ async function deductStockForOrder(
           .withIndex("by_modifier", (q: any) => q.eq("modifierId", mod._id))
           .collect();
 
-        // Pick the right rows: any variant-keyed row that matches a chosen
-        // modifier name (the "size") fully replaces the default rows; if
-        // nothing matches, default (no variantKey) rows apply.
-        const matching = allModRows.filter(
-          (r) => r.variantKey && chosenModifierNames.has(r.variantKey)
-        );
-        const rowsToApply =
-          matching.length > 0
-            ? matching
-            : allModRows.filter((r) => r.variantKey === undefined);
+        // Pick the right rows — per-INGREDIENT preference (same logic as
+        // base recipes above). A variant row wins for its own ingredient;
+        // ingredients with only default rows still apply. This fixes the
+        // case where e.g. "Oat Milk has a 500ml row but Cup doesn't" —
+        // previously the Cup row was silently skipped.
+        const matchingByIng = new Map<string, typeof allModRows[number]>();
+        for (const r of allModRows) {
+          if (r.variantKey && chosenModifierNames.has(r.variantKey)) {
+            matchingByIng.set(String(r.ingredientId), r);
+          }
+        }
+        const rowsToApply = [
+          ...matchingByIng.values(),
+          ...allModRows.filter(
+            (r) =>
+              r.variantKey === undefined &&
+              !matchingByIng.has(String(r.ingredientId))
+          ),
+        ];
 
         for (const row of rowsToApply) {
           // Conditional rows (size-driven boosts) only apply when the base

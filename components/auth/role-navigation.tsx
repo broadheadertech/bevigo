@@ -122,6 +122,12 @@ const NAV_ITEMS: NavItem[] = [
         icon: "",
         roles: ["owner"],
       },
+      {
+        label: "Audit Trail",
+        href: "/inventory/audit-trail",
+        icon: "",
+        roles: ["owner", "manager"],
+      },
     ],
   },
   {

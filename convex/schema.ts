@@ -433,6 +433,34 @@ export default defineSchema({
     .index("by_ingredient_location", ["ingredientId", "locationId"])
     .index("by_tenant", ["tenantId"]),
 
+  /**
+   * Per-ingredient per-location per-day inventory snapshot. Captures the
+   * Beginning-of-Day balance, the day's activity (consumed via orders,
+   * received via restock batches, adjusted via wastage/correction), and
+   * the End-of-Day balance.
+   *
+   * Written by a scheduled job at end-of-day (or on demand via the
+   * "Capture snapshot now" button). Tomorrow's BOD = today's EOD.
+   * Storing snapshots removes the daily-digest's reconstruction-by-
+   * deduction approximation and gives a real audit trail.
+   */
+  ingredientDailySnapshots: defineTable({
+    tenantId: v.id("tenants"),
+    locationId: v.id("locations"),
+    ingredientId: v.id("ingredients"),
+    dayStart: v.number(), // local-midnight epoch ms
+    openingQuantity: v.number(),
+    consumed: v.number(), // recipe-driven deductions from completed orders
+    received: v.number(), // sum of restock-batch additions
+    adjusted: v.number(), // sum of non-restock stockAdjustments (signed)
+    closingQuantity: v.number(),
+    capturedAt: v.number(),
+    capturedBy: v.optional(v.id("users")), // null when written by cron
+  })
+    .index("by_tenant_location_day", ["tenantId", "locationId", "dayStart"])
+    .index("by_ingredient_day", ["ingredientId", "dayStart"])
+    .index("by_tenant_day", ["tenantId", "dayStart"]),
+
   recipes: defineTable({
     menuItemId: v.id("menuItems"),
     ingredientId: v.id("ingredients"),

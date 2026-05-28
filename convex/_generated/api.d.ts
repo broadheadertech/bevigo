@@ -35,6 +35,7 @@ import type * as http from "../http.js";
 import type * as insights from "../insights.js";
 import type * as inventory_adjustmentMutations from "../inventory/adjustmentMutations.js";
 import type * as inventory_adjustmentQueries from "../inventory/adjustmentQueries.js";
+import type * as inventory_auditTrail from "../inventory/auditTrail.js";
 import type * as inventory_mutations from "../inventory/mutations.js";
 import type * as inventory_purchaseOrderMutations from "../inventory/purchaseOrderMutations.js";
 import type * as inventory_purchaseOrderQueries from "../inventory/purchaseOrderQueries.js";
@@ -149,6 +150,7 @@ declare const fullApi: ApiFromModules<{
   insights: typeof insights;
   "inventory/adjustmentMutations": typeof inventory_adjustmentMutations;
   "inventory/adjustmentQueries": typeof inventory_adjustmentQueries;
+  "inventory/auditTrail": typeof inventory_auditTrail;
   "inventory/mutations": typeof inventory_mutations;
   "inventory/purchaseOrderMutations": typeof inventory_purchaseOrderMutations;
   "inventory/purchaseOrderQueries": typeof inventory_purchaseOrderQueries;
