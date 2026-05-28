@@ -134,6 +134,36 @@ export const getReceipt = query({
       }
     }
 
+    // BIR identity — surfaced for the BIR-compliant receipt template.
+    // Falls back to null/undefined values when the tenant hasn't filled
+    // in Settings → BIR; the receipt component then renders the legacy
+    // (pre-BIR) layout.
+    const tenant = await ctx.db.get(session.tenantId);
+    const bir = {
+      businessName: tenant?.businessName ?? null,
+      tradeName: tenant?.tradeName ?? null,
+      businessAddress: tenant?.businessAddress ?? null,
+      tin: tenant?.tin ?? null,
+      vatStatus: tenant?.vatStatus ?? null,
+      accreditedSupplierName: tenant?.accreditedSupplierName ?? null,
+      accreditedSupplierAccreditation:
+        tenant?.accreditedSupplierAccreditation ?? null,
+      accreditedSupplierDateIssued:
+        tenant?.accreditedSupplierDateIssued ?? null,
+      accreditedSupplierDateValid:
+        tenant?.accreditedSupplierDateValid ?? null,
+      ptu: location?.birPermitNumber ?? null,
+      min: location?.birMin ?? null,
+      atp: location?.birAtpNumber ?? null,
+      birSerial: order.birSerial ?? null,
+      vatableSales: order.vatableSales ?? null,
+      vatExemptSales: order.vatExemptSales ?? null,
+      zeroRatedSales: order.zeroRatedSales ?? null,
+      srPwdType: order.srPwdType ?? null,
+      srPwdName: order.srPwdName ?? null,
+      srPwdId: order.srPwdId ?? null,
+    };
+
     return {
       orderNumber: order.orderNumber ?? "",
       completedAt: order.completedAt ?? order._creationTime,
@@ -151,6 +181,9 @@ export const getReceipt = query({
       taxRate: order.taxRate,
       taxLabel: order.taxLabel,
       total: order.total,
+      discountAmount: order.discountAmount ?? 0,
+      discountReason: order.discountReason ?? null,
+      bir,
     };
   },
 });

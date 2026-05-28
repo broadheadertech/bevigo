@@ -23,6 +23,28 @@ type ReceiptPayment = {
  change?: number;
 };
 
+type BirInfo = {
+ businessName: string | null;
+ tradeName: string | null;
+ businessAddress: string | null;
+ tin: string | null;
+ vatStatus: "vat" | "non_vat" | "vat_exempt" | null;
+ accreditedSupplierName: string | null;
+ accreditedSupplierAccreditation: string | null;
+ accreditedSupplierDateIssued: number | null;
+ accreditedSupplierDateValid: number | null;
+ ptu: string | null;
+ min: string | null;
+ atp: string | null;
+ birSerial: string | null;
+ vatableSales: number | null;
+ vatExemptSales: number | null;
+ zeroRatedSales: number | null;
+ srPwdType: "senior" | "pwd" | null;
+ srPwdName: string | null;
+ srPwdId: string | null;
+};
+
 type ReceiptData = {
  orderNumber: string;
  completedAt: number;
@@ -37,6 +59,9 @@ type ReceiptData = {
  taxRate: number;
  taxLabel: string;
  total: number;
+ discountAmount?: number;
+ discountReason?: string | null;
+ bir?: BirInfo;
 };
 
 type ReceiptViewProps = {
@@ -119,39 +144,85 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  </button>
  </div>
 
- {/* Receipt body */}
+ {/* Receipt body — switches to BIR-compliant layout when the tenant
+ has filled in TIN + business name in Settings → BIR. Otherwise
+ falls back to the legacy header. */}
  <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6 pt-2 font-mono text-sm print:overflow-visible print:block">
+ {(() => {
+ const bir = receipt.bir;
+ const usesBir = !!(bir && bir.tin && bir.businessName);
+ const vatStatusLabel =
+ bir?.vatStatus === "vat"
+ ? "VAT REG TIN"
+ : bir?.vatStatus === "non_vat"
+ ? "NON-VAT TIN"
+ : bir?.vatStatus === "vat_exempt"
+ ? "VAT-EXEMPT TIN"
+ : "TIN";
+
+ return (
+ <>
  {/* Header */}
- <div className="text-center mb-4">
+ <div className="text-center mb-3">
+ {usesBir ? (
+ <>
+ <p className="text-sm font-bold leading-tight">
+ {bir!.businessName}
+ </p>
+ {bir!.tradeName && (
+ <p className="text-xs italic leading-tight">
+ ({bir!.tradeName})
+ </p>
+ )}
+ <p className="text-xs leading-tight mt-0.5">
+ {bir!.businessAddress ?? receipt.locationAddress}
+ </p>
+ <p className="text-xs leading-tight mt-0.5">
+ {vatStatusLabel}: {bir!.tin}
+ </p>
+ <p className="text-xs leading-tight mt-1">
+ {receipt.locationName}
+ </p>
+ </>
+ ) : (
+ <>
  <p className="text-base font-bold">{receipt.locationName}</p>
  {receipt.locationAddress && (
- <p className="text-xs mt-0.5">
- {receipt.locationAddress}
- </p>
+ <p className="text-xs mt-0.5">{receipt.locationAddress}</p>
+ )}
+ </>
  )}
  </div>
 
- {/* Order info */}
- <div className="text-center mb-3">
+ {/* OR / SI heading */}
+ <div className="text-center mb-2">
+ {usesBir && (
+ <p className="text-xs font-bold uppercase tracking-widest">
+ {bir!.vatStatus === "non_vat"
+ ? "Sales Invoice"
+ : "Official Receipt"}
+ </p>
+ )}
  <p className="text-xs">
- Order #{receipt.orderNumber}
+ #{bir?.birSerial ?? receipt.orderNumber}
  </p>
  <p className="text-xs">
  {formatDateTime(receipt.completedAt)}
  </p>
  </div>
 
- {/* Divider */}
- <div className="border-t border-dashed border-stone-300 my-3" />
+ <div className="border-t border-dashed border-stone-300 my-2" />
 
  {/* Items */}
- <div className="space-y-2">
+ <div className="space-y-1.5">
  {receipt.items.map((item: ReceiptItem, idx: number) => (
  <div key={idx}>
  <div className="flex justify-between">
  <span>
  {item.quantity > 1 && (
- <span style={{ color: 'var(--muted-fg)' }}>{item.quantity}x </span>
+ <span style={{ color: "var(--muted-fg)" }}>
+ {item.quantity}x{" "}
+ </span>
  )}
  {item.name}
  </span>
@@ -178,18 +249,38 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  ))}
  </div>
 
- {/* Divider */}
- <div className="border-t border-dashed border-stone-300 my-3" />
+ <div className="border-t border-dashed border-stone-300 my-2" />
 
- {/* Totals */}
- <div className="space-y-1">
+ {/* VAT / Sales breakdown */}
+ {usesBir ? (
+ <div className="space-y-0.5 text-xs">
  <div className="flex justify-between">
- <span>Subtotal</span>
+ <span>Vatable sales</span>
+ <span>{formatPrice(bir!.vatableSales ?? 0)}</span>
+ </div>
+ <div className="flex justify-between">
+ <span>VAT-exempt sales</span>
+ <span>{formatPrice(bir!.vatExemptSales ?? 0)}</span>
+ </div>
+ <div className="flex justify-between">
+ <span>Zero-rated sales</span>
+ <span>{formatPrice(bir!.zeroRatedSales ?? 0)}</span>
+ </div>
+ <div className="flex justify-between mt-1 pt-1 border-t border-stone-300">
+ <span>Subtotal (gross)</span>
  <span>{formatPrice(receipt.subtotal)}</span>
  </div>
- <div className="flex justify-between text-xs">
+ {(receipt.discountAmount ?? 0) > 0 && (
+ <div className="flex justify-between">
  <span>
- {receipt.taxLabel} ({(receipt.taxRate * 100).toFixed(0)}%)
+ Less: {receipt.discountReason ?? "Discount"}
+ </span>
+ <span>− {formatPrice(receipt.discountAmount ?? 0)}</span>
+ </div>
+ )}
+ <div className="flex justify-between">
+ <span>
+ {receipt.taxLabel} ({(receipt.taxRate / 100).toFixed(0)}%)
  </span>
  <span>{formatPrice(receipt.taxAmount)}</span>
  </div>
@@ -198,6 +289,24 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  <span>{formatPrice(receipt.total)}</span>
  </div>
  </div>
+ ) : (
+ <div className="space-y-1">
+ <div className="flex justify-between">
+ <span>Subtotal</span>
+ <span>{formatPrice(receipt.subtotal)}</span>
+ </div>
+ <div className="flex justify-between text-xs">
+ <span>
+ {receipt.taxLabel} ({(receipt.taxRate / 100).toFixed(0)}%)
+ </span>
+ <span>{formatPrice(receipt.taxAmount)}</span>
+ </div>
+ <div className="flex justify-between font-bold text-base pt-1 border-t border-stone-300">
+ <span>Total</span>
+ <span>{formatPrice(receipt.total)}</span>
+ </div>
+ </div>
+ )}
 
  {/* Payment type */}
  <div className="mt-3 text-center text-xs">
@@ -205,7 +314,9 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  </div>
 
  {/* Cash tender + change */}
- {receipt.payments.some((p) => p.type === "cash" && p.tendered !== undefined) && (
+ {receipt.payments.some(
+ (p) => p.type === "cash" && p.tendered !== undefined
+ ) && (
  <div className="mt-2 space-y-0.5">
  {receipt.payments
  .filter((p) => p.type === "cash" && p.tendered !== undefined)
@@ -224,14 +335,60 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  </div>
  )}
 
- {/* Divider */}
- <div className="border-t border-dashed border-stone-300 my-3" />
+ {/* Senior/PWD block — BIR requires the cardholder's name, ID,
+ and a signature line on every SC/PWD transaction. */}
+ {bir?.srPwdType && (
+ <>
+ <div className="border-t border-dashed border-stone-300 my-2" />
+ <div className="text-xs space-y-0.5">
+ <p className="font-bold uppercase">
+ {bir.srPwdType === "senior" ? "Senior Citizen" : "PWD"}{" "}
+ Discount
+ </p>
+ <p>Name: {bir.srPwdName ?? "—"}</p>
+ <p>
+ {bir.srPwdType === "senior" ? "OSCA ID" : "PWD ID"}:{" "}
+ {bir.srPwdId ?? "—"}
+ </p>
+ <p className="mt-3">Signature: ___________________</p>
+ </div>
+ </>
+ )}
 
- {/* Footer */}
- <div className="text-center text-xs space-y-1">
+ <div className="border-t border-dashed border-stone-300 my-2" />
+
+ {/* Cashier + BIR footer */}
+ <div className="text-center text-[10px] leading-tight space-y-0.5">
  <p>Served by: {receipt.baristaName}</p>
+ {usesBir && (
+ <>
+ {bir!.ptu && <p>PTU #: {bir!.ptu}</p>}
+ {bir!.min && <p>MIN: {bir!.min}</p>}
+ {bir!.atp && <p>ATP #: {bir!.atp}</p>}
+ {bir!.accreditedSupplierName && (
+ <p>
+ Acc. by {bir!.accreditedSupplierName}
+ {bir!.accreditedSupplierAccreditation
+ ? ` (${bir!.accreditedSupplierAccreditation})`
+ : ""}
+ </p>
+ )}
+ <p className="mt-2 font-semibold uppercase">
+ {bir!.vatStatus === "non_vat"
+ ? "This invoice/receipt shall be valid for five (5) years from the date of the permit to use."
+ : "This document is not valid for claim of input tax."}
+ </p>
+ <p>
+ THIS RECEIPT SHALL BE VALID FOR FIVE (5) YEARS FROM THE
+ DATE OF THE PERMIT TO USE.
+ </p>
+ </>
+ )}
  <p className="text-stone-400 mt-2">Powered by bevi&amp;go</p>
  </div>
+ </>
+ );
+ })()}
  </div>
 
  {/* Action buttons - hidden in print */}

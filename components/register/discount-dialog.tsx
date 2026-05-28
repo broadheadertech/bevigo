@@ -52,6 +52,12 @@ export function DiscountDialog({
   const [customReason, setCustomReason] = useState("");
   const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Senior Citizen / PWD capture — BIR requires the cardholder's name +
+  // ID on the receipt. Toggling this sets the discount to a flat 20% AND
+  // marks the order as VAT-exempt at completion time.
+  const [srPwdMode, setSrPwdMode] = useState<"senior" | "pwd" | null>(null);
+  const [srPwdName, setSrPwdName] = useState("");
+  const [srPwdId, setSrPwdId] = useState("");
 
   const numericValue = parseFloat(value) || 0;
 
@@ -109,21 +115,41 @@ export function DiscountDialog({
     setIsApplying(true);
 
     try {
-      const finalReason = reason === "Custom" ? customReason.trim() || "Custom" : reason;
-      const discountValue = discountType === "fixed"
-        ? Math.round(numericValue * 100) // convert pesos to centavos
-        : numericValue;
-
-      await applyDiscount({
-        token,
-        orderId,
-        discountType,
-        discountValue,
-        discountReason: finalReason,
-        // Pass the preset id so the server respects its `requiresAuth`
-        // flag instead of falling back to the generic barista size cap.
-        presetId: selectedPresetId ?? undefined,
-      });
+      // Senior/PWD takes precedence — server applies the BIR-mandated
+      // 20% off + VAT-exempt math at completion regardless of what's
+      // typed in the value field.
+      if (srPwdMode) {
+        if (!srPwdName.trim() || !srPwdId.trim()) {
+          throw new Error(
+            "Enter the Senior/PWD cardholder's name and ID before applying"
+          );
+        }
+        await applyDiscount({
+          token,
+          orderId,
+          discountType: "percentage",
+          discountValue: 20,
+          discountReason: srPwdMode === "senior" ? "Senior Citizen" : "PWD",
+          srPwdType: srPwdMode,
+          srPwdName: srPwdName.trim(),
+          srPwdId: srPwdId.trim(),
+        });
+      } else {
+        const finalReason =
+          reason === "Custom" ? customReason.trim() || "Custom" : reason;
+        const discountValue =
+          discountType === "fixed"
+            ? Math.round(numericValue * 100) // pesos → centavos
+            : numericValue;
+        await applyDiscount({
+          token,
+          orderId,
+          discountType,
+          discountValue,
+          discountReason: finalReason,
+          presetId: selectedPresetId ?? undefined,
+        });
+      }
       onApplied();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to apply discount");
@@ -155,6 +181,96 @@ export function DiscountDialog({
 
         {/* Body */}
         <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
+          {/* Senior Citizen / PWD — BIR-mandated 20% off + VAT-exempt.
+              Selecting either kind locks out the regular discount UI and
+              requires name + ID capture. */}
+          <div>
+            <label
+              className="block text-xs font-semibold uppercase tracking-wide mb-2"
+              style={{ color: "var(--muted-fg)" }}
+            >
+              Senior Citizen / PWD
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSrPwdMode(srPwdMode === "senior" ? null : "senior");
+                  setSelectedPresetId(null);
+                }}
+                className="py-2.5 rounded-2xl text-sm font-semibold transition-colors active:scale-95"
+                style={{
+                  backgroundColor:
+                    srPwdMode === "senior" ? "var(--accent-color)" : "var(--muted)",
+                  color: srPwdMode === "senior" ? "white" : "var(--fg)",
+                  border: "1px solid var(--border-color)",
+                }}
+              >
+                Senior 20%
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSrPwdMode(srPwdMode === "pwd" ? null : "pwd");
+                  setSelectedPresetId(null);
+                }}
+                className="py-2.5 rounded-2xl text-sm font-semibold transition-colors active:scale-95"
+                style={{
+                  backgroundColor:
+                    srPwdMode === "pwd" ? "var(--accent-color)" : "var(--muted)",
+                  color: srPwdMode === "pwd" ? "white" : "var(--fg)",
+                  border: "1px solid var(--border-color)",
+                }}
+              >
+                PWD 20%
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSrPwdMode(null);
+                  setSrPwdName("");
+                  setSrPwdId("");
+                }}
+                disabled={!srPwdMode}
+                className="py-2.5 rounded-2xl text-sm font-medium transition-colors active:scale-95 disabled:opacity-40"
+                style={{
+                  backgroundColor: "var(--muted)",
+                  color: "var(--fg)",
+                  border: "1px solid var(--border-color)",
+                }}
+              >
+                Clear
+              </button>
+            </div>
+            {srPwdMode && (
+              <div className="mt-3 space-y-2 p-3 rounded-2xl" style={{ backgroundColor: "var(--muted)", border: "1px solid var(--border-color)" }}>
+                <p className="text-[11px]" style={{ color: "var(--muted-fg)" }}>
+                  Required by BIR. Cardholder must also sign the printed receipt.
+                </p>
+                <input
+                  type="text"
+                  value={srPwdName}
+                  onChange={(e) => setSrPwdName(e.target.value)}
+                  placeholder={
+                    srPwdMode === "senior"
+                      ? "Senior Citizen full name"
+                      : "PWD cardholder full name"
+                  }
+                  className="w-full rounded-xl px-3 py-2 text-sm focus:outline-none"
+                  style={{ backgroundColor: "var(--card)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
+                />
+                <input
+                  type="text"
+                  value={srPwdId}
+                  onChange={(e) => setSrPwdId(e.target.value)}
+                  placeholder={srPwdMode === "senior" ? "OSCA ID #" : "PWD ID #"}
+                  className="w-full rounded-xl px-3 py-2 text-sm focus:outline-none"
+                  style={{ backgroundColor: "var(--card)", color: "var(--fg)", border: "1px solid var(--border-color)" }}
+                />
+              </div>
+            )}
+          </div>
+
           {/* Quick Select Presets */}
           {presets && presets.length > 0 && (
             <div>

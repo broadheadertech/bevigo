@@ -509,7 +509,6 @@ export const completeOrder = mutation({
 
     // Recalculate totals from items
     const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
-    const taxAmount = Math.round(subtotal * (location.taxRate / 10000));
 
     // Account for discount
     let finalDiscountAmount = order.discountAmount ?? 0;
@@ -519,7 +518,35 @@ export const completeOrder = mutation({
     if (finalDiscountAmount > subtotal) {
       finalDiscountAmount = subtotal;
     }
-    const total = subtotal - finalDiscountAmount + taxAmount;
+
+    // BIR VAT breakdown.
+    //   - Senior/PWD orders: the whole sale is VAT-exempt AND gets 20%
+    //     off the net-of-VAT amount. (RA 9994 / RA 10754)
+    //   - Regular orders: tax is added on top of the discounted subtotal.
+    // Math is in cents throughout to avoid rounding error.
+    const isSrPwd = !!order.srPwdType;
+    let taxAmount: number;
+    let total: number;
+    let vatableSales = 0;
+    let vatExemptSales = 0;
+    const zeroRatedSales = 0;
+
+    if (isSrPwd) {
+      // Strip the implicit VAT out of the subtotal, then 20% off the
+      // net. No VAT charged on the line. Discount stored = the 20%.
+      const netOfVat = Math.round((subtotal * 100) / 112);
+      const srPwdDiscount = Math.round(netOfVat * 0.2);
+      finalDiscountAmount = srPwdDiscount;
+      total = netOfVat - srPwdDiscount;
+      taxAmount = 0;
+      vatExemptSales = total;
+    } else {
+      taxAmount = Math.round(
+        (subtotal - finalDiscountAmount) * (location.taxRate / 10000)
+      );
+      total = subtotal - finalDiscountAmount + taxAmount;
+      vatableSales = subtotal - finalDiscountAmount;
+    }
 
     // Generate order number: ORD-{locationSlug}-{timestamp}
     const orderNumber = `ORD-${location.slug.toUpperCase()}-${Date.now()}`;
@@ -560,16 +587,30 @@ export const completeOrder = mutation({
       });
     }
 
+    // BIR gap-less serial number — only issued if Settings → BIR has
+    // been configured for this location.
+    const { issueBirSerial } = await import("../settings/bir");
+    const birSerial = await issueBirSerial(
+      ctx,
+      session.tenantId,
+      order.locationId,
+      `OR-${location.slug.toUpperCase()}-`
+    );
+
     await ctx.db.patch(args.orderId, {
       status: "completed",
       paymentType: args.paymentType,
       payments: finalPayments,
       orderNumber,
+      birSerial: birSerial ?? undefined,
       subtotal,
       taxAmount,
       taxRate: location.taxRate,
       taxLabel: location.taxLabel,
       total,
+      vatableSales,
+      vatExemptSales,
+      zeroRatedSales,
       ...(finalDiscountAmount > 0 ? { discountAmount: finalDiscountAmount } : {}),
       completedAt: now,
       updatedAt: now,
@@ -733,6 +774,12 @@ export const applyDiscount = mutation({
      *  source of truth for whether a barista can apply it. Custom (free-
      *  form) discounts still fall back to the per-role size cap below. */
     presetId: v.optional(v.id("discountPresets")),
+    /** Senior Citizen / PWD capture — required by BIR. When `srPwdType`
+     *  is provided, the order is treated as VAT-exempt at completion
+     *  (regardless of the discount value passed). */
+    srPwdType: v.optional(v.union(v.literal("senior"), v.literal("pwd"))),
+    srPwdName: v.optional(v.string()),
+    srPwdId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -797,12 +844,26 @@ export const applyDiscount = mutation({
     // Recalculate total
     const total = order.subtotal - discountAmount + order.taxAmount;
 
+    // For Senior/PWD, require name + ID — BIR rules. The final 20%
+    // off + VAT-exempt math is applied in completeOrder, not here, so
+    // the on-screen total stays consistent until checkout.
+    if (args.srPwdType) {
+      if (!args.srPwdName?.trim() || !args.srPwdId?.trim()) {
+        throw new Error(
+          "Senior Citizen / PWD discount requires the cardholder's name and OSCA/PWD ID"
+        );
+      }
+    }
+
     await ctx.db.patch(args.orderId, {
       discountType: args.discountType,
       discountValue: args.discountValue,
       discountAmount,
       discountReason: args.discountReason,
       discountApprovedBy: session.role !== "barista" ? session.userId : undefined,
+      srPwdType: args.srPwdType,
+      srPwdName: args.srPwdName?.trim() || undefined,
+      srPwdId: args.srPwdId?.trim() || undefined,
       total,
       updatedAt: Date.now(),
     });
