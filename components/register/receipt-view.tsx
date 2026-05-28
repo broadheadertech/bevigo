@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from"react";
+import { createPortal } from"react-dom";
 import { useQuery } from"convex/react";
 import { api } from"../../convex/_generated/api";
 import { Id } from"../../convex/_generated/dataModel";
@@ -104,6 +106,27 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  orderId,
  }) as ReceiptData | null | undefined;
 
+ // SSR-safe portal mount + body-class toggle for print-only mode. The
+ // class is added right before window.print() and cleared on afterprint
+ // — the CSS rule (in globals.css) hides every sibling of the modal
+ // host so the receipt is the only thing on the page.
+ const [mounted, setMounted] = useState(false);
+ useEffect(() => {
+ setMounted(true);
+ const cleanup = () => document.body.classList.remove("printing-receipt");
+ window.addEventListener("afterprint", cleanup);
+ return () => {
+ cleanup();
+ window.removeEventListener("afterprint", cleanup);
+ };
+ }, []);
+
+ const triggerPrint = () => {
+ document.body.classList.add("printing-receipt");
+ // Defer one frame so the class lands before Chrome snapshots the page.
+ requestAnimationFrame(() => window.print());
+ };
+
  if (receipt === undefined) {
  return (
  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -130,7 +153,8 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  );
  }
 
- return (
+ if (!mounted) return null;
+ const node = (
  <div className="receipt-modal-host fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 print:p-0 print:bg-white print:block print:items-start">
  <div className="print-receipt rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] flex flex-col overflow-hidden print:max-h-none print:block print:rounded-none print:shadow-none print:w-auto print:max-w-none" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  {/* Close button - hidden in print */}
@@ -394,7 +418,7 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  {/* Action buttons - hidden in print */}
  <div className="px-6 pb-6 pt-3 flex gap-3 shrink-0 print:hidden" style={{ borderTop: '1px solid var(--border-color)' }}>
  <button
- onClick={() => window.print()}
+ onClick={triggerPrint}
  className="flex-1 py-2.5 font-medium rounded-2xl hover:bg-stone-200 active:bg-stone-300 transition-colors text-sm"
  >
  Print
@@ -409,4 +433,5 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  </div>
  </div>
  );
+ return createPortal(node, document.body);
 }

@@ -26,6 +26,14 @@
     overflow: visible !important;
     z-index: auto !important;
   }
+  /* Print-only-receipt mode: ReceiptView portals to <body> and toggles
+   * this class before window.print(). Every direct child of <body> is
+   * collapsed to display:none EXCEPT the modal host — so the dashboard
+   * shell, sidebar, banner etc. no longer contribute ghost layout
+   * height that previously caused multi-page blank prints. */
+  body.printing-receipt > *:not(.receipt-modal-host) {
+    display: none !important;
+  }
   body * { visibility: hidden !important; }
   .print-receipt, .print-receipt *,
   .print-payslip, .print-payslip *,
