@@ -30,9 +30,14 @@
   }
   .print-sticker * { color: black !important; }
   .print-receipt {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
+    /* position: static (not fixed) so the receipt flows naturally onto
+     * the continuous thermal roll. Using `fixed` caused Chrome on
+     * Windows to repeat the receipt on every printed page if the
+     * content exceeded one page-height — i.e. "why does it print 4
+     * copies?". The body-visibility rule above already hides
+     * everything that isn't .print-receipt, so we don't need fixed
+     * positioning to overlay other content. */
+    position: static !important;
     margin: 0 !important;
     /* Tight 2mm margin all round keeps every column on a 58mm roll. */
     padding: 2mm !important;
@@ -49,15 +54,18 @@
     max-width: 54mm !important;
     font-size: 9px !important;
     line-height: 1.25 !important;
+    /* Don't break the receipt across pages — the whole thing stays on
+     * one continuous strip on the thermal roll. */
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
   .print-receipt * { color: black !important; }
   .print-receipt .text-base { font-size: 10px !important; }
   .print-receipt .text-sm { font-size: 9px !important; }
   .print-receipt .text-xs { font-size: 8px !important; }
   .print-payslip {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
+    /* See .print-receipt comment — static avoids per-page duplication. */
+    position: static !important;
     width: 100% !important;
     max-width: none !important;
     margin: 0 !important;

@@ -12,6 +12,24 @@ export default defineSchema({
     currency: v.string(),
     timezone: v.string(),
     status: v.union(v.literal("active"), v.literal("suspended")),
+    /** BIR identity — used on official receipts. All optional so existing
+     *  tenants keep working; receipts fall back to the legacy template
+     *  until the operator fills these in on the Settings → BIR page. */
+    businessName: v.optional(v.string()),
+    tradeName: v.optional(v.string()),
+    businessAddress: v.optional(v.string()),
+    tin: v.optional(v.string()), // 12 digits + optional 5-digit branch code
+    vatStatus: v.optional(
+      v.union(
+        v.literal("vat"),
+        v.literal("non_vat"),
+        v.literal("vat_exempt")
+      )
+    ),
+    accreditedSupplierName: v.optional(v.string()),
+    accreditedSupplierAccreditation: v.optional(v.string()),
+    accreditedSupplierDateIssued: v.optional(v.number()),
+    accreditedSupplierDateValid: v.optional(v.number()),
     updatedAt: v.number(),
   })
     .index("by_slug", ["slug"])
@@ -36,11 +54,32 @@ export default defineSchema({
       sunday: operatingHoursDay,
     }),
     status: v.union(v.literal("active"), v.literal("inactive")),
+    /** Per-machine BIR identifiers — every POS device/location needs its
+     *  own PTU and MIN issued by the BIR. */
+    birPermitNumber: v.optional(v.string()), // Permit to Use
+    birMin: v.optional(v.string()), // Machine Identification Number
+    birAtpNumber: v.optional(v.string()), // Authority to Print (backup OR pad)
+    birSerialPrefix: v.optional(v.string()), // e.g. "OR-MAIN-"
+    birSerialStart: v.optional(v.number()), // BIR-assigned starting #
     updatedAt: v.number(),
   })
     .index("by_tenant", ["tenantId"])
     .index("by_tenant_status", ["tenantId", "status"])
     .index("by_slug", ["slug"]),
+
+  /**
+   * Gap-less BIR serial counter per location. Even voided/refunded
+   * orders consume a serial — once an order increments this counter the
+   * number is "burned", never reused. Concurrency uses an OCC retry on
+   * the read-then-patch path inside completeOrder.
+   */
+  orderSerialCounters: defineTable({
+    tenantId: v.id("tenants"),
+    locationId: v.id("locations"),
+    currentSerial: v.number(), // last issued serial
+    prefix: v.string(),
+    updatedAt: v.number(),
+  }).index("by_location", ["locationId"]),
 
   users: defineTable({
     tenantId: v.id("tenants"),
@@ -308,6 +347,23 @@ export default defineSchema({
     discountAmount: v.optional(v.number()), // calculated discount in cents
     discountReason: v.optional(v.string()), // "Senior/PWD", "Employee", "Manager", "Custom"
     discountApprovedBy: v.optional(v.id("users")), // manager/owner who approved
+    /** BIR-required Senior Citizen / PWD fields. Captured at the
+     *  register when the cashier picks the Senior/PWD discount preset.
+     *  Receipt template prints these on the SC/PWD signature block. */
+    srPwdName: v.optional(v.string()),
+    srPwdId: v.optional(v.string()), // OSCA ID for Senior, PWD ID for PWD
+    srPwdType: v.optional(v.union(v.literal("senior"), v.literal("pwd"))),
+    /** VAT sales breakdown — required on every BIR Official Receipt.
+     *  vatableSales = portion subject to 12% VAT.
+     *  vatExemptSales = SC/PWD or other VAT-exempt amounts.
+     *  zeroRatedSales = exports / other zero-rated. */
+    vatableSales: v.optional(v.number()),
+    vatExemptSales: v.optional(v.number()),
+    zeroRatedSales: v.optional(v.number()),
+    /** Final printed OR/SI number assigned by orderSerialCounters.
+     *  Kept separate from internal orderNumber so the legacy
+     *  ORD-MAIN-{timestamp} id stays usable as a stable internal key. */
+    birSerial: v.optional(v.string()),
     customerId: v.optional(v.id("customers")),
     customerLabel: v.optional(v.string()), // universal name for walk-in stickers
     tableId: v.optional(v.id("tables")),

@@ -243,6 +243,12 @@ const NAV_ITEMS: NavItem[] = [
         icon: "",
         roles: ["owner"],
       },
+      {
+        label: "BIR / Tax",
+        href: "/settings/bir",
+        icon: "",
+        roles: ["owner"],
+      },
       // Custom Domain and White-Label hidden for now
       // {
       //   label: "Custom Domain",
