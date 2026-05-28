@@ -24,4 +24,13 @@ crons.cron(
   internal.reports.cron.dispatchScheduledReports
 );
 
+// Nightly inventory snapshot: capture BOD/EOD per ingredient per location.
+// Runs at 16:10 UTC = 00:10 Manila (PHT, UTC+8) so the previous Manila day
+// has just rolled over. Re-running is idempotent.
+crons.cron(
+  "nightly inventory snapshot",
+  "10 16 * * *",
+  internal.inventory.auditTrail.captureNightlySnapshots
+);
+
 export default crons;
