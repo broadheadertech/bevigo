@@ -4,6 +4,28 @@
 @custom-variant dark (&:is(.dark *));
 
 @media print {
+  /* Modal host neutralisation. The ReceiptView modal uses `fixed inset-0`
+   * + flex centring on screen; in print mode that backdrop is what
+   * triggers per-page duplication, not the inner .print-receipt. Force
+   * the host to behave like a normal block so the receipt prints once. */
+  .receipt-modal-host {
+    position: static !important;
+    inset: auto !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    display: block !important;
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    z-index: auto !important;
+  }
   body * { visibility: hidden !important; }
   .print-receipt, .print-receipt *,
   .print-payslip, .print-payslip *,
@@ -81,7 +103,17 @@
   .print-payslip * { color: black !important; }
   /* 58mm roll. If your printer is 80mm, change to "size: 80mm auto;". */
   @page { size: 58mm auto; margin: 0; }
-  html, body { margin: 0 !important; padding: 0 !important; background: white !important; }
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    /* Critical: clear any inherited min-height/height from the dashboard
+     * shell. If body is forced to 100vh, the printable region is one
+     * viewport tall and short content gets stretched / paginated. */
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
 }
 
 @theme inline {

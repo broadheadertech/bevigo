@@ -131,8 +131,8 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  }
 
  return (
- <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 print:p-0 print:bg-white print:block print:items-start">
- <div className="print-receipt rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] flex flex-col overflow-hidden print:max-h-none print:block" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
+ <div className="receipt-modal-host fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 print:p-0 print:bg-white print:block print:items-start">
+ <div className="print-receipt rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] flex flex-col overflow-hidden print:max-h-none print:block print:rounded-none print:shadow-none print:w-auto print:max-w-none" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-color)' }}>
  {/* Close button - hidden in print */}
  <div className="flex justify-end px-4 pt-3 shrink-0 print:hidden">
  <button
