@@ -5,6 +5,7 @@ import { requireAuth, requireRole } from "../lib/auth";
 import { logAuditEntry } from "../audit/helpers";
 import { addStampInternal } from "../customers/mutations";
 import { earnPointsInternal } from "../points/mutations";
+import { issueBirSerial } from "../settings/bir";
 
 export const createDraftOrder = mutation({
   args: {
@@ -589,7 +590,6 @@ export const completeOrder = mutation({
 
     // BIR gap-less serial number — only issued if Settings → BIR has
     // been configured for this location.
-    const { issueBirSerial } = await import("../settings/bir");
     const birSerial = await issueBirSerial(
       ctx,
       session.tenantId,
