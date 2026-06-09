@@ -14,6 +14,8 @@ type AuthSession = {
   role: string;
   userName: string;
   locationIds: Id<"locations">[];
+  isPlatformAdmin?: boolean;
+  tenantSuspended?: boolean;
 };
 
 type AuthContextType = {

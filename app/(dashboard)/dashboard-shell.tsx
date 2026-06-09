@@ -92,6 +92,28 @@ function DashboardNav({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClose:
  );
 }
 
+function SuspendedBanner() {
+ const { session } = useAuth();
+ if (!session?.tenantSuspended) return null;
+ return (
+ <div
+ className="px-4 py-2.5 text-sm flex items-center gap-2 flex-wrap justify-center"
+ style={{
+ backgroundColor: "rgba(239,68,68,0.12)",
+ color: "#b91c1c",
+ borderBottom: "1px solid rgba(239,68,68,0.25)",
+ }}
+ >
+ <span className="font-semibold">Service paused.</span>
+ <span>
+ This workspace is suspended. Sales and inventory edits will continue
+ to record, but customer-facing features may be limited. Contact
+ support to resume.
+ </span>
+ </div>
+ );
+}
+
 function MobileTopBar({ onOpen }: { onOpen: () => void }) {
  const { logoUrl } = useBranding();
  return (
@@ -136,6 +158,7 @@ export function DashboardShell({
  <ConfirmProvider>
  <div className="flex flex-col min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
  <ImpersonationBanner />
+ <SuspendedBanner />
  <MobileTopBar onOpen={handleOpen} />
  <div className="flex flex-1">
  <DashboardNav sidebarOpen={sidebarOpen} onClose={handleClose} />

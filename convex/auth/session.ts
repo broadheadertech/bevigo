@@ -12,6 +12,11 @@ export const validateSession = query({
       userName: v.string(),
       locationIds: v.array(v.id("locations")),
       isPlatformAdmin: v.optional(v.boolean()),
+      /** Set when the tenant has been suspended by a platform admin.
+       *  The dashboard shows a "service paused" banner; mutations
+       *  inside the dashboard continue to work for the owner so they
+       *  can settle billing and resume. */
+      tenantSuspended: v.optional(v.boolean()),
     }),
     v.null()
   ),
@@ -31,12 +36,15 @@ export const validateSession = query({
         .withIndex("by_user", (q) => q.eq("userId", session.userId))
         .collect();
 
+      const tenant = await ctx.db.get(session.tenantId);
+
       return {
         userId: session.userId,
         tenantId: session.tenantId,
         role: user.role,
         userName: user.name,
         locationIds: userLocations.map((ul) => ul.locationId),
+        tenantSuspended: tenant?.status === "suspended" ? true : undefined,
       };
     }
 
