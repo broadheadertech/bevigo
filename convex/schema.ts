@@ -81,6 +81,40 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_location", ["locationId"]),
 
+  /**
+   * BIR serial pre-allocations for offline mode. When a device is about
+   * to go offline (or on shift start), it asks the server to atomically
+   * reserve a block of serials from the gap-less counter. The block is
+   * stored here with the issuing device's id; while offline, the device
+   * consumes from the block and the printed receipt carries the real OR
+   * number. When the order replays online, completeOrder validates that
+   * the serial it received from the client falls inside an active
+   * reservation owned by the same device, and bumps the reservation's
+   * usedThrough watermark instead of issuing a fresh serial.
+   *
+   * Unused serials in an expired reservation become "void / cancelled"
+   * for BIR reporting purposes — the auditor can see the device was
+   * assigned the range and didn't use all of it.
+   */
+  orderSerialReservations: defineTable({
+    tenantId: v.id("tenants"),
+    locationId: v.id("locations"),
+    deviceId: v.string(),
+    prefix: v.string(),
+    fromSerial: v.number(),
+    toSerial: v.number(),
+    usedThrough: v.number(), // last serial actually consumed (0 if none)
+    status: v.union(
+      v.literal("active"),
+      v.literal("exhausted"),
+      v.literal("expired")
+    ),
+    expiresAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_location_device", ["locationId", "deviceId"])
+    .index("by_location_status", ["locationId", "status"]),
+
   users: defineTable({
     tenantId: v.id("tenants"),
     email: v.optional(v.string()),

@@ -1,10 +1,11 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useAuth } from "@/lib/auth-context";
 import { useCachedQuery } from "@/lib/offline/use-cached-query";
-import { useState, useCallback, useRef } from "react";
+import { ensureReservation } from "@/lib/offline/serial-pool";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Id } from "../../../convex/_generated/dataModel";
 import { MenuGrid } from "@/components/register/menu-grid";
 import { OrderPanel } from "@/components/register/order-panel";
@@ -75,6 +76,16 @@ export default function RegisterPage() {
     api.shifts.queries.getActiveShift,
     token && locationId ? { token, locationId } : "skip"
   ) as { _id: string; startedAt: number } | null | undefined;
+
+  // Pre-allocate a block of BIR serials whenever we have an active shift.
+  // Idempotent — a healthy pool is reused, an exhausted/expired one
+  // triggers a fresh block request. Reservation lives in IndexedDB so it
+  // survives the page reload that often follows a Wi-Fi drop.
+  const convex = useConvex();
+  useEffect(() => {
+    if (!token || !locationId || !activeShift) return;
+    void ensureReservation(convex, token, locationId);
+  }, [convex, token, locationId, activeShift?._id]);
 
   const createDraft = useMutation(api.orders.mutations.createDraftOrder);
   const addItem = useMutation(api.orders.mutations.addItemToOrder);
@@ -753,10 +764,11 @@ export default function RegisterPage() {
       )}
 
       {/* Payment dialog */}
-      {showPaymentDialog && displayOrder && (
+      {showPaymentDialog && displayOrder && locationId && (
         <PaymentDialog
           orderId={displayOrder._id}
           orderTotal={displayOrder.total}
+          locationId={locationId}
           onClose={() => setShowPaymentDialog(false)}
           onCompleted={handlePaymentCompleted}
         />

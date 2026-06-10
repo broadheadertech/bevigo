@@ -6,6 +6,7 @@ import { logAuditEntry } from "../audit/helpers";
 import { addStampInternal } from "../customers/mutations";
 import { earnPointsInternal } from "../points/mutations";
 import { issueBirSerial } from "../settings/bir";
+import { consumePreallocatedSerial } from "../settings/birReservations";
 
 export const createDraftOrder = mutation({
   args: {
@@ -481,6 +482,20 @@ export const completeOrder = mutation({
       change: v.optional(v.number()),
     }))),
     cashTendered: v.optional(v.number()), // for single-cash payments
+    /**
+     * Pre-allocated BIR serial — offline mode hands the server back the
+     * exact serial number the receipt printed. The server validates it
+     * against an active reservation (range + ownership + not-yet-used)
+     * and consumes it; if validation fails we fall back to issuing a
+     * fresh serial from the counter so the order still completes.
+     */
+    clientBirSerial: v.optional(
+      v.object({
+        reservationId: v.id("orderSerialReservations"),
+        serialNumber: v.number(),
+        deviceId: v.optional(v.string()),
+      })
+    ),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -488,6 +503,20 @@ export const completeOrder = mutation({
     const order = await ctx.db.get(args.orderId);
     if (!order || order.tenantId !== session.tenantId) {
       throw new Error("Order not found");
+    }
+    // Idempotency guard. If a previous completeOrder call already
+    // committed this draft but the response never reached the client,
+    // the offline-queue replay (or a manual retry) will send the same
+    // args again. Without this, we'd throw → the queue would dead-letter
+    // a payment that actually settled, or in the worst case we'd burn a
+    // second BIR serial and double-deduct stock. The orderId is the
+    // natural idempotency key — one draft, one completion.
+    if (order.status === "completed" && order.orderNumber) {
+      return {
+        orderId: args.orderId,
+        orderNumber: order.orderNumber,
+        total: order.total,
+      };
     }
     if (order.status !== "draft") {
       throw new Error("Can only complete draft orders");
@@ -588,14 +617,49 @@ export const completeOrder = mutation({
       });
     }
 
-    // BIR gap-less serial number — only issued if Settings → BIR has
-    // been configured for this location.
-    const birSerial = await issueBirSerial(
-      ctx,
-      session.tenantId,
-      order.locationId,
-      `OR-${location.slug.toUpperCase()}-`
-    );
+    // BIR gap-less serial number. Two code paths:
+    //   (1) Client offered a pre-allocated serial (offline mode). We
+    //       validate and consume it from the device's reservation row.
+    //       If the validation throws — expired block, range mismatch,
+    //       already-used — we DON'T rethrow because that would dead-
+    //       letter a payment that succeeded on the customer's side.
+    //       Instead we fall through to fresh issuance and tag the order
+    //       so the operator can reconcile on the BIR settings page.
+    //   (2) Otherwise issue the next serial from the gap-less counter
+    //       the same way online orders always have.
+    let birSerial: string | null = null;
+    if (args.clientBirSerial) {
+      try {
+        birSerial = await consumePreallocatedSerial(
+          ctx,
+          args.clientBirSerial.reservationId,
+          args.clientBirSerial.serialNumber,
+          args.clientBirSerial.deviceId
+        );
+      } catch (e) {
+        await logAuditEntry(
+          ctx,
+          session.tenantId,
+          session.userId,
+          "bir.preallocated_serial_rejected",
+          "orders",
+          args.orderId,
+          {
+            reservationId: args.clientBirSerial.reservationId,
+            serialNumber: args.clientBirSerial.serialNumber,
+            reason: e instanceof Error ? e.message : String(e),
+          }
+        );
+      }
+    }
+    if (!birSerial) {
+      birSerial = await issueBirSerial(
+        ctx,
+        session.tenantId,
+        order.locationId,
+        `OR-${location.slug.toUpperCase()}-`
+      );
+    }
 
     await ctx.db.patch(args.orderId, {
       status: "completed",

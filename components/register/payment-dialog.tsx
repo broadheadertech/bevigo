@@ -8,6 +8,7 @@ import { Id } from "../../convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/currency";
 import { CashTenderModal } from "./cash-tender-modal";
 import { useOfflineMutation } from "@/lib/offline/use-offline-mutation";
+import { claimNextSerial, releaseClaim } from "@/lib/offline/serial-pool";
 
 type PaymentType = "cash" | "card" | "ewallet";
 
@@ -20,6 +21,12 @@ type SplitPayment = {
 type PaymentDialogProps = {
   orderId: Id<"orders">;
   orderTotal: number;
+  /**
+   * Required to claim a pre-allocated BIR serial when the device is
+   * offline. Without this we fall back to printing an OFFLINE-XXX
+   * placeholder and the operator has to re-print after sync.
+   */
+  locationId: Id<"locations">;
   onClose: () => void;
   onCompleted: (orderNumber: string) => void;
 };
@@ -33,6 +40,7 @@ const paymentOptions: { type: PaymentType; label: string; icon: string }[] = [
 export function PaymentDialog({
   orderId,
   orderTotal,
+  locationId,
   onClose,
   onCompleted,
 }: PaymentDialogProps) {
@@ -41,19 +49,48 @@ export function PaymentDialog({
     fnPath: "orders/mutations:completeOrder",
   });
 
-  // When queued offline, the server has not assigned a BIR serial / order
-  // number yet. We hand the receipt path a placeholder so the cashier
-  // still gets a printable copy; once the queue flushes, the real number
-  // is recorded on the order document and the operator can re-print.
-  const handleCompleted = (
-    result:
-      | { queued: false; result: { orderNumber: string } }
-      | { queued: true; optimisticId: string }
+  /**
+   * Claim a serial from the local pool, run completeOrder with it, and
+   * resolve the receipt with the best identifier we have:
+   *   - online success → server-issued orderNumber
+   *   - queued offline + serial claimed → real "OR-MAIN-00001234" so the
+   *     printed receipt is BIR-compliant even though the order is still
+   *     waiting to sync
+   *   - queued offline + no serial (BIR not configured) → OFFLINE-XXX
+   */
+  const callCompleteOrder = async (
+    extraArgs: Record<string, unknown>
   ) => {
-    if (result.queued) {
-      onCompleted(`OFFLINE-${result.optimisticId.slice(0, 8).toUpperCase()}`);
-    } else {
-      onCompleted(result.result.orderNumber);
+    const claim = await claimNextSerial(locationId);
+    try {
+      const result = await completeOrder({
+        token,
+        orderId,
+        ...extraArgs,
+        clientBirSerial: claim
+          ? {
+              reservationId: claim.reservationId,
+              serialNumber: claim.serialNumber,
+              deviceId: claim.deviceId,
+            }
+          : undefined,
+      } as never);
+
+      if (result.queued) {
+        onCompleted(
+          claim
+            ? claim.formatted
+            : `OFFLINE-${result.optimisticId.slice(0, 8).toUpperCase()}`
+        );
+      } else {
+        onCompleted(result.result.orderNumber);
+      }
+    } catch (err) {
+      // Failure BEFORE the queue accepted it — return the claim so we
+      // don't burn a serial on a transaction that never ran. Anything
+      // past this point belongs to the queue / server.
+      if (claim) await releaseClaim(locationId, claim.serialNumber);
+      throw err;
     }
   };
 
@@ -90,12 +127,7 @@ export function PaymentDialog({
     setIsProcessing(true);
     setError(null);
     try {
-      const result = await completeOrder({
-        token,
-        orderId,
-        paymentType: pendingPayment,
-      });
-      handleCompleted(result);
+      await callCompleteOrder({ paymentType: pendingPayment });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed");
       setIsProcessing(false);
@@ -109,13 +141,10 @@ export function PaymentDialog({
     setIsProcessing(true);
     setError(null);
     try {
-      const result = await completeOrder({
-        token,
-        orderId,
+      await callCompleteOrder({
         paymentType: "cash",
         cashTendered: tenderedCents,
       });
-      handleCompleted(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed");
       setIsProcessing(false);
@@ -151,13 +180,10 @@ export function PaymentDialog({
     setIsProcessing(true);
     setError(null);
     try {
-      const result = await completeOrder({
-        token,
-        orderId,
+      await callCompleteOrder({
         paymentType: "split",
         payments: activeSplits,
       });
-      handleCompleted(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed");
       setIsProcessing(false);

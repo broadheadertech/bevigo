@@ -93,6 +93,7 @@ import type * as seedProduction from "../seedProduction.js";
 import type * as seedRecipes from "../seedRecipes.js";
 import type * as seedRewards from "../seedRewards.js";
 import type * as settings_bir from "../settings/bir.js";
+import type * as settings_birReservations from "../settings/birReservations.js";
 import type * as settings_mutations from "../settings/mutations.js";
 import type * as settings_queries from "../settings/queries.js";
 import type * as shifts_mutations from "../shifts/mutations.js";
@@ -211,6 +212,7 @@ declare const fullApi: ApiFromModules<{
   seedRecipes: typeof seedRecipes;
   seedRewards: typeof seedRewards;
   "settings/bir": typeof settings_bir;
+  "settings/birReservations": typeof settings_birReservations;
   "settings/mutations": typeof settings_mutations;
   "settings/queries": typeof settings_queries;
   "shifts/mutations": typeof shifts_mutations;
