@@ -7,6 +7,7 @@ import { BrandingProvider, useBranding } from"@/components/providers/branding-pr
 import { ThemeToggle } from"@/components/ui/theme-toggle";
 import { ConfirmProvider } from"@/lib/confirm-context";
 import { ImpersonationBanner } from"@/components/platform/impersonation-banner";
+import { OfflineStatus } from"@/components/offline/offline-status";
 
 function DashboardNav({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClose: () => void }) {
  const { session, logout } = useAuth();
@@ -159,6 +160,7 @@ export function DashboardShell({
  <div className="flex flex-col min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
  <ImpersonationBanner />
  <SuspendedBanner />
+ <OfflineStatus />
  <MobileTopBar onOpen={handleOpen} />
  <div className="flex flex-1">
  <DashboardNav sidebarOpen={sidebarOpen} onClose={handleClose} />

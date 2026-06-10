@@ -3,6 +3,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useAuth } from "@/lib/auth-context";
+import { useCachedQuery } from "@/lib/offline/use-cached-query";
 import { useState, useCallback, useRef } from "react";
 import { Id } from "../../../convex/_generated/dataModel";
 import { MenuGrid } from "@/components/register/menu-grid";
@@ -51,14 +52,18 @@ export default function RegisterPage() {
   const locationIds = session?.locationIds as Id<"locations">[] | undefined;
   const locationId = locationIds?.[0];
 
-  const items = useQuery(
+  // Menu items + categories: surface the last-seen snapshot from
+  // IndexedDB while offline so the cashier can still build orders.
+  const items = useCachedQuery<LocationItem[]>(
     api.menu.queries.listItemsForLocation,
-    token && locationId ? { token, locationId } : "skip"
-  ) as LocationItem[] | undefined;
+    token && locationId ? { token, locationId } : "skip",
+    `menu:items:${session?.tenantId ?? "?"}:${locationId ?? "?"}`
+  );
 
-  const categories = useQuery(
+  const categories = useCachedQuery(
     api.menu.queries.listCategories,
-    token ? { token } : "skip"
+    token ? { token } : "skip",
+    `menu:categories:${session?.tenantId ?? "?"}`
   );
 
   const currentDraft = useQuery(

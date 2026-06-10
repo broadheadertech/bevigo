@@ -255,6 +255,12 @@ const NAV_ITEMS: NavItem[] = [
         icon: "",
         roles: ["owner"],
       },
+      {
+        label: "Sync Queue",
+        href: "/offline-queue",
+        icon: "",
+        roles: ["owner", "manager"],
+      },
       // Custom Domain and White-Label hidden for now
       // {
       //   label: "Custom Domain",

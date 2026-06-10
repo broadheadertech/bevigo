@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { useAuth } from "@/lib/auth-context";
 import { Id } from "../../convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/currency";
 import { CashTenderModal } from "./cash-tender-modal";
+import { useOfflineMutation } from "@/lib/offline/use-offline-mutation";
 
 type PaymentType = "cash" | "card" | "ewallet";
 
@@ -37,7 +37,25 @@ export function PaymentDialog({
   onCompleted,
 }: PaymentDialogProps) {
   const { token } = useAuth();
-  const completeOrder = useMutation(api.orders.mutations.completeOrder);
+  const completeOrder = useOfflineMutation(api.orders.mutations.completeOrder, {
+    fnPath: "orders/mutations:completeOrder",
+  });
+
+  // When queued offline, the server has not assigned a BIR serial / order
+  // number yet. We hand the receipt path a placeholder so the cashier
+  // still gets a printable copy; once the queue flushes, the real number
+  // is recorded on the order document and the operator can re-print.
+  const handleCompleted = (
+    result:
+      | { queued: false; result: { orderNumber: string } }
+      | { queued: true; optimisticId: string }
+  ) => {
+    if (result.queued) {
+      onCompleted(`OFFLINE-${result.optimisticId.slice(0, 8).toUpperCase()}`);
+    } else {
+      onCompleted(result.result.orderNumber);
+    }
+  };
 
   const [mode, setMode] = useState<"select" | "split">("select");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -77,7 +95,7 @@ export function PaymentDialog({
         orderId,
         paymentType: pendingPayment,
       });
-      onCompleted(result.orderNumber);
+      handleCompleted(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed");
       setIsProcessing(false);
@@ -97,7 +115,7 @@ export function PaymentDialog({
         paymentType: "cash",
         cashTendered: tenderedCents,
       });
-      onCompleted(result.orderNumber);
+      handleCompleted(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed");
       setIsProcessing(false);
@@ -139,7 +157,7 @@ export function PaymentDialog({
         paymentType: "split",
         payments: activeSplits,
       });
-      onCompleted(result.orderNumber);
+      handleCompleted(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed");
       setIsProcessing(false);
