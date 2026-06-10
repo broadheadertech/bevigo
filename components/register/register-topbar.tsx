@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { useBranding } from "@/components/providers/branding-provider";
 
 export function RegisterTopBar() {
   const { session, logout, isAuthenticated } = useAuth();
+  const { brandName } = useBranding();
+  const displayName = brandName || "bevi&go";
   const [confirmLogout, setConfirmLogout] = useState(false);
 
   if (!isAuthenticated) return null;
@@ -55,7 +58,7 @@ export function RegisterTopBar() {
               className="text-base font-semibold italic shrink-0"
               style={{ color: "var(--fg)" }}
             >
-              bevi&amp;go
+              {displayName}
             </span>
           )}
           <span

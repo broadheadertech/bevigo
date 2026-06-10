@@ -87,6 +87,11 @@ export default function NewTenantPage() {
   // Review
   const [seedSampleData, setSeedSampleData] = useState(true);
   const [impersonateAfter, setImpersonateAfter] = useState(true);
+  const [initialPlanSlug, setInitialPlanSlug] = useState<string>("free");
+
+  const plans = useQuery(api.billing.queries.listPlans, {}) as
+    | Array<{ _id: string; name: string; slug: string; priceMonthly: number }>
+    | undefined;
 
   // Live availability
   const effectiveSlug = (slugDirty ? slug : slugify(name)).trim().toLowerCase();
@@ -147,6 +152,7 @@ export default function NewTenantPage() {
         ownerPassword,
         seedSampleData,
         impersonateAfter,
+        initialPlanSlug,
       });
       window.location.href = impersonateAfter ? "/" : "/platform/tenants";
     } catch (e) {
@@ -508,6 +514,67 @@ export default function NewTenantPage() {
                 <Kv label="Name" value={ownerName} />
                 <Kv label="Email" value={ownerEmail} mono />
               </KvGrid>
+
+              <SectionTitle>Subscription plan</SectionTitle>
+              <p
+                className="text-xs"
+                style={{ color: "var(--muted-fg)" }}
+              >
+                Drives feature gating (white-label, custom domain, branded
+                emails). Starts on a 30-day trial — the owner sees full
+                plan entitlements during evaluation.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {plans === undefined ? (
+                  <p
+                    className="col-span-2 text-xs"
+                    style={{ color: "var(--muted-fg)" }}
+                  >
+                    Loading plans…
+                  </p>
+                ) : plans.length === 0 ? (
+                  <p
+                    className="col-span-2 text-xs"
+                    style={{ color: "#b45309" }}
+                  >
+                    No plans seeded. Run{" "}
+                    <code>billing/seedPlans:seedDefaultPlans</code> first.
+                  </p>
+                ) : (
+                  plans.map((p) => {
+                    const active = initialPlanSlug === p.slug;
+                    return (
+                      <button
+                        key={p._id}
+                        type="button"
+                        onClick={() => setInitialPlanSlug(p.slug)}
+                        className="rounded-2xl px-3 py-2 text-left"
+                        style={{
+                          backgroundColor: active
+                            ? "var(--accent-color)"
+                            : "var(--muted)",
+                          color: active ? "white" : "var(--fg)",
+                          border: "1px solid var(--border-color)",
+                        }}
+                      >
+                        <p className="text-sm font-bold">{p.name}</p>
+                        <p
+                          className="text-[10px] mt-0.5"
+                          style={{
+                            color: active
+                              ? "rgba(255,255,255,0.85)"
+                              : "var(--muted-fg)",
+                          }}
+                        >
+                          {p.priceMonthly === 0
+                            ? "Free"
+                            : `₱${(p.priceMonthly / 100).toLocaleString()}/mo`}
+                        </p>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
 
               <SectionTitle>Options</SectionTitle>
               <ToggleRow

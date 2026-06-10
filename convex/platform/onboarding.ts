@@ -38,6 +38,7 @@ export const createTenant = action({
 
     seedSampleData: v.optional(v.boolean()),
     impersonateAfter: v.optional(v.boolean()),
+    initialPlanSlug: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (args.ownerPassword.length < 8) {
@@ -75,6 +76,7 @@ export const createTenant = action({
         ownerName: args.ownerName.trim(),
         ownerPasswordHash: passwordHash,
         seedSampleData: args.seedSampleData ?? true,
+        initialPlanSlug: args.initialPlanSlug,
       }
     );
 

@@ -5,6 +5,7 @@ import { createPortal } from"react-dom";
 import { useQuery } from"convex/react";
 import { api } from"../../convex/_generated/api";
 import { Id } from"../../convex/_generated/dataModel";
+import { useBranding } from"@/components/providers/branding-provider";
 
 type ReceiptModifier = {
  name: string;
@@ -105,6 +106,9 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  token,
  orderId,
  }) as ReceiptData | null | undefined;
+ const { brandName, entitlements } = useBranding();
+ const poweredByName = brandName || "bevi&go";
+ const showPoweredBy = !entitlements.hidePoweredBy;
 
  // SSR-safe portal mount + body-class toggle for print-only mode. The
  // class is added right before window.print() and cleared on afterprint
@@ -408,7 +412,9 @@ export function ReceiptView({ orderId, token, onClose }: ReceiptViewProps) {
  </p>
  </>
  )}
- <p className="text-stone-400 mt-2">Powered by bevi&amp;go</p>
+ {showPoweredBy && (
+ <p className="text-stone-400 mt-2">Powered by {poweredByName}</p>
+ )}
  </div>
  </>
  );

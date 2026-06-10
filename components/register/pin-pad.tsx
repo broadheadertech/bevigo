@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useBranding } from "@/components/providers/branding-provider";
 
 const MAX_PIN_LENGTH = 6;
 const MIN_PIN_LENGTH = 4;
@@ -35,6 +36,8 @@ export function PinPad({
   onRequireFullLogin,
   onPinSubmit,
 }: PinPadProps) {
+  const { brandName } = useBranding();
+  const displayName = brandName || "bevi&go";
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [shaking, setShaking] = useState(false);
@@ -171,7 +174,7 @@ export function PinPad({
   if (locked) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-neutral-900 text-white">
-        <h1 className="text-2xl font-bold mb-2">bevi&amp;go</h1>
+        <h1 className="text-2xl font-bold mb-2">{displayName}</h1>
         <p className="text-neutral-400 mb-6">{locationName}</p>
         <p className="text-red-400 text-lg mb-8">
           Too many failed attempts. Please sign in with Google.

@@ -11,7 +11,8 @@ import { OfflineStatus } from"@/components/offline/offline-status";
 
 function DashboardNav({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClose: () => void }) {
  const { session, logout } = useAuth();
- const { logoUrl } = useBranding();
+ const { logoUrl, brandName } = useBranding();
+ const altText = brandName || "bevi&go";
 
  return (
  <>
@@ -37,7 +38,7 @@ function DashboardNav({ sidebarOpen, onClose }: { sidebarOpen: boolean; onClose:
  <div className="flex items-center justify-between">
  <div className="flex-1 flex justify-center">
  {/* eslint-disable-next-line @next/next/no-img-element */}
- <img src={logoUrl ||"/logo.png"} alt="bevi&go" className="object-contain" style={{ height: '100px' }} />
+ <img src={logoUrl ||"/logo.png"} alt={altText} className="object-contain" style={{ height: '100px' }} />
  </div>
  <button
  onClick={onClose}
@@ -116,12 +117,13 @@ function SuspendedBanner() {
 }
 
 function MobileTopBar({ onOpen }: { onOpen: () => void }) {
- const { logoUrl } = useBranding();
+ const { logoUrl, brandName } = useBranding();
+ const altText = brandName || "bevi&go";
  return (
  <div className="md:hidden flex items-center justify-between px-4 py-3" style={{ backgroundColor: 'var(--card)', borderBottom: '1px solid var(--border-color)' }}>
  <div className="flex items-center gap-2.5">
  {/* eslint-disable-next-line @next/next/no-img-element */}
- <img src={logoUrl ||"/logo.png"} alt="bevi&go" className="h-10 object-contain" />
+ <img src={logoUrl ||"/logo.png"} alt={altText} className="h-10 object-contain" />
  </div>
  <button
  onClick={onOpen}

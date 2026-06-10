@@ -80,6 +80,13 @@ export const insertTenantBundle = internalMutation({
     ownerPasswordHash: v.string(),
     // Defaults
     seedSampleData: v.boolean(),
+    /** Plan to seed for this tenant. We look it up by slug rather than id
+     *  so the platform admin doesn't have to pass an opaque Convex id
+     *  from the wizard — the wizard just sends "free" / "pro" / etc. and
+     *  this mutation resolves it. Defaults to "free" when omitted so
+     *  every wizard-created tenant has a working subscription row
+     *  (otherwise `getEntitlements` falls back to "No Plan" forever). */
+    initialPlanSlug: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -210,6 +217,36 @@ export const insertTenantBundle = internalMutation({
       }
     }
 
-    return { tenantId, locationId, userId };
+    // Seed the subscription row. We look up the requested plan by slug;
+    // when missing (no seeded plans, or unknown slug) we fall back to
+    // "free", and if even that's not seeded we skip the insert. The
+    // entitlements query then treats the tenant as planless — but at
+    // least the operator sees "No Plan" in Settings → White-Label and
+    // can pick a real one later.
+    const slugWanted = (args.initialPlanSlug ?? "free").toLowerCase();
+    let plan = await ctx.db
+      .query("subscriptionPlans")
+      .withIndex("by_slug", (q) => q.eq("slug", slugWanted))
+      .unique();
+    if (!plan && slugWanted !== "free") {
+      plan = await ctx.db
+        .query("subscriptionPlans")
+        .withIndex("by_slug", (q) => q.eq("slug", "free"))
+        .unique();
+    }
+    if (plan) {
+      const monthMs = 30 * 24 * 60 * 60 * 1000;
+      await ctx.db.insert("tenantSubscriptions", {
+        tenantId,
+        planId: plan._id,
+        status: "trial",
+        currentPeriodStart: now,
+        currentPeriodEnd: now + monthMs,
+        monthlyOrderCount: 0,
+        updatedAt: now,
+      });
+    }
+
+    return { tenantId, locationId, userId, planSlug: plan?.slug ?? null };
   },
 });

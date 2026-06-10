@@ -2,6 +2,48 @@ import { query } from "../_generated/server";
 import { v } from "convex/values";
 import { requireAuth, requireRole } from "../lib/auth";
 
+/**
+ * Feature entitlements derived from the tenant's current plan. Kept as a
+ * pure function of the plan slug so we don't need to schema-migrate
+ * existing plan rows when adding a new entitlement — adjust the table
+ * below and every tenant on that slug gets the new flag at next render.
+ *
+ * Order of escalation: free → starter → pro → enterprise.
+ */
+type Entitlements = {
+  planSlug: string | null;
+  planName: string;
+  hidePoweredBy: boolean;
+  customDomain: boolean;
+  brandedEmails: boolean;
+};
+
+function entitlementsForPlan(
+  slug: string | null,
+  name: string
+): Entitlements {
+  const base: Entitlements = {
+    planSlug: slug,
+    planName: name,
+    hidePoweredBy: false,
+    customDomain: false,
+    brandedEmails: false,
+  };
+  switch (slug) {
+    case "pro":
+      return { ...base, hidePoweredBy: true, brandedEmails: true };
+    case "enterprise":
+      return {
+        ...base,
+        hidePoweredBy: true,
+        customDomain: true,
+        brandedEmails: true,
+      };
+    default:
+      return base;
+  }
+}
+
 export const listPlans = query({
   args: {},
   handler: async (ctx) => {
@@ -35,6 +77,35 @@ export const getCurrentSubscription = query({
       ...subscription,
       plan: plan ?? null,
     };
+  },
+});
+
+/**
+ * Public surface for entitlements. Available to any authenticated user
+ * (not owner-only) because the dashboard chrome needs it on every
+ * render — gating it behind role checks would force every staff session
+ * to render "Powered by" momentarily before suppressing it.
+ */
+export const getEntitlements = query({
+  args: { token: v.string() },
+  handler: async (ctx, args) => {
+    const auth = await requireAuth(ctx, args.token);
+
+    const subscription = await ctx.db
+      .query("tenantSubscriptions")
+      .withIndex("by_tenant", (q: any) => q.eq("tenantId", auth.tenantId))
+      .unique();
+    if (!subscription) return entitlementsForPlan(null, "No Plan");
+
+    const plan = await ctx.db.get(subscription.planId);
+    // A cancelled / past-due tenant drops back to free entitlements until
+    // they reactivate. Trial counts as the assigned plan so trialists
+    // get the full white-label experience while evaluating.
+    if (subscription.status === "cancelled" || subscription.status === "past_due") {
+      return entitlementsForPlan(null, plan?.name ?? "Cancelled");
+    }
+
+    return entitlementsForPlan(plan?.slug ?? null, plan?.name ?? "No Plan");
   },
 });
 

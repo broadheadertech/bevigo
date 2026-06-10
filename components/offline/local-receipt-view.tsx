@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useBranding } from "@/components/providers/branding-provider";
 
 /**
  * Receipt rendering for offline-mode checkout. Mirrors the BIR-compliant
@@ -94,6 +95,9 @@ type Props = {
 
 export function LocalReceiptView({ receipt, onClose }: Props) {
   const [mounted, setMounted] = useState(false);
+  const { brandName, entitlements } = useBranding();
+  const poweredByName = brandName || "bevi&go";
+  const showPoweredBy = !entitlements.hidePoweredBy;
   useEffect(() => {
     setMounted(true);
     const cleanup = () => document.body.classList.remove("printing-receipt");
@@ -360,7 +364,9 @@ export function LocalReceiptView({ receipt, onClose }: Props) {
                 </p>
               </>
             )}
-            <p className="text-stone-400 mt-2">Powered by bevi&amp;go</p>
+            {showPoweredBy && (
+              <p className="text-stone-400 mt-2">Powered by {poweredByName}</p>
+            )}
           </div>
         </div>
 
