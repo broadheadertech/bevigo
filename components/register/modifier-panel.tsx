@@ -36,6 +36,11 @@ type ModifierPanelProps = {
  onConfirm: (payload: ConfirmPayload) => void;
  onCancel: () => void;
  token: string;
+ /** Offline-mode caller passes the modifier groups directly instead of
+  *  letting the panel fetch them. Lets the same component drive both the
+  *  online flow (live useQuery) and the offline Quick Sale (cached data).
+  *  When provided, the network query is skipped entirely. */
+ groupsOverride?: ModifierGroup[];
 };
 
 function formatPrice(cents: number): string {
@@ -49,11 +54,13 @@ export function ModifierPanel({
  onConfirm,
  onCancel,
  token,
+ groupsOverride,
 }: ModifierPanelProps) {
- const groups = useQuery(
+ const liveGroups = useQuery(
  api.menu.modifierQueries.getItemModifierGroups,
- { token, menuItemId }
+ groupsOverride ? "skip" : { token, menuItemId }
  ) as ModifierGroup[] | undefined;
+ const groups = groupsOverride ?? liveGroups;
 
  // groupId -> (modifierId -> qty). Absence or qty=0 = unselected.
  const [selections, setSelections] = useState<

@@ -325,7 +325,248 @@ export default function BirSettingsPage() {
           ))}
         </div>
       </section>
+
+      <OfflineReservationsPanel token={token!} />
     </div>
+  );
+}
+
+type ReservationRow = {
+  _id: Id<"orderSerialReservations">;
+  deviceId: string;
+  prefix: string;
+  fromSerial: number;
+  toSerial: number;
+  usedThrough: number;
+  unusedTail: number;
+  status: "active" | "exhausted" | "expired";
+  expiresAt: number;
+  createdAt: number;
+};
+
+type ReservationLocationGroup = {
+  locationId: Id<"locations">;
+  locationName: string;
+  reservations: ReservationRow[];
+  totals: {
+    active: number;
+    exhausted: number;
+    expired: number;
+    unusedToReport: number;
+  };
+};
+
+function OfflineReservationsPanel({ token }: { token: string }) {
+  const rollup = useQuery(
+    api.settings.birReservations.tenantReservationRollup,
+    { token }
+  ) as ReservationLocationGroup[] | undefined;
+
+  return (
+    <section
+      className="rounded-3xl p-6"
+      style={{
+        backgroundColor: "var(--card)",
+        border: "1px solid var(--border-color)",
+      }}
+    >
+      <h2
+        className="text-xs font-semibold uppercase tracking-widest mb-2"
+        style={{ color: "var(--muted-fg)" }}
+      >
+        Offline serial reservations
+      </h2>
+      <p className="text-xs mb-5" style={{ color: "var(--muted-fg)" }}>
+        Pre-allocated blocks each device claims so it can print BIR-
+        compliant Official Receipts during a network outage. Unused serials
+        in an expired block must be filed as VOID/CANCELLED with the BIR —
+        the count below is what your auditor will ask for.
+      </p>
+
+      {rollup === undefined ? (
+        <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
+          Loading…
+        </p>
+      ) : rollup.every((g) => g.reservations.length === 0) ? (
+        <p className="text-xs" style={{ color: "var(--muted-fg)" }}>
+          No reservations have been issued yet. The first will appear here
+          the next time a register opens with BIR settings configured.
+        </p>
+      ) : (
+        <div className="space-y-5">
+          {rollup.map((g) =>
+            g.reservations.length === 0 ? null : (
+              <LocationReservations key={g.locationId} group={g} />
+            )
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function LocationReservations({ group }: { group: ReservationLocationGroup }) {
+  return (
+    <div
+      className="rounded-2xl p-4"
+      style={{
+        backgroundColor: "var(--muted)",
+        border: "1px solid var(--border-color)",
+      }}
+    >
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+        <p className="text-sm font-semibold" style={{ color: "var(--fg)" }}>
+          {group.locationName}
+        </p>
+        <div className="flex gap-2 flex-wrap text-[10px] font-semibold uppercase tracking-widest">
+          <Stat label="Active" value={group.totals.active} tone="ok" />
+          <Stat
+            label="Exhausted"
+            value={group.totals.exhausted}
+            tone="neutral"
+          />
+          <Stat
+            label="Expired"
+            value={group.totals.expired}
+            tone={group.totals.expired > 0 ? "warn" : "neutral"}
+          />
+          <Stat
+            label="To Void"
+            value={group.totals.unusedToReport}
+            tone={group.totals.unusedToReport > 0 ? "error" : "neutral"}
+          />
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr style={{ borderBottom: "1px solid var(--border-color)" }}>
+              <Th align="left">Range</Th>
+              <Th align="left">Status</Th>
+              <Th align="right">Used</Th>
+              <Th align="right">Unused</Th>
+              <Th align="left">Device</Th>
+              <Th align="left">Expires</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {group.reservations.map((r) => (
+              <ReservationRowView key={r._id} row={r} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ReservationRowView({ row }: { row: ReservationRow }) {
+  const range = `${row.prefix}${String(row.fromSerial).padStart(8, "0")} → ${String(
+    row.toSerial
+  ).padStart(8, "0")}`;
+  const used =
+    row.usedThrough === 0
+      ? 0
+      : row.usedThrough - row.fromSerial + 1;
+  const total = row.toSerial - row.fromSerial + 1;
+  const usedPercent = Math.round((used / total) * 100);
+
+  const statusColors = {
+    active: { bg: "rgba(16,185,129,0.15)", fg: "#059669" },
+    exhausted: { bg: "var(--card)", fg: "var(--muted-fg)" },
+    expired: { bg: "rgba(239,68,68,0.15)", fg: "#b91c1c" },
+  } as const;
+  const s = statusColors[row.status];
+
+  return (
+    <tr style={{ borderBottom: "1px solid var(--border-color)" }}>
+      <td
+        className="px-2 py-2 font-mono text-[11px]"
+        style={{ color: "var(--fg)" }}
+      >
+        {range}
+      </td>
+      <td className="px-2 py-2">
+        <span
+          className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest"
+          style={{ backgroundColor: s.bg, color: s.fg }}
+        >
+          {row.status}
+        </span>
+      </td>
+      <td
+        className="px-2 py-2 text-right font-mono text-[11px]"
+        style={{ color: "var(--fg)" }}
+      >
+        {used}/{total} ({usedPercent}%)
+      </td>
+      <td
+        className="px-2 py-2 text-right font-mono text-[11px]"
+        style={{
+          color: row.unusedTail > 0 && row.status === "expired" ? "#b91c1c" : "var(--muted-fg)",
+        }}
+      >
+        {row.unusedTail}
+      </td>
+      <td
+        className="px-2 py-2 font-mono text-[10px] truncate max-w-32"
+        style={{ color: "var(--muted-fg)" }}
+        title={row.deviceId}
+      >
+        {row.deviceId.slice(0, 8)}…
+      </td>
+      <td
+        className="px-2 py-2 text-[11px]"
+        style={{ color: "var(--muted-fg)" }}
+      >
+        {new Date(row.expiresAt).toLocaleDateString()}
+      </td>
+    </tr>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "ok" | "warn" | "error" | "neutral";
+}) {
+  const palette = {
+    ok: { bg: "rgba(16,185,129,0.15)", fg: "#059669" },
+    warn: { bg: "rgba(245,158,11,0.15)", fg: "#b45309" },
+    error: { bg: "rgba(239,68,68,0.15)", fg: "#b91c1c" },
+    neutral: { bg: "var(--card)", fg: "var(--muted-fg)" },
+  }[tone];
+  return (
+    <span
+      className="inline-block px-2 py-0.5 rounded-full whitespace-nowrap"
+      style={{ backgroundColor: palette.bg, color: palette.fg }}
+    >
+      {label}: {value}
+    </span>
+  );
+}
+
+function Th({
+  children,
+  align,
+}: {
+  children: React.ReactNode;
+  align: "left" | "right";
+}) {
+  return (
+    <th
+      className={`px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest ${
+        align === "right" ? "text-right" : "text-left"
+      }`}
+      style={{ color: "var(--muted-fg)" }}
+    >
+      {children}
+    </th>
   );
 }
 

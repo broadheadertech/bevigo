@@ -157,6 +157,97 @@ export const listReservations = query({
 });
 
 /**
+ * Tenant-wide rollup used by the BIR settings page. Returns each
+ * reservation tagged with its derived status (live blocks past expiry
+ * are flagged "expired" without the cron sweep needed) and the unused-
+ * tail count an auditor would ask about.
+ */
+export const tenantReservationRollup = query({
+  args: { token: v.string() },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+    const locations = await ctx.db
+      .query("locations")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", session.tenantId))
+      .collect();
+    const now = Date.now();
+
+    const summary: Array<{
+      locationId: Id<"locations">;
+      locationName: string;
+      reservations: Array<{
+        _id: Id<"orderSerialReservations">;
+        deviceId: string;
+        prefix: string;
+        fromSerial: number;
+        toSerial: number;
+        usedThrough: number;
+        unusedTail: number;
+        status: "active" | "exhausted" | "expired";
+        expiresAt: number;
+        createdAt: number;
+      }>;
+      totals: {
+        active: number;
+        exhausted: number;
+        expired: number;
+        unusedToReport: number; // serials in expired blocks past usedThrough
+      };
+    }> = [];
+
+    for (const loc of locations) {
+      const rows = await ctx.db
+        .query("orderSerialReservations")
+        .withIndex("by_location_status", (q) =>
+          q.eq("locationId", loc._id)
+        )
+        .collect();
+      rows.sort((a, b) => b._creationTime - a._creationTime);
+
+      const reservations = rows.map((r) => {
+        const derivedStatus: "active" | "exhausted" | "expired" =
+          r.status === "exhausted"
+            ? "exhausted"
+            : r.expiresAt < now
+              ? "expired"
+              : "active";
+        const unusedTail = Math.max(0, r.toSerial - r.usedThrough);
+        return {
+          _id: r._id,
+          deviceId: r.deviceId,
+          prefix: r.prefix,
+          fromSerial: r.fromSerial,
+          toSerial: r.toSerial,
+          usedThrough: r.usedThrough,
+          unusedTail,
+          status: derivedStatus,
+          expiresAt: r.expiresAt,
+          createdAt: r._creationTime,
+        };
+      });
+
+      const totals = reservations.reduce(
+        (acc, r) => {
+          acc[r.status]++;
+          if (r.status === "expired") acc.unusedToReport += r.unusedTail;
+          return acc;
+        },
+        { active: 0, exhausted: 0, expired: 0, unusedToReport: 0 }
+      );
+
+      summary.push({
+        locationId: loc._id,
+        locationName: loc.name,
+        reservations,
+        totals,
+      });
+    }
+
+    return summary;
+  },
+});
+
+/**
  * Validate + consume one pre-allocated serial during completeOrder.
  * Returns the formatted serial string, or throws if the reservation is
  * gone, expired, owned by a different device, or the offered serial is

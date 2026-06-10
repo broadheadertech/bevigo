@@ -734,6 +734,377 @@ export const completeOrder = mutation({
   },
 });
 
+/**
+ * One-shot offline-mode order submission. The client builds the entire
+ * order locally while disconnected — items, modifiers, discount, payment,
+ * customer linkage — and posts the whole bundle once the network is back.
+ * In a single transaction we create the order, insert items + modifiers,
+ * apply discount, finalise the BIR serial, run inventory deduction, and
+ * record customer engagement. Mirrors the math in completeOrder above so
+ * receipts printed offline match what gets written to the BIR record.
+ *
+ * Idempotency: clientOrderId is the natural key. If the same key was
+ * already processed (replay-after-success), return the existing order
+ * instead of inserting a duplicate. Indexed via `by_client_order_id`.
+ */
+export const submitOfflineOrder = mutation({
+  args: {
+    token: v.string(),
+    clientOrderId: v.string(),
+    locationId: v.id("locations"),
+    tableId: v.optional(v.id("tables")),
+    tableName: v.optional(v.string()),
+    customerId: v.optional(v.id("customers")),
+    customerLabel: v.optional(v.string()),
+    items: v.array(
+      v.object({
+        menuItemId: v.id("menuItems"),
+        quantity: v.number(),
+        modifiers: v.optional(
+          v.array(
+            v.object({
+              modifierName: v.string(),
+              priceAdjustment: v.number(),
+            })
+          )
+        ),
+        customerLabel: v.optional(v.string()),
+      })
+    ),
+    discount: v.optional(
+      v.object({
+        type: v.union(v.literal("percentage"), v.literal("fixed")),
+        value: v.number(),
+        amount: v.optional(v.number()),
+        reason: v.string(),
+        srPwdType: v.optional(v.union(v.literal("senior"), v.literal("pwd"))),
+        srPwdName: v.optional(v.string()),
+        srPwdId: v.optional(v.string()),
+      })
+    ),
+    paymentType: v.union(
+      v.literal("cash"),
+      v.literal("card"),
+      v.literal("ewallet"),
+      v.literal("split")
+    ),
+    payments: v.optional(
+      v.array(
+        v.object({
+          type: v.union(v.literal("cash"), v.literal("card"), v.literal("ewallet")),
+          amount: v.number(),
+          tendered: v.optional(v.number()),
+          change: v.optional(v.number()),
+        })
+      )
+    ),
+    cashTendered: v.optional(v.number()),
+    clientBirSerial: v.optional(
+      v.object({
+        reservationId: v.id("orderSerialReservations"),
+        serialNumber: v.number(),
+        deviceId: v.optional(v.string()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const session = await requireAuth(ctx, args.token);
+
+    // Idempotency: a prior replay may have already committed this order.
+    // We index by clientOrderId so this lookup is one read.
+    const existingByKey = await ctx.db
+      .query("orders")
+      .withIndex("by_client_order_id", (q) =>
+        q.eq("clientOrderId", args.clientOrderId)
+      )
+      .first();
+    if (existingByKey) {
+      if (existingByKey.tenantId !== session.tenantId) {
+        throw new Error("Client order id collision across tenants");
+      }
+      return {
+        orderId: existingByKey._id,
+        orderNumber: existingByKey.orderNumber ?? "",
+        total: existingByKey.total,
+        birSerial: existingByKey.birSerial ?? null,
+        replayed: true,
+      };
+    }
+
+    const location = await ctx.db.get(args.locationId);
+    if (!location || location.tenantId !== session.tenantId) {
+      throw new Error("Location not found");
+    }
+    if (args.items.length === 0) {
+      throw new Error("Cannot submit an order with no items");
+    }
+
+    const now = Date.now();
+
+    // 1. Insert the order shell. We'll patch the totals once items are in.
+    const orderId = await ctx.db.insert("orders", {
+      tenantId: session.tenantId,
+      locationId: args.locationId,
+      userId: session.userId,
+      status: "draft",
+      subtotal: 0,
+      taxAmount: 0,
+      total: 0,
+      taxRate: location.taxRate,
+      taxLabel: location.taxLabel,
+      clientOrderId: args.clientOrderId,
+      tableId: args.tableId,
+      tableName: args.tableName,
+      customerId: args.customerId,
+      customerLabel: args.customerLabel,
+      updatedAt: now,
+    });
+
+    // 2. Insert items + modifiers, snapshotting the price at order time
+    //    (location override > menu base price). Mirrors addItemToOrder /
+    //    addItemWithModifiers so the offline submission is indistinguishable
+    //    from a normal flow once it lands.
+    let subtotal = 0;
+    for (const item of args.items) {
+      const menuItem = await ctx.db.get(item.menuItemId);
+      if (!menuItem || menuItem.tenantId !== session.tenantId) {
+        throw new Error(`Menu item ${item.menuItemId} not found`);
+      }
+      const override = await ctx.db
+        .query("locationPriceOverrides")
+        .withIndex("by_menu_item_location", (q) =>
+          q.eq("menuItemId", item.menuItemId).eq("locationId", args.locationId)
+        )
+        .unique();
+      const effectivePrice = override?.price ?? menuItem.basePrice;
+      const modifierTotal = (item.modifiers ?? []).reduce(
+        (sum, m) => sum + m.priceAdjustment,
+        0
+      );
+      const lineSubtotal = (effectivePrice + modifierTotal) * item.quantity;
+      subtotal += lineSubtotal;
+
+      const orderItemId = await ctx.db.insert("orderItems", {
+        orderId,
+        menuItemId: item.menuItemId,
+        tenantId: session.tenantId,
+        itemName: menuItem.name,
+        basePrice: effectivePrice,
+        quantity: item.quantity,
+        subtotal: lineSubtotal,
+        customerLabel: item.customerLabel,
+      });
+      for (const mod of item.modifiers ?? []) {
+        await ctx.db.insert("orderItemModifiers", {
+          orderItemId,
+          tenantId: session.tenantId,
+          modifierName: mod.modifierName,
+          priceAdjustment: mod.priceAdjustment,
+        });
+      }
+    }
+
+    // 3. Discount + VAT math. Mirrors completeOrder so the two paths
+    //    can't drift — if regulation changes, we update both. The Sr/PWD
+    //    branch strips VAT out of the gross and applies 20% to the net,
+    //    same as RA 9994 / RA 10754 mandates.
+    let finalDiscountAmount = args.discount?.amount ?? 0;
+    if (
+      args.discount?.type === "percentage" &&
+      args.discount.value &&
+      !args.discount.srPwdType
+    ) {
+      finalDiscountAmount = Math.round((subtotal * args.discount.value) / 100);
+    }
+    if (finalDiscountAmount > subtotal) finalDiscountAmount = subtotal;
+
+    const isSrPwd = !!args.discount?.srPwdType;
+    let taxAmount: number;
+    let total: number;
+    let vatableSales = 0;
+    let vatExemptSales = 0;
+    const zeroRatedSales = 0;
+
+    if (isSrPwd) {
+      const netOfVat = Math.round((subtotal * 100) / 112);
+      const srPwdDiscount = Math.round(netOfVat * 0.2);
+      finalDiscountAmount = srPwdDiscount;
+      total = netOfVat - srPwdDiscount;
+      taxAmount = 0;
+      vatExemptSales = total;
+    } else {
+      taxAmount = Math.round(
+        (subtotal - finalDiscountAmount) * (location.taxRate / 10000)
+      );
+      total = subtotal - finalDiscountAmount + taxAmount;
+      vatableSales = subtotal - finalDiscountAmount;
+    }
+
+    // 4. Validate payment math matches the calculated total.
+    let finalPayments = args.payments;
+    if (args.paymentType === "cash") {
+      const tendered = args.cashTendered ?? total;
+      if (tendered < total) {
+        throw new Error("Tendered amount is less than total due");
+      }
+      finalPayments = [
+        {
+          type: "cash" as const,
+          amount: total,
+          tendered,
+          change: tendered - total,
+        },
+      ];
+    } else if (args.paymentType === "split" && args.payments) {
+      const splitTotal = args.payments.reduce((sum, p) => sum + p.amount, 0);
+      if (Math.abs(splitTotal - total) > 1) {
+        throw new Error("Split payment amounts must equal the total");
+      }
+      finalPayments = args.payments.map((p) => {
+        if (p.type === "cash" && p.tendered !== undefined) {
+          if (p.tendered < p.amount) {
+            throw new Error("Cash tendered is less than the cash portion");
+          }
+          return { ...p, change: p.tendered - p.amount };
+        }
+        return p;
+      });
+    }
+
+    // 5. BIR serial. Same two-path logic as completeOrder: client-supplied
+    //    pre-allocated serial preferred, falls back to fresh issuance.
+    let birSerial: string | null = null;
+    if (args.clientBirSerial) {
+      try {
+        birSerial = await consumePreallocatedSerial(
+          ctx,
+          args.clientBirSerial.reservationId,
+          args.clientBirSerial.serialNumber,
+          args.clientBirSerial.deviceId
+        );
+      } catch (e) {
+        await logAuditEntry(
+          ctx,
+          session.tenantId,
+          session.userId,
+          "bir.preallocated_serial_rejected",
+          "orders",
+          orderId,
+          {
+            reservationId: args.clientBirSerial.reservationId,
+            serialNumber: args.clientBirSerial.serialNumber,
+            reason: e instanceof Error ? e.message : String(e),
+          }
+        );
+      }
+    }
+    if (!birSerial) {
+      birSerial = await issueBirSerial(
+        ctx,
+        session.tenantId,
+        args.locationId,
+        `OR-${location.slug.toUpperCase()}-`
+      );
+    }
+
+    // 6. Finalise the order. Same shape completeOrder produces so all
+    //    downstream consumers (reports, COGS, receipt template) see no
+    //    difference between online and offline-replayed orders.
+    const orderNumber = `ORD-${location.slug.toUpperCase()}-${Date.now()}`;
+    await ctx.db.patch(orderId, {
+      status: "completed",
+      paymentType: args.paymentType,
+      payments: finalPayments,
+      orderNumber,
+      birSerial: birSerial ?? undefined,
+      subtotal,
+      taxAmount,
+      total,
+      vatableSales,
+      vatExemptSales,
+      zeroRatedSales,
+      discountType: args.discount?.type,
+      discountValue: args.discount?.value,
+      discountReason: args.discount?.reason,
+      discountAmount: finalDiscountAmount > 0 ? finalDiscountAmount : undefined,
+      srPwdType: args.discount?.srPwdType,
+      srPwdName: args.discount?.srPwdName,
+      srPwdId: args.discount?.srPwdId,
+      completedAt: now,
+      updatedAt: now,
+    });
+
+    // 7. Inventory + customer + subscription + audit — same tail as
+    //    completeOrder. We refetch items so deductStockForOrder gets the
+    //    real docs with their _ids.
+    const persistedItems = await ctx.db
+      .query("orderItems")
+      .withIndex("by_order", (q) => q.eq("orderId", orderId))
+      .collect();
+    await deductStockForOrder(
+      ctx,
+      persistedItems,
+      args.locationId,
+      session.tenantId
+    );
+
+    if (args.customerId) {
+      const customer = await ctx.db.get(args.customerId);
+      if (customer && customer.tenantId === session.tenantId) {
+        await ctx.db.patch(args.customerId, {
+          visitCount: customer.visitCount + 1,
+          totalSpent: customer.totalSpent + total,
+          lastVisitAt: now,
+          updatedAt: now,
+        });
+        await addStampInternal(ctx, args.customerId, session.tenantId);
+        await earnPointsInternal(
+          ctx,
+          session.tenantId,
+          args.customerId,
+          orderId,
+          total,
+          orderNumber
+        );
+      }
+    }
+
+    const subscription = await ctx.db
+      .query("tenantSubscriptions")
+      .withIndex("by_tenant", (q: any) => q.eq("tenantId", session.tenantId))
+      .unique();
+    if (subscription) {
+      await ctx.db.patch(subscription._id, {
+        monthlyOrderCount: subscription.monthlyOrderCount + 1,
+        updatedAt: now,
+      });
+    }
+
+    await logAuditEntry(
+      ctx,
+      session.tenantId,
+      session.userId,
+      "order.completed_offline",
+      "orders",
+      orderId,
+      {
+        orderNumber,
+        clientOrderId: args.clientOrderId,
+        paymentType: args.paymentType,
+        total,
+      }
+    );
+
+    return {
+      orderId,
+      orderNumber,
+      total,
+      birSerial: birSerial ?? null,
+      replayed: false,
+    };
+  },
+});
+
 export const assignTableToOrder = mutation({
   args: {
     token: v.string(),

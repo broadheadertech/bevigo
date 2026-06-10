@@ -398,6 +398,11 @@ export default defineSchema({
      *  Kept separate from internal orderNumber so the legacy
      *  ORD-MAIN-{timestamp} id stays usable as a stable internal key. */
     birSerial: v.optional(v.string()),
+    /** Client-generated stable id for offline-mode ringing. The local
+     *  draft on the device uses this as its primary key; submitOfflineOrder
+     *  uses it as the idempotency key so a replay-after-success returns
+     *  the existing order rather than creating a duplicate. */
+    clientOrderId: v.optional(v.string()),
     customerId: v.optional(v.id("customers")),
     customerLabel: v.optional(v.string()), // universal name for walk-in stickers
     tableId: v.optional(v.id("tables")),
@@ -411,7 +416,8 @@ export default defineSchema({
     .index("by_tenant_location", ["tenantId", "locationId"])
     .index("by_tenant_location_status", ["tenantId", "locationId", "status"])
     .index("by_tenant_location_date", ["tenantId", "locationId", "completedAt"])
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    .index("by_client_order_id", ["clientOrderId"]),
 
   orderItems: defineTable({
     orderId: v.id("orders"),

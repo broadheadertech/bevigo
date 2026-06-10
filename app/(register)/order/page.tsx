@@ -5,6 +5,8 @@ import { api } from "../../../convex/_generated/api";
 import { useAuth } from "@/lib/auth-context";
 import { useCachedQuery } from "@/lib/offline/use-cached-query";
 import { ensureReservation } from "@/lib/offline/serial-pool";
+import { useConnectionStatus } from "@/hooks/use-connection-status";
+import { OfflineQuickSale } from "@/components/offline/offline-quick-sale";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Id } from "../../../convex/_generated/dataModel";
 import { MenuGrid } from "@/components/register/menu-grid";
@@ -86,6 +88,10 @@ export default function RegisterPage() {
     if (!token || !locationId || !activeShift) return;
     void ensureReservation(convex, token, locationId);
   }, [convex, token, locationId, activeShift?._id]);
+
+  // Connection state drives the auto-takeover by the offline Quick Sale
+  // UI when the device is disconnected.
+  const { isOnline } = useConnectionStatus();
 
   const createDraft = useMutation(api.orders.mutations.createDraftOrder);
   const addItem = useMutation(api.orders.mutations.addItemToOrder);
@@ -629,6 +635,24 @@ export default function RegisterPage() {
         </button>
       </div>
 
+      {/* Offline auto-takeover: when the device is disconnected AND a
+          shift is open we hand control over to the Quick Sale surface.
+          The cashier rings up new orders against the local-draft store;
+          a single submitOfflineOrder mutation replays when the network
+          comes back. Without this branch the live order-panel mutations
+          (createDraftOrder, addItemToOrder) would throw and stall the
+          shift. */}
+      {!isOnline && activeShift && session?.tenantId && locationId ? (
+        <div className="flex-1 min-h-0 p-3">
+          <OfflineQuickSale
+            token={token!}
+            tenantId={session.tenantId}
+            locationId={locationId}
+            taxRateBps={1200}
+            onCompleted={handlePaymentCompleted}
+          />
+        </div>
+      ) : (
       <div className="flex flex-1 min-h-0">
       {/* Left: Menu grid (~65%) */}
       <div className="flex-[65] overflow-hidden bg-stone-100 dark:bg-stone-950">
@@ -747,6 +771,7 @@ export default function RegisterPage() {
       </div>
 
       </div>
+      )}
 
       {/* Shortcut help */}
       <ShortcutHelp />
