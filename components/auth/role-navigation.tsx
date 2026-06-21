@@ -173,6 +173,12 @@ const NAV_ITEMS: NavItem[] = [
         roles: ["manager", "owner"],
       },
       {
+        label: "X / Z Readings",
+        href: "/reports/readings",
+        icon: "",
+        roles: ["manager", "owner"],
+      },
+      {
         label: "Discounts",
         href: "/reports/discounts",
         icon: "",

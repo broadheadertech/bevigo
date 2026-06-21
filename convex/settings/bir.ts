@@ -52,6 +52,11 @@ export const getBirSettings = query({
         birAtpNumber: l.birAtpNumber ?? null,
         birSerialPrefix: l.birSerialPrefix ?? null,
         birSerialStart: l.birSerialStart ?? null,
+        birMachineSerial: l.birMachineSerial ?? null,
+        storeCode: l.storeCode ?? null,
+        terminalNo: l.terminalNo ?? null,
+        zCounter: l.zCounter ?? 0,
+        grandTotalAccumulated: l.grandTotalAccumulated ?? 0,
       })),
     };
   },
@@ -131,6 +136,9 @@ export const updateLocationBir = mutation({
     birAtpNumber: v.optional(v.string()),
     birSerialPrefix: v.optional(v.string()),
     birSerialStart: v.optional(v.number()),
+    birMachineSerial: v.optional(v.string()),
+    storeCode: v.optional(v.string()),
+    terminalNo: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const session = await requireAuth(ctx, args.token);
@@ -159,6 +167,11 @@ export const updateLocationBir = mutation({
       patch.birSerialPrefix = args.birSerialPrefix.trim() || undefined;
     if (args.birSerialStart !== undefined)
       patch.birSerialStart = args.birSerialStart;
+    if (args.birMachineSerial !== undefined)
+      patch.birMachineSerial = args.birMachineSerial.trim() || undefined;
+    if (args.storeCode !== undefined)
+      patch.storeCode = args.storeCode.trim() || undefined;
+    if (args.terminalNo !== undefined) patch.terminalNo = args.terminalNo;
 
     await ctx.db.patch(args.locationId, patch);
 

@@ -61,6 +61,23 @@ export default defineSchema({
     birAtpNumber: v.optional(v.string()), // Authority to Print (backup OR pad)
     birSerialPrefix: v.optional(v.string()), // e.g. "OR-MAIN-"
     birSerialStart: v.optional(v.number()), // BIR-assigned starting #
+    /** POS device serial number ("SN: PC1132A9" on Z-readings). Distinct
+     *  from BIR's PTU — this is the hardware/software identifier the
+     *  auditor cross-checks against your CRM registration. */
+    birMachineSerial: v.optional(v.string()),
+    /** Store/branch code printed on Z-readings — usually "001", "002"
+     *  for chains. Falls back to "001" when unset. */
+    storeCode: v.optional(v.string()),
+    /** Terminal number within the store. POS terminal #1 vs #2. */
+    terminalNo: v.optional(v.number()),
+    /** Running Z-counter — incremented each time a Z-Read closes the
+     *  business day. The auditor expects this to be gap-less and ever-
+     *  increasing per terminal. */
+    zCounter: v.optional(v.number()),
+    /** Lifetime gross sales accumulator. Z-reads add the period's grand
+     *  total to this — this is the "Accumulated Grand Total" BIR makes
+     *  you preserve across machine resets, OS reinstalls, etc. */
+    grandTotalAccumulated: v.optional(v.number()),
     updatedAt: v.number(),
   })
     .index("by_tenant", ["tenantId"])
@@ -114,6 +131,67 @@ export default defineSchema({
   })
     .index("by_location_device", ["locationId", "deviceId"])
     .index("by_location_status", ["locationId", "status"]),
+
+  /**
+   * BIR X/Z readings — every Z-Read closes a business day, increments the
+   * terminal's zCounter, adds the day's grand total to the accumulated
+   * lifetime total, and persists a snapshot row here for the auditor. X
+   * reads do NOT write to this table (they're mid-day informational
+   * prints only); the BIR-mandated audit trail is Z-only.
+   */
+  birReadings: defineTable({
+    tenantId: v.id("tenants"),
+    locationId: v.id("locations"),
+    type: v.union(v.literal("z"), v.literal("y")), // Y = end-of-shift, not yet wired
+    zCounter: v.number(),
+    storeCode: v.string(),
+    terminalNo: v.number(),
+    windowStart: v.number(), // ms — first order considered
+    windowEnd: v.number(), // ms — last order considered (inclusive)
+    beginningSerial: v.optional(v.string()),
+    endingSerial: v.optional(v.string()),
+    salesInvoiceCounter: v.number(),
+    // Transaction summary (cents)
+    grossSales: v.number(),
+    returns: v.number(),
+    subtotal: v.number(),
+    scDiscounts: v.number(),
+    pwdDiscounts: v.number(),
+    otherDiscounts: v.number(),
+    vatAdjustments: v.number(),
+    netSales: v.number(),
+    grandTotal: v.number(),
+    // Tender summary
+    cashTotal: v.number(),
+    cardTotal: v.number(),
+    ewalletTotal: v.number(),
+    // Counts
+    salesTransactionCount: v.number(),
+    itemsSoldCount: v.number(),
+    noSalesCount: v.number(),
+    transactionReprintCount: v.number(),
+    cashDepositReprintCount: v.number(),
+    withdrawalReprintCount: v.number(),
+    lineVoidsCount: v.number(),
+    cancelledTransactionCount: v.number(),
+    priceOverridesCount: v.number(),
+    scTransactionCount: v.number(),
+    pwdTransactionCount: v.number(),
+    // VAT computations
+    vatableSales: v.number(),
+    vatAmount: v.number(),
+    vatExemptSales: v.number(),
+    zeroRatedSales: v.number(),
+    // Accumulated lifetime totals — these are what BIR audits cross-
+    // checks against. Captured at the moment of the Z-Read.
+    accumulatedGrandTotalBefore: v.number(),
+    accumulatedGrandTotalAfter: v.number(),
+    generatedAt: v.number(),
+    generatedBy: v.id("users"),
+  })
+    .index("by_tenant", ["tenantId"])
+    .index("by_location", ["locationId"])
+    .index("by_location_zcounter", ["locationId", "zCounter"]),
 
   users: defineTable({
     tenantId: v.id("tenants"),

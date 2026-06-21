@@ -73,6 +73,7 @@ import type * as platform_onboardingHelpers from "../platform/onboardingHelpers.
 import type * as platform_session from "../platform/session.js";
 import type * as points_mutations from "../points/mutations.js";
 import type * as points_queries from "../points/queries.js";
+import type * as reports_birReadings from "../reports/birReadings.js";
 import type * as reports_cron from "../reports/cron.js";
 import type * as reports_dailyDigest from "../reports/dailyDigest.js";
 import type * as reports_dashboardDigest from "../reports/dashboardDigest.js";
@@ -192,6 +193,7 @@ declare const fullApi: ApiFromModules<{
   "platform/session": typeof platform_session;
   "points/mutations": typeof points_mutations;
   "points/queries": typeof points_queries;
+  "reports/birReadings": typeof reports_birReadings;
   "reports/cron": typeof reports_cron;
   "reports/dailyDigest": typeof reports_dailyDigest;
   "reports/dashboardDigest": typeof reports_dashboardDigest;

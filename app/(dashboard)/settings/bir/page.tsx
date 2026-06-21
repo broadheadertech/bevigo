@@ -27,6 +27,11 @@ type BirSettings = {
     birAtpNumber: string | null;
     birSerialPrefix: string | null;
     birSerialStart: number | null;
+    birMachineSerial: string | null;
+    storeCode: string | null;
+    terminalNo: number | null;
+    zCounter: number;
+    grandTotalAccumulated: number;
   }>;
 };
 
@@ -650,6 +655,9 @@ function LocationBirCard({
     birAtpNumber: location.birAtpNumber ?? "",
     birSerialPrefix: location.birSerialPrefix ?? `OR-${location.slug.toUpperCase()}-`,
     birSerialStart: location.birSerialStart ?? 1,
+    birMachineSerial: location.birMachineSerial ?? "",
+    storeCode: location.storeCode ?? "",
+    terminalNo: location.terminalNo ?? 1,
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -668,6 +676,9 @@ function LocationBirCard({
         birAtpNumber: form.birAtpNumber,
         birSerialPrefix: form.birSerialPrefix,
         birSerialStart: form.birSerialStart,
+        birMachineSerial: form.birMachineSerial,
+        storeCode: form.storeCode,
+        terminalNo: form.terminalNo,
       });
       setMsg("Saved.");
       setTimeout(() => setMsg(null), 2500);
@@ -752,6 +763,78 @@ function LocationBirCard({
           </p>
         </div>
       </div>
+
+      {/* Z-Read identity — printed on every X / Z reading */}
+      <div
+        className="rounded-xl mt-3 p-3"
+        style={{
+          backgroundColor: "var(--card)",
+          border: "1px solid var(--border-color)",
+        }}
+      >
+        <p
+          className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+          style={{ color: "var(--muted-fg)" }}
+        >
+          Z-Read identity
+        </p>
+        <div className="grid md:grid-cols-3 gap-3">
+          <Field
+            label="POS Serial (SN)"
+            compact
+            value={form.birMachineSerial}
+            onChange={(v) => setForm({ ...form, birMachineSerial: v })}
+            placeholder="PC1132A9"
+          />
+          <Field
+            label="Store Code"
+            compact
+            value={form.storeCode}
+            onChange={(v) => setForm({ ...form, storeCode: v })}
+            placeholder="001"
+          />
+          <div>
+            <label
+              className="block text-[10px] font-semibold uppercase tracking-widest mb-1.5"
+              style={{ color: "var(--muted-fg)" }}
+            >
+              Terminal No.
+            </label>
+            <input
+              type="number"
+              min={1}
+              value={form.terminalNo}
+              onChange={(e) =>
+                setForm({ ...form, terminalNo: Number(e.target.value) || 1 })
+              }
+              className="w-full rounded-xl px-3 py-2 text-sm focus:outline-none"
+              style={{
+                backgroundColor: "var(--muted)",
+                color: "var(--fg)",
+                border: "1px solid var(--border-color)",
+              }}
+            />
+          </div>
+        </div>
+        <p
+          className="text-[10px] mt-2 grid grid-cols-2 gap-2"
+          style={{ color: "var(--muted-fg)" }}
+        >
+          <span>
+            Z-Counter:{" "}
+            <strong style={{ color: "var(--fg)" }}>
+              {String(location.zCounter).padStart(8, "0")}
+            </strong>
+          </span>
+          <span>
+            Accumulated:{" "}
+            <strong style={{ color: "var(--fg)" }}>
+              ₱{(location.grandTotalAccumulated / 100).toLocaleString()}
+            </strong>
+          </span>
+        </p>
+      </div>
+
       <div className="flex justify-end mt-3">
         <button
           type="button"
